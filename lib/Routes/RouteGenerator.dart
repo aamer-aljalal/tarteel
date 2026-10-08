@@ -8,7 +8,7 @@ import 'package:tarteel/features/azkar/zkar_details.dart';
 import 'package:tarteel/features/Hadith/HadithScreen.dart';
 import 'package:tarteel/features/Qibla/QiblaScreen.dart';
 import 'package:tarteel/features/Settings/Settings.dart';
-import 'package:tarteel/features/adhan/adhan_muezzin_screen.dart';
+import 'package:tarteel/features/adhan/views/adhan_muezzin_screen.dart';
 import 'package:tarteel/features/quran/views/SurahListPage.dart';
 import 'package:tarteel/features/Tasbeeh/TasbeehScreen.dart';
 import 'package:tarteel/features/Dashbord/Stats.dart';

@@ -212,14 +212,40 @@ class AdhanNotificationService {
     if (!_notificationsAvailable) return;
 
     final enabled = await arePrayerNotificationsEnabled();
-
-    // مسح كافة التنبيهات المجدولة سابقاً لتجنب التكرار والتضارب
-    await cancelPrayerAdhan();
-    if (!enabled) return;
+    final prefs = await SharedPreferences.getInstance();
 
     final selected = await selectedMuezzin();
     final advanceMinutes = await getAdhanAdvanceMinutes();
     final now = DateTime.now();
+
+    // --- نظام الجدولة الذكي (Smart Scheduling) ---
+    // لمنع التطبيق من تكرار جدولة 225 صلاة عند كل فتح للتطبيق، نقوم بصنع "بصمة" للإعدادات
+    final enabledPrayersList = <String>[];
+    for (final p in [Prayer.fajr, Prayer.dhuhr, Prayer.asr, Prayer.maghrib, Prayer.isha]) {
+      final isPrayerEnabled = await isSinglePrayerAdhanEnabled(p);
+      if (isPrayerEnabled) enabledPrayersList.add(p.name);
+    }
+    
+    final currentSettingsHash = '${coordinates.latitude}_${coordinates.longitude}_${calculationParameters.method}_${selected.id}_$advanceMinutes_${enabledPrayersList.join('-')}_$enabled';
+    final lastSettingsHash = prefs.getString('last_adhan_schedule_hash');
+    final lastScheduleTimeMillis = prefs.getInt('last_adhan_schedule_time') ?? 0;
+    
+    final daysSinceLastSchedule = now.difference(DateTime.fromMillisecondsSinceEpoch(lastScheduleTimeMillis)).inDays;
+    
+    // إذا كانت الإعدادات متطابقة (الموقع والمؤذن والصلوات)، ولم يمر 10 أيام منذ آخر جدولة، فلا داعي لحذف وجدولة 225 منبه مجدداً
+    if (currentSettingsHash == lastSettingsHash && daysSinceLastSchedule < 10) {
+      debugPrint('Adhan Schedule is perfectly up to date, skipping heavy scheduling.');
+      return; 
+    }
+    // ----------------------------------------------
+
+    // مسح كافة التنبيهات المجدولة سابقاً لتجنب التكرار والتضارب
+    await cancelPrayerAdhan();
+    
+    if (!enabled) {
+      await prefs.setString('last_adhan_schedule_hash', currentSettingsHash);
+      return;
+    }
 
     // جدولة الصلوات لمدة 45 يوماً متلفة ومتتابعة للمستقبل (حوالي 225 صلاة) ليعمل الأذان دون توقف حتى لو اغلق التطبيق
     const int totalDaysToSchedule = 45;
@@ -267,6 +293,10 @@ class AdhanNotificationService {
         notificationOffset++;
       }
     }
+    
+    // حفظ البصمة ووقت الجدولة بعد نجاح العملية بالكامل
+    await prefs.setString('last_adhan_schedule_hash', currentSettingsHash);
+    await prefs.setInt('last_adhan_schedule_time', DateTime.now().millisecondsSinceEpoch);
   }
 
   /// إلغاء كافة إشعارات الأذان المجدولة في النظام
