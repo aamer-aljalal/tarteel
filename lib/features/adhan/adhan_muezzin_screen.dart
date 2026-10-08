@@ -29,6 +29,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
   bool _vibrationEnabled = true;
   bool _stopOnPowerButton = true;
   bool _isTestingAdhan = false;
+  int _advanceMinutes = 15;
   String? _playingMuezzinId;
   bool _isSaving = false;
 
@@ -83,6 +84,8 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     final notificationsEnabled =
         await AdhanNotificationService.arePrayerNotificationsEnabled();
     final activeMuezzin = await AdhanNotificationService.selectedMuezzin();
+    final advanceMinutes =
+        await AdhanNotificationService.getAdhanAdvanceMinutes();
     final prefs = await SharedPreferences.getInstance();
 
     final fajr = await AdhanNotificationService.isSinglePrayerAdhanEnabled(Prayer.fajr);
@@ -95,6 +98,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     setState(() {
       _soundEnabled = notificationsEnabled;
       _selectedMuezzin = activeMuezzin;
+      _advanceMinutes = advanceMinutes;
       _hapticFeedback = prefs.getBool('haptic_feedback') ?? true;
       _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
       _vibrationEnabled = prefs.getBool('adhan_vibration_enabled') ?? true;
@@ -105,6 +109,18 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
       _maghribEnabled = maghrib;
       _ishaEnabled = isha;
     });
+  }
+
+  Future<void> _updateAdvanceMinutes(int minutes) async {
+    if (_hapticFeedback) HapticFeedback.lightImpact();
+    setState(() {
+      _advanceMinutes = minutes;
+    });
+    await AdhanNotificationService.setAdhanAdvanceMinutes(minutes);
+    if (mounted) {
+      final prayerProvider = context.read<PrayerProvider>();
+      await prayerProvider.scheduleAdhanNotifications();
+    }
   }
 
   Future<void> _updateSoundEnabled(bool enabled) async {
@@ -439,13 +455,126 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
             onChanged: (value) => _updateSoundEnabled(value),
             iconColor: Colors.teal,
           ),
-          _buildSwitchTile(
-            title: 'الاهتزاز مع الأذان',
-            subtitle: 'تفعيل اهتزاز الهاتف عند تشغيل الأذان',
-            value: _vibrationEnabled,
-            icon: Icons.vibration_rounded,
-            onChanged: (value) => _updateVibrationEnabled(value),
-            iconColor: Colors.blueGrey,
+          // صف يجمع بين زر الاهتزاز مع الأذان وقائمة تحديد موعد الأذان قبل وقت الصلاة
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+            child: Row(
+              children: [
+                // زر الاهتزاز مع الأذان
+                Expanded(
+                  flex: 11,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(7.w),
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.vibration_rounded,
+                          color: Colors.blueGrey,
+                          size: 18.sp,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          'الاهتزاز مع الأذان',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                      Transform.scale(
+                        scale: 0.8,
+                        child: Switch.adaptive(
+                          value: _vibrationEnabled,
+                          onChanged: (value) => _updateVibrationEnabled(value),
+                          activeThumbColor: AppColors.primary,
+                          activeTrackColor:
+                              AppColors.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(width: 10.w),
+
+                // حقل القائمة المنسدلة لاختيار توقيت الأذان قبل وقت الصلاة
+                Expanded(
+                  flex: 9,
+                  child: Tooltip(
+                    message: 'موعد الأذان قبل دخول وقت الصلاة',
+                    child: Container(
+                      height: 38.h,
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _advanceMinutes,
+                          isExpanded: true,
+                          isDense: true,
+                          icon: Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: AppColors.primary,
+                            size: 20.sp,
+                          ),
+                          dropdownColor:
+                              isDark ? const Color(0xFF222222) : Colors.white,
+                          borderRadius: BorderRadius.circular(8.r),
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontFamily: theme.textTheme.bodyMedium?.fontFamily,
+                          ),
+                          items: const [
+                            DropdownMenuItem<int>(
+                              value: 15,
+                              child: Text('15 دقيقة'),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 10,
+                              child: Text('10 دقائق'),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 5,
+                              child: Text('5 دقائق'),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 0,
+                              child: Text('0 دقيقة'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              _updateAdvanceMinutes(val);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           SizedBox(height: 10.h),

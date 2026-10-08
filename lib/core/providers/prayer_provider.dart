@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/services/adhan_notification_service.dart';
 import 'package:tarteel/core/services/adhan_player_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:tarteel/Routes/AppRoutes.dart';
 
 class PrayerProvider extends ChangeNotifier {
   PrayerProvider() {
@@ -36,11 +37,12 @@ class PrayerProvider extends ChangeNotifier {
 
   // موقع مكة المكرمة الافتراضي والاحتياطي
   String _cityName = 'مكة المكرمة';
+  String? _countryCode;
   double _lat = 21.4225;
   double _lng = 39.8262;
   late Coordinates _coordinates = Coordinates(_lat, _lng);
-  late final CalculationParameters _calculationParameters = CalculationMethod
-      .umm_al_qura
+  CalculationMethod _calculationMethod = CalculationMethod.umm_al_qura;
+  late CalculationParameters _calculationParameters = _calculationMethod
       .getParameters();
 
   // بيانات أوقات الصلاة
@@ -56,12 +58,103 @@ class PrayerProvider extends ChangeNotifier {
 
   // Getters
   String get cityName => _cityName;
+  String? get countryCode => _countryCode;
+  CalculationMethod get calculationMethod => _calculationMethod;
   PrayerTimes? get prayerTimes => _prayerTimes;
   Prayer? get nextPrayer => _nextPrayer;
   DateTime? get nextPrayerTime => _nextPrayerTime;
   Duration get timeUntilNextPrayer => _timeUntilNextPrayer;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  /// الاسم المعروض لطريقة الحساب المعتمدة حالياً
+  String get calculationMethodName {
+    switch (_calculationMethod) {
+      case CalculationMethod.umm_al_qura:
+        return 'تقويم أم القرى (مكة المكرمة)';
+      case CalculationMethod.egyptian:
+        return 'الهيئة المصرية العامة للمساحة';
+      case CalculationMethod.dubai:
+        return 'تقويم دبي الرسمي';
+      case CalculationMethod.qatar:
+        return 'تقويم قطر الرسمي';
+      case CalculationMethod.kuwait:
+        return 'تقويم الكويت الرسمي';
+      case CalculationMethod.turkey:
+        return 'رئاسة الشؤون الدينية التركية';
+      case CalculationMethod.singapore:
+        return 'المجلس الإسلامي لسنغافورة وجنوب شرق آسيا';
+      case CalculationMethod.karachi:
+        return 'جامعة العلوم الإسلامية بكراتشي';
+      case CalculationMethod.north_america:
+        return 'الجمعية الإسلامية لأمريكا الشمالية (ISNA)';
+      case CalculationMethod.tehran:
+        return 'جامعة طهران';
+      case CalculationMethod.muslim_world_league:
+      default:
+        return 'رابطة العالم الإسلامي';
+    }
+  }
+
+  /// تحديد طريقة الحساب الفلكية الأنسب تلقائياً بناءً على الدولة أو الإحداثيات
+  CalculationMethod _determineCalculationMethod({
+    String? countryCode,
+    required double lat,
+    required double lng,
+  }) {
+    if (countryCode != null && countryCode.trim().isNotEmpty) {
+      switch (countryCode.trim().toUpperCase()) {
+        case 'SA': // المملكة العربية السعودية
+        case 'YE': // اليمن
+          return CalculationMethod.umm_al_qura;
+        case 'EG': // جمهورية مصر العربية
+        case 'SD': // السودان
+        case 'LY': // ليبيا
+          return CalculationMethod.egyptian;
+        case 'AE': // الإمارات العربية المتحدة
+          return CalculationMethod.dubai;
+        case 'QA': // قطر
+          return CalculationMethod.qatar;
+        case 'KW': // الكويت
+          return CalculationMethod.kuwait;
+        case 'TR': // تركيا
+          return CalculationMethod.turkey;
+        case 'SG': // سنغافورة
+        case 'MY': // ماليزيا
+        case 'ID': // إندونيسيا
+          return CalculationMethod.singapore;
+        case 'PK': // باكستان
+        case 'IN': // الهند
+        case 'BD': // بنغلاديش
+        case 'AF': // أفغانستان
+          return CalculationMethod.karachi;
+        case 'US': // الولايات المتحدة
+        case 'CA': // كندا
+          return CalculationMethod.north_america;
+        case 'IR': // إيران
+          return CalculationMethod.tehran;
+        default:
+          // بلاد الشام والمغرب العربي وأوروبا وباقي دول العالم
+          return CalculationMethod.muslim_world_league;
+      }
+    }
+
+    // فحص جغرافي بديل بالإحداثيات في حال عدم توفر اتصال بالإنترنت لجلب رمز الدولة
+    // نطاق جمهورية مصر العربية وشمال إفريقيا
+    if (lat >= 12.0 && lat <= 32.0 && lng >= 22.0 && lng <= 37.0) {
+      return CalculationMethod.egyptian;
+    }
+    // نطاق شبه الجزيرة العربية
+    if (lat >= 12.0 && lat <= 32.5 && lng >= 37.0 && lng <= 60.0) {
+      return CalculationMethod.umm_al_qura;
+    }
+
+    return CalculationMethod.muslim_world_league;
+  }
+
+  void _updateCalculationParameters() {
+    _calculationParameters = _calculationMethod.getParameters();
+  }
 
   /// تهيئة مواقيت الصلاة عند فتح التطبيق بشكل فوري وأوفلاين
   Future<void> initializeData() async {
@@ -75,7 +168,23 @@ class PrayerProvider extends ChangeNotifier {
       _lat = prefs.getDouble('prayer_lat') ?? 21.4225;
       _lng = prefs.getDouble('prayer_lng') ?? 39.8262;
       _cityName = prefs.getString('prayer_city_name') ?? 'مكة المكرمة';
+      _countryCode = prefs.getString('prayer_country_code');
       _coordinates = Coordinates(_lat, _lng);
+
+      // استرجاع طريقة الحساب المحفوظة أو تحديدها تلقائياً للموقع
+      final savedMethodIndex = prefs.getInt('prayer_calc_method_index');
+      if (savedMethodIndex != null &&
+          savedMethodIndex >= 0 &&
+          savedMethodIndex < CalculationMethod.values.length) {
+        _calculationMethod = CalculationMethod.values[savedMethodIndex];
+      } else {
+        _calculationMethod = _determineCalculationMethod(
+          countryCode: _countryCode,
+          lat: _lat,
+          lng: _lng,
+        );
+      }
+      _updateCalculationParameters();
 
       // 2. حساب المواقيت فوراً وبشكل أوفلاين 100% باستخدام مكتبة adhan
       _calculatePrayerTimes();
@@ -108,6 +217,11 @@ class PrayerProvider extends ChangeNotifier {
         // المرة الأولى فقط: تنبيه المستخدم بلطف لأخذ إذن الموقع
         if (context.mounted) {
           await _showLocationSetupDialog(context, isFirstTime: true);
+        }
+      } else {
+        // إذا كان الموقع قد تم سؤاله سابقاً، نتحقق من سؤال الأذان
+        if (context.mounted) {
+          await checkAndPromptAdhanActivation(context);
         }
       }
     } catch (e) {
@@ -197,7 +311,7 @@ class PrayerProvider extends ChangeNotifier {
                       : 'لقد مر عدة أيام منذ آخر تحديث لموقعك الجغرافي. هل ترغب في تحديث موقعك الحالي لضمان دقة مواقيت الصلاة والأذان (في حال سافرت أو غيرت مكانك)؟',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: 'Cairo',
+                    // fontFamily: 'Cairo',
                     fontSize: 12.5.sp,
                     color: isDark ? Colors.white70 : Colors.black54,
                     height: 1.5,
@@ -221,6 +335,9 @@ class PrayerProvider extends ChangeNotifier {
                         onPressed: () async {
                           Navigator.pop(context);
                           await _enableLocationAndFetch(context);
+                          if (context.mounted && isFirstTime) {
+                            await checkAndPromptAdhanActivation(context);
+                          }
                         },
                         child: Text(
                           isFirstTime ? 'تفعيل الآن' : 'تحديث الموقع',
@@ -257,29 +374,191 @@ class PrayerProvider extends ChangeNotifier {
 
                           if (isFirstTime) {
                             // حفظ مكة المكرمة كافتراضي
+                            _lat = 21.4225;
+                            _lng = 39.8262;
+                            _cityName = 'مكة المكرمة';
+                            _countryCode = 'SA';
+                            _coordinates = Coordinates(_lat, _lng);
+                            _calculationMethod = CalculationMethod.umm_al_qura;
+                            _updateCalculationParameters();
                             await _saveLocationToPrefs(
                               21.4225,
                               39.8262,
                               'مكة المكرمة',
+                              countryCode: 'SA',
                             );
                             await prefs.setString(
                               'last_location_update_time',
                               DateTime.now().toIso8601String(),
                             );
-                            _lat = 21.4225;
-                            _lng = 39.8262;
-                            _cityName = 'مكة المكرمة';
-                            _coordinates = Coordinates(_lat, _lng);
                             _calculatePrayerTimes();
                             notifyListeners();
                             _showToast(
                               context,
                               'تم حفظ توقيت مكة المكرمة كخيار افتراضي',
                             );
+                            if (context.mounted) {
+                              await checkAndPromptAdhanActivation(context);
+                            }
                           }
                         },
                         child: Text(
                           'ليس الآن',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 13.sp,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// التحقق وعرض رسالة تأكيد تفعيل أذان الصلوات التلقائي للمستخدم
+  Future<void> checkAndPromptAdhanActivation(BuildContext context) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool hasPromptedAdhan =
+          prefs.getBool('has_prompted_adhan_activation') ?? false;
+
+      if (!hasPromptedAdhan) {
+        if (context.mounted) {
+          await _showAdhanActivationDialog(context);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error in checkAndPromptAdhanActivation: $e");
+    }
+  }
+
+  /// نافذة حوار لتأكيد رغبة المستخدم في تفعيل تنبيهات الأذان والمؤذن
+  Future<void> _showAdhanActivationDialog(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Directionality(
+          textDirection: ui.TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            contentPadding: EdgeInsets.all(22.w),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // أيقونة المؤذن والأذان
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.volume_up_rounded,
+                    size: 38.sp,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+
+                // العنوان الرئيسي
+                Text(
+                  'تفعيل أذان الصلوات',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 12.h),
+
+                // النص التوضيحي
+                Text(
+                  'هل ترغب في تشغيل صوت الأذان التلقائي عند دخول أوقات الصلاة بصوت المؤذن؟\n\nعند الموافقة، يمكنك اختيار المؤذن المفضل وتخصيص مستوى الصوت لكل صلاة.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 12.5.sp,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+
+                // أزرار التحكم
+                Row(
+                  children: [
+                    // زر الموافقة
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          padding: EdgeInsets.symmetric(vertical: 10.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(dialogContext);
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('has_prompted_adhan_activation', true);
+                          await AdhanNotificationService.setPrayerNotificationsEnabled(true);
+                          await scheduleAdhanNotifications();
+                          if (context.mounted) {
+                            Navigator.pushNamed(context, AppRoutes.adhanMuezzin);
+                          }
+                        },
+                        child: Text(
+                          'موافق',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+
+                    // زر الرفض
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isDark ? Colors.white30 : Colors.black26,
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 10.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(dialogContext);
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('has_prompted_adhan_activation', true);
+                          await AdhanNotificationService.setPrayerNotificationsEnabled(false);
+                          await AdhanNotificationService.cancelPrayerAdhan();
+                          if (context.mounted) {
+                            _showToast(context, 'تم إيقاف الأذان التلقائي، يمكنك تفعيله لاحقاً من قسم المؤذن');
+                          }
+                        },
+                        child: Text(
+                          'لا',
                           style: TextStyle(
                             fontFamily: 'Cairo',
                             fontSize: 13.sp,
@@ -347,7 +626,14 @@ class PrayerProvider extends ChangeNotifier {
             'تم رفض الوصول للموقع، سيتم الاستمرار بتوقيت مكة المكرمة كافتراضي',
           );
         }
-        await _saveLocationToPrefs(21.4225, 39.8262, 'مكة المكرمة');
+        _calculationMethod = CalculationMethod.umm_al_qura;
+        _updateCalculationParameters();
+        await _saveLocationToPrefs(
+          21.4225,
+          39.8262,
+          'مكة المكرمة',
+          countryCode: 'SA',
+        );
         await prefs.setString(
           'last_location_update_time',
           DateTime.now().toIso8601String(),
@@ -355,6 +641,7 @@ class PrayerProvider extends ChangeNotifier {
         _lat = 21.4225;
         _lng = 39.8262;
         _cityName = 'مكة المكرمة';
+        _countryCode = 'SA';
         _coordinates = Coordinates(_lat, _lng);
         _calculatePrayerTimes();
         await scheduleAdhanNotifications();
@@ -384,7 +671,8 @@ class PrayerProvider extends ChangeNotifier {
       _lng = pos.longitude;
       _coordinates = Coordinates(_lat, _lng);
 
-      // جلب الاسم الجغرافي للمدينة
+      // جلب الاسم الجغرافي للمدينة ورمز الدولة
+      String? detectedCountryCode;
       try {
         final placemarks = await placemarkFromCoordinates(_lat, _lng);
         if (placemarks.isNotEmpty) {
@@ -394,13 +682,27 @@ class PrayerProvider extends ChangeNotifier {
               place.subAdministrativeArea ??
               place.administrativeArea ??
               'موقعي الحالي';
+          detectedCountryCode = place.isoCountryCode;
         }
       } catch (_) {
         _cityName = 'موقعي الحالي';
       }
 
-      // حفظ الإحداثيات والمدينة في الذاكرة لتشغيل أوفلاين للأبد
-      await _saveLocationToPrefs(_lat, _lng, _cityName);
+      _countryCode = detectedCountryCode;
+      _calculationMethod = _determineCalculationMethod(
+        countryCode: _countryCode,
+        lat: _lat,
+        lng: _lng,
+      );
+      _updateCalculationParameters();
+
+      // حفظ الإحداثيات والمدينة وطريقة الحساب في الذاكرة لتشغيل أوفلاين للأبد
+      await _saveLocationToPrefs(
+        _lat,
+        _lng,
+        _cityName,
+        countryCode: _countryCode,
+      );
       await prefs.setString(
         'last_location_update_time',
         DateTime.now().toIso8601String(),
@@ -412,7 +714,7 @@ class PrayerProvider extends ChangeNotifier {
       if (context.mounted) {
         _showToast(context, 'تم تحديد موقعك بنجاح: $_cityName');
       }
-        } catch (e) {
+    } catch (e) {
       if (context.mounted) {
         _showToast(
           context,
@@ -425,16 +727,21 @@ class PrayerProvider extends ChangeNotifier {
     }
   }
 
-  /// حفظ البيانات المشتركة
+  /// حفظ البيانات المشتركة وطريقة الحساب
   Future<void> _saveLocationToPrefs(
     double lat,
     double lng,
-    String cityName,
-  ) async {
+    String cityName, {
+    String? countryCode,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('prayer_lat', lat);
     await prefs.setDouble('prayer_lng', lng);
     await prefs.setString('prayer_city_name', cityName);
+    if (countryCode != null) {
+      await prefs.setString('prayer_country_code', countryCode);
+    }
+    await prefs.setInt('prayer_calc_method_index', _calculationMethod.index);
   }
 
   /// عرض رسالة إرشادية للمستخدم
@@ -589,7 +896,8 @@ class PrayerProvider extends ChangeNotifier {
           _lng = pos.longitude;
           _coordinates = Coordinates(_lat, _lng);
 
-          // جلب الاسم الجغرافي للمدينة
+          // جلب الاسم الجغرافي للمدينة ورمز الدولة
+          String? detectedCountryCode;
           try {
             final placemarks = await placemarkFromCoordinates(_lat, _lng);
             if (placemarks.isNotEmpty) {
@@ -599,6 +907,7 @@ class PrayerProvider extends ChangeNotifier {
                   place.subAdministrativeArea ??
                   place.administrativeArea ??
                   'موقعي الحالي';
+              detectedCountryCode = place.isoCountryCode;
             }
           } catch (_) {
             if (_cityName == 'مكة المكرمة') {
@@ -606,8 +915,21 @@ class PrayerProvider extends ChangeNotifier {
             }
           }
 
-          // حفظ الإحداثيات والمدينة في الذاكرة لتشغيل أوفلاين للأبد
-          await _saveLocationToPrefs(_lat, _lng, _cityName);
+          _countryCode = detectedCountryCode;
+          _calculationMethod = _determineCalculationMethod(
+            countryCode: _countryCode,
+            lat: _lat,
+            lng: _lng,
+          );
+          _updateCalculationParameters();
+
+          // حفظ الإحداثيات والمدينة وطريقة الحساب في الذاكرة لتشغيل أوفلاين للأبد
+          await _saveLocationToPrefs(
+            _lat,
+            _lng,
+            _cityName,
+            countryCode: _countryCode,
+          );
 
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(
@@ -618,7 +940,7 @@ class PrayerProvider extends ChangeNotifier {
           _calculatePrayerTimes();
           await scheduleAdhanNotifications();
           notifyListeners();
-                }
+        }
       }
     } catch (e) {
       debugPrint("Error in silentlyUpdateLocation: $e");

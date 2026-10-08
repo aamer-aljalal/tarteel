@@ -140,10 +140,24 @@ class AdhanNotificationService {
     await androidPlugin?.requestExactAlarmsPermission();
   }
 
+  static const String _advanceTimeKey = 'adhan_advance_minutes';
+
+  /// الحصول على وقت الأذان المسبق بالدقائق (الافتراضي 15 دقيقة)
+  static Future<int> getAdhanAdvanceMinutes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_advanceTimeKey) ?? 15;
+  }
+
+  /// حفظ وقت الأذان المسبق بالدقائق
+  static Future<void> setAdhanAdvanceMinutes(int minutes) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_advanceTimeKey, minutes);
+  }
+
   /// التحقق من حالة تفعيل إشعارات الأذان من إعدادات التطبيق
   static Future<bool> arePrayerNotificationsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_notificationsEnabledKey) ?? true;
+    return prefs.getBool(_notificationsEnabledKey) ?? false;
   }
 
   /// حفظ حالة تفعيل أو إلغاء تفعيل إشعارات الأذان
@@ -204,6 +218,7 @@ class AdhanNotificationService {
     if (!enabled) return;
 
     final selected = await selectedMuezzin();
+    final advanceMinutes = await getAdhanAdvanceMinutes();
     final now = DateTime.now();
 
     // جدولة الصلوات لمدة 45 يوماً متلفة ومتتابعة للمستقبل (حوالي 225 صلاة) ليعمل الأذان دون توقف حتى لو اغلق التطبيق
@@ -228,8 +243,15 @@ class AdhanNotificationService {
 
       for (final prayer in prayers) {
         final prayerTime = dayPrayerTimes.timeForPrayer(prayer);
-        // نتخطى الصلوات التي مضى وقتها بالفعل في اليوم الحالي
-        if (prayerTime == null || prayerTime.isBefore(now)) continue;
+        if (prayerTime == null) continue;
+
+        // حساب وقت الأذان بناءً على التقديم المحدد (15، 10، 5، أو 0 دقيقة)
+        final scheduledTime = advanceMinutes > 0
+            ? prayerTime.subtract(Duration(minutes: advanceMinutes))
+            : prayerTime;
+
+        // نتخطى الصلوات التي مضى موعد تنبيهها بالفعل
+        if (scheduledTime.isBefore(now)) continue;
 
         // نتخطى الصلاة إذا كان الأذان معطلاً لهذه الفريضة المحددة
         final isPrayerEnabled = await isSinglePrayerAdhanEnabled(prayer);
@@ -238,8 +260,9 @@ class AdhanNotificationService {
         await _scheduleSingleAdhan(
           id: _notificationBaseId + notificationOffset,
           prayerName: _prayerName(prayer),
-          scheduledTime: prayerTime,
+          scheduledTime: scheduledTime,
           muezzin: selected,
+          advanceMinutes: advanceMinutes,
         );
         notificationOffset++;
       }
@@ -296,7 +319,15 @@ class AdhanNotificationService {
     required String prayerName,
     required DateTime scheduledTime,
     required AdhanMuezzin muezzin,
+    int advanceMinutes = 0,
   }) async {
+    final alarmTitle = advanceMinutes > 0
+        ? 'اقترب موعد صلاة $prayerName'
+        : 'حان الآن موعد صلاة $prayerName';
+    final alarmSubtitle = advanceMinutes > 0
+        ? 'أذان بصوت المؤذن ${muezzin.name} (قبل الصلاة بـ $advanceMinutes دقيقة)'
+        : 'أذان بصوت المؤذن ${muezzin.name}';
+
     // 1. جدولة المنبه الأصلي لنظام الأندرويد فوراً (الخدمة الأساسية الحصرية للتطبيق)
     if (Platform.isAndroid) {
       final prefs = await SharedPreferences.getInstance();
@@ -306,16 +337,10 @@ class AdhanNotificationService {
       final success = await NativeAlarmService.scheduleAlarm(
         id: 'adhan_prayer_$id',
         type: 'ADHAN',
-        title: 'حان الآن موعد صلاة $prayerName',
-        subtitle: 'أذان بصوت المؤذن ${muezzin.name}',
+        title: alarmTitle,
+        subtitle: alarmSubtitle,
         audioFile: muezzin.rawResourceName,
         audioSource: 'RAW_RESOURCE',
-        //  تحذير مهم للاختبار: هذه الدالة تعمل داخل حلقة تكرار لجدولة 225 صلاة (45 يوماً).
-        // لا تضع هنا DateTime.now().add(Duration(seconds: 30)) وإلا سيعمل 225 منبه في نفس الثانية!
-        // لتجربة الأذان المجدول بأمان بعد 30 ثانية، استخدم دالة: testScheduleAdhanInSeconds(30)
-        // scheduledTime: id == 9000
-        //     ? DateTime.now().add(const Duration(seconds: 10))
-        //     : scheduledTime,
         scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,
@@ -325,7 +350,7 @@ class AdhanNotificationService {
 
       if (success) {
         debugPrint(
-          'Native Adhan scheduled successfully for $prayerName at $scheduledTime',
+          'Native Adhan scheduled successfully for $prayerName at $scheduledTime (Advance: $advanceMinutes m)',
         );
 
         return; // ننهي الدالة لكي لا تتم جدولة إشعار مكرر عبر flutter_local_notifications
@@ -354,8 +379,10 @@ class AdhanNotificationService {
     try {
       await _notifications.zonedSchedule(
         id: id,
-        title: 'حان الآن موعد صلاة $prayerName',
-        body: 'الله أكبر',
+        title: alarmTitle,
+        body: advanceMinutes > 0
+            ? 'أذان بصوت ${muezzin.name} قبل الصلاة بـ $advanceMinutes دقيقة'
+            : 'الله أكبر',
         scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
         notificationDetails: NotificationDetails(android: androidDetails),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
