@@ -9,6 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/theme/app_theme.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
+import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
 import 'package:provider/provider.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
@@ -27,8 +28,11 @@ void main() async {
   final themeProvider = ThemeProvider();
   await themeProvider.initialize();
 
-  // Kick off Quran text preloading asynchronously after all core plugins are ready
-  Future.microtask(() => QuranService.preloadQuran());
+  // Kick off Quran and Hisn text preloading asynchronously after all core plugins are ready
+  Future.microtask(() {
+    QuranService.preloadQuran();
+    HisnService.loadHisnAsActions();
+  });
 
   runApp(
     MultiProvider(

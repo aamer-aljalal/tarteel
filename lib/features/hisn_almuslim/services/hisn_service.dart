@@ -1,26 +1,38 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tarteel/Model/AccessListModel.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 import 'package:tarteel/routes/AppRoutes.dart';
 
 class HisnService {
+  static List<HisnCategory>? _cachedCategories;
+  static List<AccessListModel>? _cachedActions;
+
   static Future<List<HisnCategory>> loadHisn() async {
-    final String jsonString = await rootBundle.loadString('assets/json/hisn_almuslim.json');
-    final Map<String, dynamic> data = jsonDecode(jsonString);
+    if (_cachedCategories != null) return _cachedCategories!;
     
+    final String jsonString = await rootBundle.loadString('assets/json/hisn_almuslim.json');
+    _cachedCategories = await compute(_parseHisnJson, jsonString);
+    return _cachedCategories!;
+  }
+
+  // دالة تُنفذ في مسار خلفي (Isolate) لمنع تجميد واجهة المستخدم
+  static List<HisnCategory> _parseHisnJson(String jsonString) {
+    final Map<String, dynamic> data = jsonDecode(jsonString);
     List<HisnCategory> categories = [];
     data.forEach((key, value) {
       categories.add(HisnCategory.fromJson(key, value as Map<String, dynamic>));
     });
-    
     return categories;
   }
 
   static Future<List<AccessListModel>> loadHisnAsActions() async {
+    if (_cachedActions != null) return _cachedActions!;
+
     final categories = await loadHisn();
-    return categories.map((category) {
+    _cachedActions = categories.map((category) {
       return AccessListModel(
         icon: getHisnIcon(category.title),
         title: category.title,
@@ -28,6 +40,8 @@ class HisnService {
         arguments: category,
       );
     }).toList();
+    
+    return _cachedActions!;
   }
 
   static IconData getHisnIcon(String title) {

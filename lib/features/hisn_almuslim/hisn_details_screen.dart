@@ -1,11 +1,13 @@
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
+import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
+import 'dart:math' as math;
+import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 
@@ -17,212 +19,201 @@ class HisnDetailsScreen extends StatefulWidget {
   State<HisnDetailsScreen> createState() => _HisnDetailsScreenState();
 }
 
-class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
-  double _fontSize = 20.0;
+class _HisnDetailsScreenState extends State<HisnDetailsScreen>
+    with SingleTickerProviderStateMixin {
+  double _buttonScale = 1.0;
+  int currentHisnIndex = 0;
   bool _hapticEnabled = true;
-  final Map<int, int> _counters = {};
+  double _activeMaxFontSize = 14.0;
+  
+  // Since Hisn has no built-in target counts, we default to 1, or let it increment infinitely.
+  // We'll maintain a list of current counts here:
+  late List<int> _counters;
+
+  String get currentText => widget.category.texts[currentHisnIndex];
+  
+  // We can assume a target of 1 for the progress ring to look full after 1 tap.
+  int get _totalRepeat => 1; 
+  double get _progress => (_counters[currentHisnIndex] / _totalRepeat).clamp(0.0, 1.0);
+
+  bool get _isAllCompleted => _counters.every((count) => count >= _totalRepeat);
+
+  bool get _hasStartedReciting => _counters.any((count) => count > 0);
+
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _loadPreferences();
-    _saveRecentAction();
+    _counters = List.filled(widget.category.texts.length, 0);
+    _pageController = PageController();
+    _loadSavedIndex();
   }
 
-  Future<void> _loadPreferences() async {
+  Future<void> _loadSavedIndex() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      _hapticEnabled = prefs.getBool('haptic_feedback') ?? true;
 
-      // Load daily counters for each prayer in this category
+      // Load daily counts for each Hisn in this category
       final now = DateTime.now();
       final todayStr = '${now.year}-${now.month}-${now.day}';
       final savedDate = prefs.getString('hisn_date_${widget.category.title}');
 
       if (savedDate == todayStr) {
-        setState(() {
-          for (int i = 0; i < widget.category.texts.length; i++) {
-            final countVal =
-                prefs.getInt('hisn_count_${widget.category.title}_$i') ?? 0;
-            if (countVal > 0) {
-              _counters[i] = countVal;
-            }
-          }
-        });
+        for (int i = 0; i < widget.category.texts.length; i++) {
+          final countVal =
+              prefs.getInt('hisn_count_${widget.category.title}_$i') ?? 0;
+          _counters[i] = countVal;
+        }
       } else {
         await prefs.setString('hisn_date_${widget.category.title}', todayStr);
         for (int i = 0; i < widget.category.texts.length; i++) {
+          _counters[i] = 0;
           await prefs.remove('hisn_count_${widget.category.title}_$i');
         }
       }
 
-      setState(() {
-        _hapticEnabled = prefs.getBool('haptic_feedback') ?? true;
-        _fontSize = prefs.getDouble('hisn_font_size') ?? 20.0;
-      });
-    } catch (_) {}
-  }
+      final savedIndex =
+          prefs.getInt('hisn_index_${widget.category.title}') ?? 0;
+          
+      if (mounted) {
+        setState(() {
+          if (savedIndex > 0 && savedIndex < widget.category.texts.length) {
+            currentHisnIndex = savedIndex;
+          }
+        });
+      }
 
-  Future<void> _saveFontSize(double size) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('hisn_font_size', size);
+      if (savedIndex > 0 && savedIndex < widget.category.texts.length) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(savedIndex);
+          }
+        });
+      }
     } catch (_) {}
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveRecentAction();
+    });
   }
 
   Future<void> _saveRecentAction() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        'hisn_index_${widget.category.title}',
+        currentHisnIndex,
+      );
       await RecentActionsManager.addAction(
-        category: 'hisn_almuslim',
+        category: 'hisn',
         title: widget.category.title,
-        subtitle: 'حصن المسلم - ${widget.category.texts.length} أدعية',
-        extraData: {'category_title': widget.category.title},
+        subtitle: 'الدعاء ${currentHisnIndex + 1}',
+        extraData: {
+          'category_title': widget.category.title,
+          'current_index': currentHisnIndex,
+        },
       );
     } catch (_) {}
   }
 
-  void _onZoomIn() {
-    if (_fontSize < 36.0) {
-      setState(() {
-        _fontSize += 2.0;
-      });
-      _saveFontSize(_fontSize);
-      if (_hapticEnabled) HapticFeedback.lightImpact();
+  void _onCounterTap() async {
+    if (_hapticEnabled) {
+      HapticFeedback.mediumImpact();
     }
-  }
 
-  void _onZoomOut() {
-    if (_fontSize > 16.0) {
-      setState(() {
-        _fontSize -= 2.0;
-      });
-      _saveFontSize(_fontSize);
-      if (_hapticEnabled) HapticFeedback.lightImpact();
-    }
-  }
-
-  void _copyText(String text, int index) async {
-    await Clipboard.setData(ClipboardData(text: text));
-    if (_hapticEnabled) HapticFeedback.mediumImpact();
-    _showMessage('تم نسخ الدعاء رقم ${index + 1}');
-  }
-
-  void _shareText(String text, int index) async {
-    final shareContent =
-        '$text\n\n'
-        'المصدر: كتاب حصن المسلم - باب "${widget.category.title}"\n'
-        'تمت المشاركة من تطبيق ترتيل الإسلامي';
-
-    await SharePlus.instance.share(
-      ShareParams(text: shareContent, subject: 'دعاء من حصن المسلم'),
-    );
-    if (_hapticEnabled) HapticFeedback.mediumImpact();
-  }
-
-  void _incrementCounter(int index) {
     setState(() {
-      _counters[index] = (_counters[index] ?? 0) + 1;
+      _buttonScale = 0.95;
+      _counters[currentHisnIndex]++;
+    });
 
-      // Persist count immediately
-      final newCount = _counters[index]!;
-      SharedPreferences.getInstance()
-          .then((prefs) {
-            prefs.setInt(
-              'hisn_count_${widget.category.title}_$index',
-              newCount,
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      'hisn_count_${widget.category.title}_$currentHisnIndex',
+      _counters[currentHisnIndex],
+    );
+
+    // Update global stats
+    StatsService.recordAction('hisn', amount: 1);
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _buttonScale = 1.0;
+        });
+      }
+    });
+
+    // Auto navigate if they reached 1 (or more)
+    if (_counters[currentHisnIndex] == _totalRepeat) {
+      if (_hapticEnabled) {
+        Future.delayed(const Duration(milliseconds: 150), () {
+          HapticFeedback.heavyImpact();
+        });
+      }
+
+      if (currentHisnIndex < widget.category.texts.length - 1) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted && _pageController.hasClients) {
+            _pageController.nextPage(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
             );
-          })
-          .catchError((_) {});
-    });
-
-    // Record statistics action
-    StatsService.recordAction('hisn_almuslim');
-
-    if (_hapticEnabled) HapticFeedback.lightImpact();
-  }
-
-  void _resetCounters() {
-    setState(() {
-      _counters.clear();
-    });
-
-    SharedPreferences.getInstance()
-        .then((prefs) async {
-          for (int i = 0; i < widget.category.texts.length; i++) {
-            await prefs.remove('hisn_count_${widget.category.title}_$i');
           }
-        })
-        .catchError((_) {});
-
-    if (_hapticEnabled) HapticFeedback.vibrate();
-    _showMessage('تمت إعادة تعيين العدادات');
+        });
+      } else if (_isAllCompleted) {
+        // Complete!
+      }
+    }
   }
 
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          msg,
-          textAlign: TextAlign.right,
-          style: const TextStyle(fontFamily: 'Cairo'),
-        ),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        backgroundColor: AppColors.primary,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: tarteelAppBar(
-          titleText: widget.category.title,
-          titleTextStyle: TextStyle(
-            fontSize: 10.sp,
-            fontWeight: FontWeight.bold,
+  void _showResetCategoryDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
           ),
-          toolbarHeight: 80,
-
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.restart_alt_rounded, color: Colors.white),
-              tooltip: 'إعادة تعيين العدادات',
-              onPressed: _resetCounters,
+          title: Text(
+            'إعادة تعيين',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
             ),
-          ],
-        ),
-        body: Column(
-          children: [
-            // Controls bar (Zoom controls)
-            _buildControlsBar(isDark),
-
-            // Scrollable list
-            Expanded(
-              child: ListView.builder(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 32.h),
-                itemCount:
-                    widget.category.texts.length +
-                    (widget.category.footnotes.isNotEmpty ? 1 : 0),
-                itemBuilder: (context, index) {
-                  // If it's the last item and footnotes exist, render footnotes card
-                  if (index == widget.category.texts.length) {
-                    return _buildFootnotesCard(isDark);
-                  }
-
-                  final text = widget.category.texts[index];
-                  final currentCount = _counters[index] ?? 0;
-
-                  return _buildPrayerCard(index, text, currentCount, isDark);
-                },
+          ),
+          content: Text(
+            'هل أنت متأكد من تصفير جميع العدادات في ${widget.category.title} والبدء من جديد؟',
+            style: TextStyle(fontFamily: 'Cairo', fontSize: 14.sp),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'إلغاء',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _resetCategory();
+              },
+              child: const Text(
+                'نعم، تصفير',
+                style: TextStyle(color: Colors.white, fontFamily: 'Cairo'),
               ),
             ),
           ],
@@ -231,94 +222,256 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
     );
   }
 
-  Widget _buildControlsBar(bool isDark) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2621) : Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-            width: 1,
-          ),
+  Future<void> _resetCategory() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      for (int i = 0; i < widget.category.texts.length; i++) {
+        _counters[i] = 0;
+        prefs.remove('hisn_count_${widget.category.title}_$i');
+      }
+      currentHisnIndex = 0;
+    });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+    _saveRecentAction();
+  }
+
+  void _copyText(String text, int index) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'تم نسخ الدعاء ${index + 1}',
+          style: TextStyle(fontFamily: 'Cairo', fontSize: 12.sp),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'حجم الخط المقروء: ${_fontSize.toInt()}',
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-              fontFamily: 'Cairo',
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.zoom_in_rounded),
-                  color: AppColors.primary,
-                  onPressed: _onZoomIn,
-                  tooltip: 'تكبير الخط',
-                ),
-                Container(
-                  width: 1.w,
-                  height: 20.h,
-                  color: Colors.grey.shade400,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.zoom_out_rounded),
-                  color: AppColors.primary,
-                  onPressed: _onZoomOut,
-                  tooltip: 'تصغير الخط',
-                ),
-              ],
-            ),
-          ),
-        ],
+        backgroundColor: AppColors.primary,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  Widget _buildPrayerCard(
-    int index,
-    String text,
-    int currentCount,
-    bool isDark,
-  ) {
+  void _shareText(String text, int index) {
+    Share.share('$text\n\n- ${widget.category.title}');
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: tarteelAppBar(
+        titleText: widget.category.title,
+        elevation: 0,
+        toolbarHeight: 80,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.restart_alt_rounded, color: Colors.white),
+            tooltip: 'إعادة تعيين الأدعية',
+            onPressed: _showResetCategoryDialog,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 16.h),
+            // Dynamic Progress Indicator
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'التقدم في القسم',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.goldAccent,
+                        ),
+                      ),
+                      Text(
+                        '${currentHisnIndex + 1} / ${widget.category.texts.length}',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.goldAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10.r),
+                    child: LinearProgressIndicator(
+                      value:
+                          (currentHisnIndex + 1) / widget.category.texts.length,
+                      minHeight: 6.h,
+                      backgroundColor: isDark
+                          ? Colors.grey.shade900
+                          : AppColors.primary.withValues(alpha: 0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.goldAccent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.h),
+
+            // Page View Container
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: widget.category.texts.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    currentHisnIndex = index;
+                  });
+                  _saveRecentAction();
+                },
+                itemBuilder: (context, index) {
+                  final text = widget.category.texts[index];
+                  // Extract footnote if available
+                  String? footnote;
+                  if (widget.category.footnotes.length > index) {
+                    footnote = widget.category.footnotes[index];
+                  }
+                  
+                  return AnimatedPadding(
+                    duration: const Duration(milliseconds: 200),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 8.h,
+                    ),
+                    child: _buildHisnCard(text, footnote, isDark, index),
+                  );
+                },
+              ),
+            ),
+
+            SizedBox(height: 20.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // زر التالي (يسار الشاشة)
+                IconButton(
+                  onPressed: currentHisnIndex < widget.category.texts.length - 1
+                      ? () {
+                          if (_pageController.hasClients) {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      : null,
+                  icon: Icon(
+                    Icons.arrow_forward_ios_rounded, // Right arrow for next in RTL
+                    size: 30.sp,
+                    color: currentHisnIndex < widget.category.texts.length - 1
+                        ? AppColors.primary
+                        : Colors.grey.shade400,
+                  ),
+                ),
+                SizedBox(width: 20.w),
+                _buildCounterButton(),
+                SizedBox(width: 20.w),
+                // زر السابق (يمين الشاشة)
+                IconButton(
+                  onPressed: currentHisnIndex > 0
+                      ? () {
+                          if (_pageController.hasClients) {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      : null,
+                  icon: Icon(
+                    Icons.arrow_back_ios_new_rounded, // Left arrow for previous in RTL
+                    size: 30.sp,
+                    color: currentHisnIndex > 0
+                        ? AppColors.primary
+                        : Colors.grey.shade400,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'اضغط على الزر للتكرار والاحتساب',
+              style: TextStyle(
+                fontSize: 7.sp,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (!_hasStartedReciting) ...[
+              SizedBox(height: 46.h),
+            ] else ...{
+              TextButton.icon(
+                onPressed: _showResetCategoryDialog,
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  color: Colors.redAccent,
+                ),
+                label: Text(
+                  'بدء من جديد / إعادة تعيين',
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ),
+            },
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHisnCard(String text, String? footnote, bool isDark, int index) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E2621) : Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
             color: AppColors.subtleShadow,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
           color: isDark
               ? Colors.grey.shade900
-              : AppColors.primary.withValues(alpha: 0.1),
+              : AppColors.primary.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Card header
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
-            child: Row(
+      child: Padding(
+        padding: EdgeInsets.only(top: 10, bottom: 10, left: 15.w, right: 15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header Row of the card
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
@@ -328,219 +481,281 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10.r),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Text(
-                    'الذكر ${index + 1}',
+                    'الدعاء ${index + 1}',
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
-                      fontFamily: 'Cairo',
                     ),
                   ),
                 ),
-
-                // Mini counter indicator
-                if (currentCount > 0)
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.goldAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: AppColors.goldAccent.withValues(alpha: 0.3),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      'قرئ $currentCount مرات',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.goldAccent,
-                        fontFamily: 'Cairo',
-                      ),
-                    ),
+                // Zoom Controllers
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14.r),
                   ),
-              ],
-            ),
-          ),
-
-          // Main Calligraphy Text
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Amiri',
-                fontSize: _fontSize,
-                fontWeight: FontWeight.bold,
-                height: 1.85,
-                color: isDark ? Colors.white : const Color(0xFF2E5C2E),
-              ),
-            ),
-          ),
-
-          // Divider
-          Divider(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-            height: 1,
-          ),
-
-          // Card Actions
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-            child: Row(
-              children: [
-                // Counter Tap Button
-                Material(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(30.r),
-                  child: InkWell(
-                    onTap: () => _incrementCounter(index),
-                    borderRadius: BorderRadius.circular(30.r),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 8.h,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        icon: Icon(
+                          Icons.zoom_out_rounded,
+                          size: 20.sp,
+                          color: AppColors.primary,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            if (_activeMaxFontSize > 8) _activeMaxFontSize -= 2;
+                          });
+                        },
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.fingerprint_rounded,
-                            size: 18.sp,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'تكرار: $currentCount',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                              fontFamily: 'Cairo',
-                            ),
-                          ),
-                        ],
+                      Container(
+                        width: 1,
+                        height: 16,
+                        color: Colors.grey.withValues(alpha: 0.3),
                       ),
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Copy
-                IconButton(
-                  icon: const Icon(Icons.copy_rounded),
-                  color: Colors.blue.shade700,
-                  tooltip: 'نسخ النص',
-                  onPressed: () => _copyText(text, index),
-                ),
-
-                // Share
-                IconButton(
-                  icon: const Icon(Icons.share_rounded),
-                  color: AppColors.primary,
-                  tooltip: 'مشاركة الدعاء',
-                  onPressed: () => _shareText(text, index),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFootnotesCard(bool isDark) {
-    return Container(
-      margin: EdgeInsets.only(top: 8.h, bottom: 16.h),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF19211C)
-            : Colors.amber.shade50.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: isDark
-              ? Colors.grey.shade900
-              : AppColors.goldAccent.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(18.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.menu_book_rounded,
-                  color: AppColors.goldAccent,
-                  size: 20.sp,
-                ),
-                SizedBox(width: 10.w),
-                Text(
-                  'المصادر والتخريج',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.goldAccent,
-                    fontFamily: 'Cairo',
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        icon: Icon(
+                          Icons.zoom_in_rounded,
+                          size: 20.sp,
+                          color: AppColors.primary,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            if (_activeMaxFontSize < 40) _activeMaxFontSize += 2;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             SizedBox(height: 12.h),
-
-            // List of footnotes
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: widget.category.footnotes.length,
-              itemBuilder: (context, fIndex) {
-                final fn = widget.category.footnotes[fIndex];
-                return Padding(
-                  padding: EdgeInsets.only(bottom: 8.h),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: EdgeInsets.only(top: 4.h),
-                        width: 6.w,
-                        height: 6.w,
-                        decoration: BoxDecoration(
-                          color: AppColors.goldAccent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          fn,
+            Divider(
+              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+              height: 1,
+            ),
+            
+            // Text Body
+            Expanded(
+              child: Container(
+                alignment: Alignment.center,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+                    child: Column(
+                      children: [
+                        ResponsiveText(
+                          content: text,
+                          maxFontSize: _activeMaxFontSize,
                           style: TextStyle(
-                            fontSize: 12.sp,
-                            color: isDark
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade700,
-                            height: 1.6,
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Amiri',
+                            fontWeight: FontWeight.w600,
+                            height: 2,
+                            color: isDark ? Colors.white : const Color(0xFF2E5C2E),
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
+                        if (footnote != null && footnote.trim().isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          Container(
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.black12 : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.info_outline_rounded, size: 14.sp, color: AppColors.goldAccent),
+                                SizedBox(width: 8.w),
+                                Expanded(
+                                  child: Text(
+                                    footnote,
+                                    style: TextStyle(
+                                      fontFamily: 'Cairo',
+                                      fontSize: 10.sp,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
                   ),
-                );
-              },
+                ),
+              ),
+            ),
+            
+            Divider(
+              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+              height: 1,
+            ),
+            // Bottom Action Row
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.copy_rounded,
+                      size: 22.sp,
+                    ),
+                    color: Colors.blue.shade700,
+                    tooltip: 'نسخ النص',
+                    onPressed: () => _copyText(text, index),
+                  ),
+                  SizedBox(width: 16.w),
+                  Container(
+                    width: 1,
+                    height: 24.h,
+                    color: Colors.grey.withValues(alpha: 0.3),
+                  ),
+                  SizedBox(width: 16.w),
+                  IconButton(
+                    icon: Icon(
+                      Icons.share_rounded,
+                      size: 22.sp,
+                    ),
+                    color: AppColors.primary,
+                    tooltip: 'مشاركة الدعاء',
+                    onPressed: () => _shareText(text, index),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildCounterButton() {
+    return GestureDetector(
+      onTap: _onCounterTap,
+      child: AnimatedScale(
+        scale: _buttonScale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutBack,
+        child: SizedBox(
+          width: 140.w,
+          height: 140.h,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 140.w,
+                height: 140.h,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+              ),
+              CustomPaint(
+                size: const Size(140, 140),
+                painter: _HisnCircularProgressPainter(
+                  progress: _progress,
+                  strokeWidth: 8.0,
+                  backgroundColor: Colors.grey.shade200,
+                  progressColor: AppColors.primary,
+                ),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _counters[currentHisnIndex].toString(),
+                    style: TextStyle(
+                      fontSize: 42.sp,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HisnCircularProgressPainter extends CustomPainter {
+  final double progress;
+  final double strokeWidth;
+  final Color backgroundColor;
+  final Color progressColor;
+
+  _HisnCircularProgressPainter({
+    required this.progress,
+    required this.strokeWidth,
+    required this.backgroundColor,
+    required this.progressColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width / 2, size.height / 2) - strokeWidth / 2;
+
+    final backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    final sweepAngle = 2 * math.pi * progress;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2, // Start from top
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HisnCircularProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.progressColor != progressColor;
   }
 }

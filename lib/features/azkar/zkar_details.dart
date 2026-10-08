@@ -82,10 +82,16 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
 
       final savedIndex =
           prefs.getInt('zekr_index_${widget.category.title}') ?? 0;
-      if (savedIndex > 0 && savedIndex < widget.category.azkar.length) {
+          
+      if (mounted) {
         setState(() {
-          currentZekrIndex = savedIndex;
+          if (savedIndex > 0 && savedIndex < widget.category.azkar.length) {
+            currentZekrIndex = savedIndex;
+          }
         });
+      }
+
+      if (savedIndex > 0 && savedIndex < widget.category.azkar.length) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_pageController.hasClients) {
             _pageController.jumpToPage(savedIndex);
@@ -502,7 +508,54 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
             ),
 
             SizedBox(height: 20.h),
-            _buildCounterButton(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // زر التالي (يسار الشاشة)
+                IconButton(
+                  onPressed: currentZekrIndex < widget.category.azkar.length - 1
+                      ? () {
+                          if (_pageController.hasClients) {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      : null,
+                  icon: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 30.sp,
+                    color: currentZekrIndex < widget.category.azkar.length - 1
+                        ? AppColors.primary
+                        : Colors.grey.shade400,
+                  ),
+                ),
+                SizedBox(width: 20.w),
+                _buildCounterButton(),
+                SizedBox(width: 20.w),
+                // زر السابق (يمين الشاشة)
+                IconButton(
+                  onPressed: currentZekrIndex > 0
+                      ? () {
+                          if (_pageController.hasClients) {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      : null,
+                  icon: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 30.sp,
+                    color: currentZekrIndex > 0
+                        ? AppColors.primary
+                        : Colors.grey.shade400,
+                  ),
+                ),
+              ],
+            ),
             SizedBox(height: 16.h),
             Text(
               'اضغط على الزر للتكرار والاحتساب',
