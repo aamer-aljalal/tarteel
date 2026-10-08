@@ -247,51 +247,79 @@ class AlarmBridge(private val context: Context) : MethodChannel.MethodCallHandle
     }
 
     /**
-     * جدولة المنبه وحفظ بياناته محلياً.
+     * جدولة المنبه وحفظ بياناته محلياً بطريقة فائقة الدقة تتخطى قيود السبات (Doze Mode).
      */
     private fun schedule(alarmData: AlarmData): Boolean {
-        // 1. التحقق من صلاحيات المنبه الدقيق لأندرويد 12 فما فوق
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                throw SecurityException("صلاحية المنبه الدقيق غير مفعّلة في النظام")
+        try {
+            // 1. إعداد النية (Intent) التي ستُطلق عند رنين المنبه لتشغيل الـ AlarmReceiver
+            val intent = Intent(context, AlarmReceiver::class.java).apply {
+                putExtra("alarm_id", alarmData.id)
             }
-        }
 
-        // 2. إعداد النية (Intent) التي ستُطلق عند رنين المنبه لتشغيل الـ AlarmReceiver
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra("alarm_id", alarmData.id)
-        }
-
-        // 3. تحويل النية إلى PendingIntent مع حمايتها برمجياً
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            alarmData.id.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // 4. الجدولة الدقيقة الفورية بناءً على إصدار الأندرويد
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                alarmData.scheduledTime,
-                pendingIntent
+            // 2. تحويل النية إلى PendingIntent مع حمايتها برمجياً
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                alarmData.id.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                alarmData.scheduledTime,
-                pendingIntent
+
+            // 3. إعداد نية فتح الشاشة لمكون AlarmClockInfo
+            val showIntent = Intent(context, AlarmActivity::class.java).apply {
+                putExtra("alarm_id", alarmData.id)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val showPendingIntent = PendingIntent.getActivity(
+                context,
+                alarmData.id.hashCode() + 1,
+                showIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-        }
 
-        // 5. حفظ بيانات المنبه في ذاكرة الهاتف المشتركة SharedPreferences بصيغة JSON
-        sharedPrefs.edit().apply {
-            putString("alarm_${alarmData.id}", alarmData.toJsonString())
-            apply()
-        }
+            // 4. الجدولة الفائقة الدقة باستخدام setAlarmClock (أقوى وأضمن آلية في أندرويد لتخطي السبات نهائياً)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val alarmClockInfo = AlarmManager.AlarmClockInfo(
+                    alarmData.scheduledTime,
+                    showPendingIntent
+                )
+                try {
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                    Log.d("AlarmBridge", "تم الجدولة بنجاح باستخدام setAlarmClock للمنبه: ${alarmData.id}")
+                } catch (e: SecurityException) {
+                    Log.w("AlarmBridge", "تنبيه: setAlarmClock رفضت الصلاحية، محاولة التمرير البديل: ${e.message}")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                        alarmManager.setAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            alarmData.scheduledTime,
+                            pendingIntent
+                        )
+                    } else {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            alarmData.scheduledTime,
+                            pendingIntent
+                        )
+                    }
+                }
+            } else {
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    alarmData.scheduledTime,
+                    pendingIntent
+                )
+            }
 
-        return true
+            // 5. حفظ بيانات المنبه في ذاكرة الهاتف المشتركة SharedPreferences بصيغة JSON
+            sharedPrefs.edit().apply {
+                putString("alarm_${alarmData.id}", alarmData.toJsonString())
+                apply()
+            }
+
+            return true
+        } catch (e: Exception) {
+            Log.e("AlarmBridge", "فشل جدولة المنبه: ${e.message}", e)
+            return false
+        }
     }
 
     /**

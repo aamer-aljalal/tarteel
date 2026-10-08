@@ -1,6 +1,7 @@
 /// وصف الملف:
 /// هذا الملف يحتوي على الـ Widget المخصص لعرض حاوية الإجراءات السريعة في ترويسة الصفحة الرئيسية (HomeHeader).
 /// يشمل أزرار الانتقال إلى: المفضلة، الإعدادات، القبلة، والتنبيهات (مع شارة عداد التنبيهات).
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

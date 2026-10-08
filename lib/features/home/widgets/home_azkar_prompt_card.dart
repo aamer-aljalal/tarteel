@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/features/azkar/model/zekr_category.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
 import 'package:tarteel/routes/AppRoutes.dart';

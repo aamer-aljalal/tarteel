@@ -7,6 +7,7 @@
 /// - بناء وتنسيق العناصر بشكل شبكي يتناسب مع أحجام الشاشات المختلفة ودعم المظهرين (النهاري والليلي).
 /// - تشغيل حركة دخول متحركة ومتدرجة لكل عنصر بشكل تصاعدي (Staggered Entrance Animation)
 ///   مع حماية التطبيق من الانهيار عند وجود عدد كبير من العناصر عن طريق تحديد حد أقصى لتأخير الأنيميشن.
+library;
 
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:auto_size_text/auto_size_text.dart';

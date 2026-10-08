@@ -68,13 +68,13 @@ ThemeData buildDarkTheme() {
     // Elevated buttons
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all(AppColors.primary),
-        foregroundColor: MaterialStateProperty.all(AppColors.darkSurface),
-        elevation: MaterialStateProperty.all(2),
-        shape: MaterialStateProperty.all(
+        backgroundColor: WidgetStateProperty.all(AppColors.primary),
+        foregroundColor: WidgetStateProperty.all(AppColors.darkSurface),
+        elevation: WidgetStateProperty.all(2),
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
         ),
-        padding: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(
           EdgeInsets.symmetric(vertical: 14.h, horizontal: 20.w),
         ),
       ),
@@ -83,11 +83,11 @@ ThemeData buildDarkTheme() {
     // Outlined buttons
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: ButtonStyle(
-        foregroundColor: MaterialStateProperty.all(AppColors.primary),
-        side: MaterialStateProperty.all(
+        foregroundColor: WidgetStateProperty.all(AppColors.primary),
+        side: WidgetStateProperty.all(
           BorderSide(color: AppColors.darkBorder.withOpacity(0.18)),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
         ),
       ),
@@ -138,14 +138,16 @@ ThemeData buildDarkTheme() {
 
     // Switch
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected))
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.goldAccent;
+        }
         return AppColors.darkBorder;
       }),
-      trackColor: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.selected))
+      trackColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
           return AppColors.goldAccent.withOpacity(0.22);
+        }
         return AppColors.darkBorder.withOpacity(0.22);
       }),
     ),

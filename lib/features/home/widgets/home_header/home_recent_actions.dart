@@ -79,9 +79,7 @@ class _HomeRecentActionsState extends State<HomeRecentActions> with RouteAware {
         }
       }
 
-      if (targetAyah == null) {
-        targetAyah = prefs.getInt('quran_ayah_$surahNumber');
-      }
+      targetAyah ??= prefs.getInt('quran_ayah_$surahNumber');
 
       final surahs = await QuranService.loadSurahs();
       final surah = surahs.firstWhere((s) => s.number == surahNumber);
@@ -401,7 +399,7 @@ class _HomeRecentActionsState extends State<HomeRecentActions> with RouteAware {
             ),
             SizedBox(height: 2.h),
             Text(
-              '${action.title.replaceAll('سورة ', '').replaceAll('قصص الأنبياء - ', '')}',
+              action.title.replaceAll('سورة ', '').replaceAll('قصص الأنبياء - ', ''),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,

@@ -39,7 +39,7 @@ class PrayerProvider extends ChangeNotifier {
   double _lat = 21.4225;
   double _lng = 39.8262;
   late Coordinates _coordinates = Coordinates(_lat, _lng);
-  late CalculationParameters _calculationParameters = CalculationMethod
+  late final CalculationParameters _calculationParameters = CalculationMethod
       .umm_al_qura
       .getParameters();
 
@@ -380,41 +380,39 @@ class PrayerProvider extends ChangeNotifier {
         locationSettings: locationSettings,
       ).timeout(const Duration(seconds: 8));
 
-      if (pos != null) {
-        _lat = pos.latitude;
-        _lng = pos.longitude;
-        _coordinates = Coordinates(_lat, _lng);
+      _lat = pos.latitude;
+      _lng = pos.longitude;
+      _coordinates = Coordinates(_lat, _lng);
 
-        // جلب الاسم الجغرافي للمدينة
-        try {
-          final placemarks = await placemarkFromCoordinates(_lat, _lng);
-          if (placemarks.isNotEmpty) {
-            final place = placemarks.first;
-            _cityName =
-                place.locality ??
-                place.subAdministrativeArea ??
-                place.administrativeArea ??
-                'موقعي الحالي';
-          }
-        } catch (_) {
-          _cityName = 'موقعي الحالي';
+      // جلب الاسم الجغرافي للمدينة
+      try {
+        final placemarks = await placemarkFromCoordinates(_lat, _lng);
+        if (placemarks.isNotEmpty) {
+          final place = placemarks.first;
+          _cityName =
+              place.locality ??
+              place.subAdministrativeArea ??
+              place.administrativeArea ??
+              'موقعي الحالي';
         }
-
-        // حفظ الإحداثيات والمدينة في الذاكرة لتشغيل أوفلاين للأبد
-        await _saveLocationToPrefs(_lat, _lng, _cityName);
-        await prefs.setString(
-          'last_location_update_time',
-          DateTime.now().toIso8601String(),
-        );
-
-        _calculatePrayerTimes();
-        await scheduleAdhanNotifications();
-
-        if (context.mounted) {
-          _showToast(context, 'تم تحديد موقعك بنجاح: $_cityName');
-        }
+      } catch (_) {
+        _cityName = 'موقعي الحالي';
       }
-    } catch (e) {
+
+      // حفظ الإحداثيات والمدينة في الذاكرة لتشغيل أوفلاين للأبد
+      await _saveLocationToPrefs(_lat, _lng, _cityName);
+      await prefs.setString(
+        'last_location_update_time',
+        DateTime.now().toIso8601String(),
+      );
+
+      _calculatePrayerTimes();
+      await scheduleAdhanNotifications();
+
+      if (context.mounted) {
+        _showToast(context, 'تم تحديد موقعك بنجاح: $_cityName');
+      }
+        } catch (e) {
       if (context.mounted) {
         _showToast(
           context,
@@ -587,42 +585,40 @@ class PrayerProvider extends ChangeNotifier {
             locationSettings: locationSettings,
           ).timeout(const Duration(seconds: 6));
 
-          if (pos != null) {
-            _lat = pos.latitude;
-            _lng = pos.longitude;
-            _coordinates = Coordinates(_lat, _lng);
+          _lat = pos.latitude;
+          _lng = pos.longitude;
+          _coordinates = Coordinates(_lat, _lng);
 
-            // جلب الاسم الجغرافي للمدينة
-            try {
-              final placemarks = await placemarkFromCoordinates(_lat, _lng);
-              if (placemarks.isNotEmpty) {
-                final place = placemarks.first;
-                _cityName =
-                    place.locality ??
-                    place.subAdministrativeArea ??
-                    place.administrativeArea ??
-                    'موقعي الحالي';
-              }
-            } catch (_) {
-              if (_cityName == 'مكة المكرمة') {
-                _cityName = 'موقعي الحالي';
-              }
+          // جلب الاسم الجغرافي للمدينة
+          try {
+            final placemarks = await placemarkFromCoordinates(_lat, _lng);
+            if (placemarks.isNotEmpty) {
+              final place = placemarks.first;
+              _cityName =
+                  place.locality ??
+                  place.subAdministrativeArea ??
+                  place.administrativeArea ??
+                  'موقعي الحالي';
             }
-
-            // حفظ الإحداثيات والمدينة في الذاكرة لتشغيل أوفلاين للأبد
-            await _saveLocationToPrefs(_lat, _lng, _cityName);
-
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(
-              'last_location_update_time',
-              DateTime.now().toIso8601String(),
-            );
-
-            _calculatePrayerTimes();
-            await scheduleAdhanNotifications();
-            notifyListeners();
+          } catch (_) {
+            if (_cityName == 'مكة المكرمة') {
+              _cityName = 'موقعي الحالي';
+            }
           }
-        }
+
+          // حفظ الإحداثيات والمدينة في الذاكرة لتشغيل أوفلاين للأبد
+          await _saveLocationToPrefs(_lat, _lng, _cityName);
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(
+            'last_location_update_time',
+            DateTime.now().toIso8601String(),
+          );
+
+          _calculatePrayerTimes();
+          await scheduleAdhanNotifications();
+          notifyListeners();
+                }
       }
     } catch (e) {
       debugPrint("Error in silentlyUpdateLocation: $e");

@@ -29,7 +29,7 @@ void main() {
 
     if (content != original) {
        if (!content.contains('package:flutter_screenutil/flutter_screenutil.dart')) {
-          content = "import 'package:flutter_screenutil/flutter_screenutil.dart';\n" + content;
+          content = "import 'package:flutter_screenutil/flutter_screenutil.dart';\n$content";
        }
        file.writeAsStringSync(content);
        print('Updated ${file.path}');

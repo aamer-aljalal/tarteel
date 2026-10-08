@@ -7,7 +7,6 @@ import 'package:tarteel/core/services/general_notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 

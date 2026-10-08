@@ -55,6 +55,7 @@ class AlarmForegroundService : Service() {
         const val ACTION_MUTE = "com.tarteel.app.alarm.ACTION_MUTE"
         const val ACTION_UPDATE_VOLUME = "com.tarteel.app.alarm.ACTION_UPDATE_VOLUME"
         const val ACTION_UPDATE_VIBRATION = "com.tarteel.app.alarm.ACTION_UPDATE_VIBRATION"
+        const val ACTION_ALARM_STOPPED = "com.tarteel.app.alarm.ACTION_ALARM_STOPPED"
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -403,6 +404,13 @@ class AlarmForegroundService : Service() {
             originalAlarmVolume = null
         }
 
+        try {
+            val stoppedIntent = Intent(ACTION_ALARM_STOPPED)
+            sendBroadcast(stoppedIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "خطأ أثناء إرسال بث توقف الأذان: ${e.message}")
+        }
+
         // إيقاف نمط الخدمة الخلفية ومسح الإشعار
         stopForeground(true)
         // إيقاف الخدمة الحالية
@@ -418,10 +426,9 @@ class AlarmForegroundService : Service() {
 
         val focusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
             Log.d(TAG, "حدث تغيّر في تركيز الصوت بالنظام AudioFocus: $focusChange")
-            if (focusChange == AudioManager.AUDIOFOCUS_LOSS ||
-                focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ||
-                focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                Log.d(TAG, "تم فقدان تركيز الصوت من النظام (ضغطة زر الطاقة/أزرار الصوت الجانبية)، إيقاف الأذان فوراً...")
+            // فقط عند الفقدان الكلي الدائم لتركيز الصوت (مثل إجراء أو استقبال مكالمة هاتفية) نوقف الأذان
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                Log.d(TAG, "تم فقدان تركيز الصوت الدائم من النظام (مكالمة هاتفية)، إيقاف الأذان...")
                 stopAlarm()
             }
         }
@@ -578,28 +585,23 @@ class AlarmForegroundService : Service() {
                     
                     Log.d(TAG, "رصد حدث زر النظام أو الشاشة: $action بعد $elapsed م.ث")
 
-                    // عند الضغط على زر الطاقة لغلق الشاشة أو إغلاق الحوارات، نوقف الصوت فوراً وبدون أي انتظار
-                    if (action == Intent.ACTION_SCREEN_OFF || action == Intent.ACTION_CLOSE_SYSTEM_DIALOGS) {
-                        Log.d(TAG, "تم رصد ضغطة زر الطاقة الجانبي/قفل الشاشة، إيقاف الأذان فوراً...")
+                    // عند ضغط زر الطاقة الجانبي لإغلاق الشاشة أثناء رنين الأذان، نوقف الأذان
+                    if (action == Intent.ACTION_SCREEN_OFF) {
+                        Log.d(TAG, "تم رصد ضغطة زر الطاقة الجانبي لإغلاق الشاشة، إيقاف الأذان...")
                         stopAlarm()
                         return
                     }
                     
-                    // أما عند الضغط لفتح الشاشة أو ضغطة أزرار الصوت، نتجاهل أول 250 م.ث فقط
-                    if (elapsed > 250 && (action == Intent.ACTION_SCREEN_ON || 
-                                          action == Intent.ACTION_USER_PRESENT || 
-                                          action == "android.media.VOLUME_CHANGED_ACTION" ||
-                                          action == "android.media.STREAM_MUTE_CHANGED_ACTION")) {
-                        Log.d(TAG, "تم رصد تفاعل المستخدم بالزر ($action بعد $elapsed م.ث)، جاري إيقاف الأذان...")
+                    // عند تغيير أزرار الصوت الهاردويرية بعد مرور ثانية على الأقل من بدء الأذان
+                    if (elapsed > 1000 && (action == "android.media.VOLUME_CHANGED_ACTION" ||
+                                           action == "android.media.STREAM_MUTE_CHANGED_ACTION")) {
+                        Log.d(TAG, "تم رصد تغيير أزرار الصوت بعد بدء الأذان ($action بعد $elapsed م.ث)، جاري إيقاف الأذان...")
                         stopAlarm()
                     }
                 }
             }
             val filter = android.content.IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_OFF)
-                addAction(Intent.ACTION_SCREEN_ON)
-                addAction(Intent.ACTION_USER_PRESENT)
-                addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
                 addAction("android.media.VOLUME_CHANGED_ACTION")
                 addAction("android.media.STREAM_MUTE_CHANGED_ACTION")
                 priority = IntentFilter.SYSTEM_HIGH_PRIORITY

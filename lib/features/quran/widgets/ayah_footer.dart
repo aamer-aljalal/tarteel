@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AyahFooter extends StatelessWidget {
-  const AyahFooter({required this.pageNumber});
+  const AyahFooter({super.key, required this.pageNumber});
 
   final int pageNumber;
 

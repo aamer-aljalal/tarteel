@@ -169,6 +169,26 @@ class AdhanNotificationService {
     await prefs.setString(_selectedMuezzinKey, muezzin.id);
   }
 
+  /// الحصول على مفتاح الذاكرة الخاص بكل صلاة
+  static String _prayerEnabledKey(Prayer prayer) {
+    return 'adhan_enabled_${prayer.name}';
+  }
+
+  /// التحقق مما إذا كان الأذان مفعلاً لصلاة معينة
+  static Future<bool> isSinglePrayerAdhanEnabled(Prayer prayer) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prayerEnabledKey(prayer)) ?? true;
+  }
+
+  /// حفظ حالة تفعيل أو إلغاء الأذان لصلاة معينة
+  static Future<void> setSinglePrayerAdhanEnabled(
+    Prayer prayer,
+    bool enabled,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prayerEnabledKey(prayer), enabled);
+  }
+
   /// جدولة الإشعارات والمنبهات للصلوات الخمس بناءً على موقع المستخدم
   static Future<void> schedulePrayerAdhan({
     required Coordinates coordinates,
@@ -210,6 +230,10 @@ class AdhanNotificationService {
         final prayerTime = dayPrayerTimes.timeForPrayer(prayer);
         // نتخطى الصلوات التي مضى وقتها بالفعل في اليوم الحالي
         if (prayerTime == null || prayerTime.isBefore(now)) continue;
+
+        // نتخطى الصلاة إذا كان الأذان معطلاً لهذه الفريضة المحددة
+        final isPrayerEnabled = await isSinglePrayerAdhanEnabled(prayer);
+        if (!isPrayerEnabled) continue;
 
         await _scheduleSingleAdhan(
           id: _notificationBaseId + notificationOffset,
@@ -290,7 +314,7 @@ class AdhanNotificationService {
         // لا تضع هنا DateTime.now().add(Duration(seconds: 30)) وإلا سيعمل 225 منبه في نفس الثانية!
         // لتجربة الأذان المجدول بأمان بعد 30 ثانية، استخدم دالة: testScheduleAdhanInSeconds(30)
         // scheduledTime: id == 9000
-        //     ? DateTime.now().add(const Duration(seconds: 30))
+        //     ? DateTime.now().add(const Duration(seconds: 10))
         //     : scheduledTime,
         scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,

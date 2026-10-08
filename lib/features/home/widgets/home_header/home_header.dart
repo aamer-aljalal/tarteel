@@ -7,7 +7,6 @@ import 'package:tarteel/features/home/widgets/home_header/home_header_quick_acti
 import 'package:tarteel/features/home/widgets/home_header/home_notifications_sheet.dart';
 import 'package:tarteel/features/home/widgets/home_header/home_prayer_card.dart';
 import 'package:tarteel/features/home/widgets/home_azkar_prompt_card.dart';
-import 'package:tarteel/features/home/widgets/home_header/home_recent_actions.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';

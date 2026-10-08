@@ -32,9 +32,13 @@ import android.widget.TextView
 class AlarmActivity : Activity() {
 
     private var alarmId: String? = null
+    private var alarmStoppedReceiver: android.content.BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 0. تسجيل مراقب توقف المنبه لإغلاق الشاشة تلقائياً
+        registerAlarmStoppedReceiver()
         
         // 2. استخراج معرف المنبه القادم مع النية
         alarmId = intent.getStringExtra("alarm_id")
@@ -456,12 +460,49 @@ class AlarmActivity : Activity() {
 
     override fun onStop() {
         super.onStop()
-        // عند إغلاق الشاشة (الضغط على زر الطاقة/القفل) أو التحول لتطبيق آخر، يتم إيقاف الأذان فوراً وبشكل حتمي
-        Log.d("AlarmActivity", "تم إيقاف الواجهة (onStop - إغلاق الشاشة أو ضغط زر الطاقة)، إيقاف الأذان فوراً...")
-        sendActionToService(AlarmForegroundService.ACTION_STOP)
+        Log.d("AlarmActivity", "onStop Activity state changed")
     }
 
     override fun onBackPressed() {
         // لا نفعل شيئاً؛ إجباري التفاعل مع الأزرار للسلامة
+    }
+
+    private fun registerAlarmStoppedReceiver() {
+        try {
+            alarmStoppedReceiver = object : android.content.BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    Log.d("AlarmActivity", "تم استقبال إشعار توقف الأذان تلقائياً من الخدمة، جاري إغلاق الشاشة...")
+                    finish()
+                }
+            }
+            val filter = android.content.IntentFilter(AlarmForegroundService.ACTION_ALARM_STOPPED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                try {
+                    registerReceiver(alarmStoppedReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } catch (e: Exception) {
+                    registerReceiver(alarmStoppedReceiver, filter, Context.RECEIVER_EXPORTED)
+                }
+            } else {
+                registerReceiver(alarmStoppedReceiver, filter)
+            }
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "فشل تسجيل مراقب توقف الأذان: ${e.message}")
+        }
+    }
+
+    private fun unregisterAlarmStoppedReceiver() {
+        try {
+            alarmStoppedReceiver?.let {
+                unregisterReceiver(it)
+                alarmStoppedReceiver = null
+            }
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "خطأ أثناء إلغاء تسجيل مراقب توقف الأذان: ${e.message}")
+        }
+    }
+
+    override fun onDestroy() {
+        unregisterAlarmStoppedReceiver()
+        super.onDestroy()
     }
 }
