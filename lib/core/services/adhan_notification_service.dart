@@ -226,7 +226,7 @@ class AdhanNotificationService {
       if (isPrayerEnabled) enabledPrayersList.add(p.name);
     }
     
-    final currentSettingsHash = '${coordinates.latitude}_${coordinates.longitude}_${calculationParameters.method}_${selected.id}_$advanceMinutes_${enabledPrayersList.join('-')}_$enabled';
+    final currentSettingsHash = '${coordinates.latitude}_${coordinates.longitude}_${calculationParameters.method}_${selected.id}_${advanceMinutes}_${enabledPrayersList.join('-')}_$enabled';
     final lastSettingsHash = prefs.getString('last_adhan_schedule_hash');
     final lastScheduleTimeMillis = prefs.getInt('last_adhan_schedule_time') ?? 0;
     

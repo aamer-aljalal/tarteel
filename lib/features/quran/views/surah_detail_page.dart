@@ -48,12 +48,13 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   bool _isPageView = false;
   double _initialScrollOffset = 0.0;
   bool _hasBookmarkedInThisSession = false;
+  bool _hasChangedPage = false;
   final GlobalKey _initialAyahKey = GlobalKey();
   late final Map<int, GlobalKey> _ayahKeys;
 
   double? _lastScreenWidth;
   double? _lastScreenHeight;
-  double _fontSize = 22.0;
+  double _fontSize = 20.0;
 
   @override
   void initState() {
@@ -113,7 +114,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
   Future<void> _loadFontSizePreference() async {
     final prefs = await SharedPreferences.getInstance();
-    final double savedSize = prefs.getDouble('quran_font_size') ?? 24.0;
+    final double savedSize = prefs.getDouble('quran_font_size') ?? 20.0;
     if (mounted) {
       setState(() {
         _fontSize = savedSize;
@@ -412,8 +413,10 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                     if (success && mounted) {
                       setState(() {
                         _hasBookmarkedInThisSession = true;
-                        _initialScrollOffset =
-                            _scrollController.position.pixels;
+                        if (_scrollController.hasClients) {
+                          _initialScrollOffset =
+                              _scrollController.position.pixels;
+                        }
                       });
                     }
                   }
@@ -508,10 +511,16 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   Future<bool> _onWillPop() async {
     if (!widget.isKhatmaSession || _hasBookmarkedInThisSession) return true;
 
-    if (_scrollController.hasClients) {
-      final currentOffset = _scrollController.position.pixels;
-      if (currentOffset - _initialScrollOffset > 500) {
+    if (_isPageView) {
+      if (_hasChangedPage) {
         return await QuranReadingController.showKhatmaExitWarning(context);
+      }
+    } else {
+      if (_scrollController.hasClients) {
+        final currentOffset = _scrollController.position.pixels;
+        if ((currentOffset - _initialScrollOffset).abs() > 500) {
+          return await QuranReadingController.showKhatmaExitWarning(context);
+        }
       }
     }
     return true;
@@ -565,6 +574,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                               onPageChanged: (index) {
                                 setState(() {
                                   _currentPage = index;
+                                  _hasChangedPage = true;
                                 });
                               },
                             )

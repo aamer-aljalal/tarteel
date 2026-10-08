@@ -37,12 +37,15 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
 
   // Load plan state from SharedPreferences
   Future<void> _loadKhatmaPlan() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // إجبار التحديث من الذاكرة لضمان أحدث البيانات
       final active = prefs.getBool('khatma_active') ?? false;
 
       if (active) {
@@ -68,25 +71,31 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
           }
         }
 
-        setState(() {
-          _showActiveKhatma = true;
-          _daysSliderValue = days.toDouble();
-          _startDate = startStr != null ? DateTime.parse(startStr) : now;
-          _totalAyahsRead = totalRead;
-          _ayahsReadToday = readToday;
-          _selectedTime = TimeOfDay(hour: rHour, minute: rMin);
-        });
+        if (mounted) {
+          setState(() {
+            _showActiveKhatma = true;
+            _daysSliderValue = days.toDouble();
+            _startDate = startStr != null ? DateTime.parse(startStr) : now;
+            _totalAyahsRead = totalRead;
+            _ayahsReadToday = readToday;
+            _selectedTime = TimeOfDay(hour: rHour, minute: rMin);
+          });
+        }
       } else {
-        setState(() {
-          _showActiveKhatma = false;
-        });
+        if (mounted) {
+          setState(() {
+            _showActiveKhatma = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error loading Khatma Plan: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

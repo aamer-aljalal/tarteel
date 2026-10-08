@@ -137,7 +137,7 @@ class tarteelAppBar extends StatelessWidget implements PreferredSizeWidget {
                     prefixIcon: Icon(Icons.search, color: prefixColor),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
-                      vertical: 12.h,
+                      vertical: 12,
                       horizontal: 16.w,
                     ),
                   ),
@@ -196,27 +196,28 @@ class tarteelAppBar extends StatelessWidget implements PreferredSizeWidget {
             : null);
 
     return AppBar(
+      toolbarHeight: toolbarHeight, // تحديد الارتفاع بشكل صريح
       title: Padding(
-        padding: EdgeInsets.only(top: 20.h),
-        child: Text(
-          titleText!,
-          style:
-              (theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge)
-                  ?.merge(titleTextStyle)
-                  .copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontFamily: 'Cairo',
-                  ),
-        ),
+        padding: const EdgeInsets.only(top: 10), // استخدام قيمة ثابتة بدون .h لمنع تمددها في الشاشات الطويلة
+        child: titleWidget ??
+            Text(
+              titleText ?? '',
+              style:
+                  (theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge)
+                      ?.merge(titleTextStyle)
+                      .copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'Cairo',
+                      ),
+            ),
       ),
-
       leading: Padding(
-        padding: EdgeInsets.only(top: 22.h),
+        padding: const EdgeInsets.only(top: 10),
         child: effectiveLeading,
       ),
       actions: actions?.map((action) => Padding(
-                    padding: EdgeInsets.only(top: 20.h),
+                    padding: const EdgeInsets.only(top: 10),
                     child: action,
                   ))
               .toList(),

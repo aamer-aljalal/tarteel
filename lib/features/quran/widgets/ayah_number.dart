@@ -5,12 +5,12 @@ class AyahNumber extends StatelessWidget {
   final int number;
   final double fontSize;
 
-  const AyahNumber({super.key, required this.number, this.fontSize = 24.0});
+  const AyahNumber({super.key, required this.number, this.fontSize = 20.0});
 
   @override
   Widget build(BuildContext context) {
-    // 24.0 is the new default base font size
-    final scale = fontSize / 24.0;
+    // 20.0 is the new default base font size
+    final scale = fontSize / 20.0;
 
     return Container(
       width: (50 * scale).w,

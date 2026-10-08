@@ -22,7 +22,7 @@ class AyahWidget extends StatelessWidget {
               TextSpan(
                 text: "${ayah.text} ",
                 style: TextStyle(
-                  fontSize: 24.sp,
+                  fontSize: 20.sp,
                   height: 2.h,
                   color: Colors.black,
                   fontFamily: 'Amiri', // مهم

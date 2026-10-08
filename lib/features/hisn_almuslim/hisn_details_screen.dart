@@ -189,7 +189,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
             fontSize: 10.sp,
             fontWeight: FontWeight.bold,
           ),
-          toolbarHeight: 80.h,
+          toolbarHeight: 80,
 
           actions: [
             IconButton(
