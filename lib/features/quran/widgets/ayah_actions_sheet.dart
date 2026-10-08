@@ -119,7 +119,7 @@ class AyahActionsSheet extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'Cairo',
+                    
                   ),
                 ),
               ),
@@ -164,7 +164,7 @@ class _SheetActionButton extends StatelessWidget {
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF1A1710),
-                fontFamily: 'Cairo',
+                
               ),
             ),
           ],

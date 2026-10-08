@@ -272,14 +272,14 @@ class QuranReadingController {
             title: Text(
               'تحديث الختمة',
               style: TextStyle(
-                fontFamily: 'Cairo',
+                
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
               ),
             ),
             content: Text(
               'لقد تقدمت في القراءة دون تحديث موضع الختمة. هل تود الخروج دون تحديث الموضع؟',
-              style: TextStyle(fontFamily: 'Cairo', fontSize: 14.sp),
+              style: TextStyle( fontSize: 14.sp),
             ),
             actions: [
               TextButton(
@@ -288,7 +288,7 @@ class QuranReadingController {
                   'الخروج بدون تحديث',
                   style: TextStyle(
                     color: Colors.grey.shade600,
-                    fontFamily: 'Cairo',
+                    
                   ),
                 ),
               ),
@@ -301,7 +301,7 @@ class QuranReadingController {
                   'العودة للتحديث',
                   style: TextStyle(
                     color: Colors.white,
-                    fontFamily: 'Cairo',
+                    
                   ),
                 ),
               ),

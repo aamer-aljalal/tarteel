@@ -311,7 +311,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w900,
                       color: AppColors.primary,
-                      fontFamily: 'Cairo',
+                      
                     ),
                   ),
                   SizedBox(height: 8.h),
@@ -322,7 +322,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
                       height: 1.4,
-                      fontFamily: 'Cairo',
+                      
                       color: isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
@@ -332,7 +332,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey.shade500,
                       height: 1.4,
                     ),
@@ -355,7 +355,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                           color: Colors.white,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'Cairo',
+                          
                         ),
                       ),
                     ),
@@ -414,7 +414,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       fontSize: 18.sp,
                       fontWeight: FontWeight.w900,
                       color: AppColors.primary,
-                      fontFamily: 'Cairo',
+                      
                     ),
                   ),
                   SizedBox(height: 10.h),
@@ -425,7 +425,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
                       height: 1.4,
-                      fontFamily: 'Cairo',
+                      
                       color: isDark ? Colors.white70 : Colors.black87,
                     ),
                   ),
@@ -435,7 +435,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey.shade500,
                       height: 1.4,
                     ),
@@ -461,7 +461,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                           color: Colors.white,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'Cairo',
+                          
                         ),
                       ),
                     ),
@@ -574,7 +574,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       color: Colors.white,
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w900,
-                      fontFamily: 'Cairo',
+                      
                     ),
                   ),
                 ],
@@ -587,7 +587,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                   fontSize: 11.sp,
                   height: 1.4,
                   fontWeight: FontWeight.w600,
-                  fontFamily: 'Cairo',
+                  
                 ),
               ),
             ],
@@ -617,7 +617,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w800,
-                      fontFamily: 'Cairo',
+                      
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
@@ -636,7 +636,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         color: AppColors.primary,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'Cairo',
+                        
                       ),
                     ),
                   ),
@@ -663,7 +663,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     '5 أيام',
                     style: TextStyle(
                       fontSize: 10.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey,
                     ),
                   ),
@@ -671,7 +671,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     '30 يوماً',
                     style: TextStyle(
                       fontSize: 10.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey,
                     ),
                   ),
@@ -679,7 +679,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     '60 يوماً',
                     style: TextStyle(
                       fontSize: 10.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey,
                     ),
                   ),
@@ -687,7 +687,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     '120 يوماً',
                     style: TextStyle(
                       fontSize: 10.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey,
                     ),
                   ),
@@ -769,7 +769,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         style: TextStyle(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w800,
-                          fontFamily: 'Cairo',
+                          
                           color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
@@ -778,7 +778,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         'انقر لتعديل وقت ظهور التنبيه اليومي المخصص',
                         style: TextStyle(
                           fontSize: 10.sp,
-                          fontFamily: 'Cairo',
+                          
                           color: Colors.grey.shade500,
                         ),
                       ),
@@ -790,7 +790,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w900,
-                    fontFamily: 'Cairo',
+                    
                     color: AppColors.primary,
                   ),
                 ),
@@ -842,7 +842,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                   color: Colors.white,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w900,
-                  fontFamily: 'Cairo',
+                  
                 ),
               ),
             ),
@@ -886,7 +886,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                 style: TextStyle(
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w600,
-                  fontFamily: 'Cairo',
+                  
                   color: Colors.grey.shade500,
                 ),
               ),
@@ -900,7 +900,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w900,
-                      fontFamily: 'Cairo',
+                      
                       color: isPrimary ? AppColors.primary : Colors.teal,
                     ),
                   ),
@@ -910,7 +910,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     style: TextStyle(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w600,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey,
                     ),
                   ),
@@ -954,7 +954,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         style: TextStyle(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w900,
-                          fontFamily: 'Cairo',
+                          
                           color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
@@ -963,7 +963,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         'الخطة الكاملة: ${_daysSliderValue.toInt()} يوماً',
                         style: TextStyle(
                           fontSize: 13.sp,
-                          fontFamily: 'Cairo',
+                          
                           color: Colors.grey,
                         ),
                       ),
@@ -989,7 +989,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                             title: Text(
                               'تعديل الخطة الحالية',
                               style: TextStyle(
-                                fontFamily: 'Cairo',
+                                
                                 fontSize: 15.sp,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -997,7 +997,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                             content: Text(
                               'هل تريد تعديل الخطة الحالية؟ سيؤدي ذلك لإعادة ضبط الأيام والورد من جديد مع الاحتفاظ بالآيات المقروءة.',
                               style: TextStyle(
-                                fontFamily: 'Cairo',
+                                
                                 fontSize: 11.sp,
                               ),
                             ),
@@ -1006,7 +1006,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                                 onPressed: () => Navigator.pop(ctx),
                                 child: const Text(
                                   'إلغاء',
-                                  style: TextStyle(fontFamily: 'Cairo'),
+                                  style: TextStyle(),
                                 ),
                               ),
                               ElevatedButton(
@@ -1022,7 +1022,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                                 child: const Text(
                                   'تعديل',
                                   style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    
                                     color: Colors.white,
                                   ),
                                 ),
@@ -1063,7 +1063,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         style: TextStyle(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w900,
-                          fontFamily: 'Cairo',
+                          
                           color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
@@ -1071,7 +1071,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                         'مكتمل من المصحف',
                         style: TextStyle(
                           fontSize: 10.sp,
-                          fontFamily: 'Cairo',
+                          
                           color: Colors.grey,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1125,7 +1125,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w800,
-                      fontFamily: 'Cairo',
+                      
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
@@ -1134,7 +1134,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     style: TextStyle(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'Cairo',
+                      
                       color: AppColors.primary,
                     ),
                   ),
@@ -1158,7 +1158,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     'الآيات المقروءة حتى الآن: $_totalAyahsRead',
                     style: TextStyle(
                       fontSize: 10.sp,
-                      fontFamily: 'Cairo',
+                      
                       color: Colors.grey.shade500,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1170,7 +1170,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     style: TextStyle(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'Cairo',
+                      
                       color: _ayahsReadToday >= _dailyAyahsNeeded
                           ? Colors.green
                           : Colors.grey.shade500,
@@ -1239,7 +1239,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                           style: TextStyle(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w800,
-                            fontFamily: 'Cairo',
+                            
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
@@ -1251,7 +1251,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                           style: TextStyle(
                             fontSize: 11.sp,
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'Cairo',
+                            
                             color: hasStarted
                                 ? AppColors.primary
                                 : Colors.grey.shade500,
@@ -1312,7 +1312,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       color: Colors.white,
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w900,
-                      fontFamily: 'Cairo',
+                      
                     ),
                   ),
                 ],
@@ -1339,7 +1339,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     title: Text(
                       'إلغاء الختمة الحالية',
                       style: TextStyle(
-                        fontFamily: 'Cairo',
+                        
                         fontSize: 10.sp,
                         fontWeight: FontWeight.bold,
                         color: Colors.red,
@@ -1347,7 +1347,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                     ),
                     content: Text(
                       'هل أنت متأكد تماماً من إلغاء وحذف هذه الختمة نهائياً؟ سيؤدي ذلك لمسح كل تقدمك التراكمي بالأيام والآيات.',
-                      style: TextStyle(fontFamily: 'Cairo', fontSize: 9.sp),
+                      style: TextStyle( fontSize: 9.sp),
                     ),
                     actions: [
                       Row(
@@ -1357,7 +1357,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                             onPressed: () => Navigator.pop(ctx),
                             child: const Text(
                               'تراجع',
-                              style: TextStyle(fontFamily: 'Cairo'),
+                              style: TextStyle(),
                             ),
                           ),
 
@@ -1372,7 +1372,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                             child: const Text(
                               'نعم، الغاء الخطة',
                               style: TextStyle(
-                                fontFamily: 'Cairo',
+                                
                                 color: Colors.white,
                                 fontSize: 9,
                               ),
@@ -1390,7 +1390,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
               'إنهاء وإلغاء هذه الختمة نهائياً',
               style: TextStyle(
                 fontSize: 11.sp,
-                fontFamily: 'Cairo',
+                
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1408,7 +1408,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w900,
-            fontFamily: 'Cairo',
+            
             color: AppColors.primary,
           ),
         ),
@@ -1417,7 +1417,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
           label,
           style: TextStyle(
             fontSize: 10.sp,
-            fontFamily: 'Cairo',
+            
             color: Colors.grey,
           ),
         ),

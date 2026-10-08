@@ -371,6 +371,7 @@ class AdhanNotificationService {
         subtitle: alarmSubtitle,
         audioFile: muezzin.rawResourceName,
         audioSource: 'RAW_RESOURCE',
+ 
         scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,

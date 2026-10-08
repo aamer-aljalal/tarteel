@@ -297,7 +297,6 @@ class PrayerProvider extends ChangeNotifier {
                       : 'تحديث موقعك الحالي',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black87,
@@ -311,7 +310,7 @@ class PrayerProvider extends ChangeNotifier {
                       : 'لقد مر عدة أيام منذ آخر تحديث لموقعك الجغرافي. هل ترغب في تحديث موقعك الحالي لضمان دقة مواقيت الصلاة والأذان (في حال سافرت أو غيرت مكانك)؟',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    // fontFamily: 'Cairo',
+                    //
                     fontSize: 12.5.sp,
                     color: isDark ? Colors.white70 : Colors.black54,
                     height: 1.5,
@@ -342,7 +341,6 @@ class PrayerProvider extends ChangeNotifier {
                         child: Text(
                           isFirstTime ? 'تفعيل الآن' : 'تحديث الموقع',
                           style: TextStyle(
-                            fontFamily: 'Cairo',
                             fontSize: 13.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -405,7 +403,6 @@ class PrayerProvider extends ChangeNotifier {
                         child: Text(
                           'ليس الآن',
                           style: TextStyle(
-                            fontFamily: 'Cairo',
                             fontSize: 13.sp,
                             color: isDark ? Colors.white70 : Colors.black54,
                           ),
@@ -478,7 +475,6 @@ class PrayerProvider extends ChangeNotifier {
                   'تفعيل أذان الصلوات',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black87,
@@ -491,7 +487,6 @@ class PrayerProvider extends ChangeNotifier {
                   'هل ترغب في تشغيل صوت الأذان التلقائي عند دخول أوقات الصلاة بصوت المؤذن؟\n\nعند الموافقة، يمكنك اختيار المؤذن المفضل وتخصيص مستوى الصوت لكل صلاة.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 12.5.sp,
                     color: isDark ? Colors.white70 : Colors.black54,
                     height: 1.5,
@@ -515,17 +510,24 @@ class PrayerProvider extends ChangeNotifier {
                         onPressed: () async {
                           Navigator.pop(dialogContext);
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool('has_prompted_adhan_activation', true);
-                          await AdhanNotificationService.setPrayerNotificationsEnabled(true);
+                          await prefs.setBool(
+                            'has_prompted_adhan_activation',
+                            true,
+                          );
+                          await AdhanNotificationService.setPrayerNotificationsEnabled(
+                            true,
+                          );
                           await scheduleAdhanNotifications();
                           if (context.mounted) {
-                            Navigator.pushNamed(context, AppRoutes.adhanMuezzin);
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.adhanMuezzin,
+                            );
                           }
                         },
                         child: Text(
                           'موافق',
                           style: TextStyle(
-                            fontFamily: 'Cairo',
                             fontSize: 13.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -550,17 +552,24 @@ class PrayerProvider extends ChangeNotifier {
                         onPressed: () async {
                           Navigator.pop(dialogContext);
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool('has_prompted_adhan_activation', true);
-                          await AdhanNotificationService.setPrayerNotificationsEnabled(false);
+                          await prefs.setBool(
+                            'has_prompted_adhan_activation',
+                            true,
+                          );
+                          await AdhanNotificationService.setPrayerNotificationsEnabled(
+                            false,
+                          );
                           await AdhanNotificationService.cancelPrayerAdhan();
                           if (context.mounted) {
-                            _showToast(context, 'تم إيقاف الأذان التلقائي، يمكنك تفعيله لاحقاً من قسم المؤذن');
+                            _showToast(
+                              context,
+                              'تم إيقاف الأذان التلقائي، يمكنك تفعيله لاحقاً من قسم المؤذن',
+                            );
                           }
                         },
                         child: Text(
                           'لا',
                           style: TextStyle(
-                            fontFamily: 'Cairo',
                             fontSize: 13.sp,
                             color: isDark ? Colors.white70 : Colors.black54,
                           ),
@@ -608,23 +617,14 @@ class PrayerProvider extends ChangeNotifier {
         permission = await Geolocator.requestPermission();
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        if (context.mounted) {
-          _showToast(
-            context,
-            'تم رفض الوصول للموقع بشكل دائم، يرجى تفعيله من إعدادات التطبيق',
-          );
-          await Geolocator.openAppSettings();
-        }
-      }
-
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (context.mounted) {
           _showToast(
             context,
-            'تم رفض الوصول للموقع، سيتم الاستمرار بتوقيت مكة المكرمة كافتراضي',
+            'تم رفض الوصول للموقع، يرجى إعطاء الصلاحية من إعدادات التطبيق للمتابعة',
           );
+          await Geolocator.openAppSettings();
         }
         _calculationMethod = CalculationMethod.umm_al_qura;
         _updateCalculationParameters();
@@ -638,13 +638,6 @@ class PrayerProvider extends ChangeNotifier {
           'last_location_update_time',
           DateTime.now().toIso8601String(),
         );
-        _lat = 21.4225;
-        _lng = 39.8262;
-        _cityName = 'مكة المكرمة';
-        _countryCode = 'SA';
-        _coordinates = Coordinates(_lat, _lng);
-        _calculatePrayerTimes();
-        await scheduleAdhanNotifications();
         _isLoading = false;
         notifyListeners();
         return;
@@ -753,10 +746,7 @@ class PrayerProvider extends ChangeNotifier {
           textDirection: ui.TextDirection.rtl,
           child: Text(
             message,
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         duration: const Duration(seconds: 4),

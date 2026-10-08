@@ -403,6 +403,31 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
                 iconColor: Colors.blueGrey,
               ),
 
+              // زر اختبار الأذان (مؤقت للمطورين)
+              // Padding(
+              //   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              //   child: ElevatedButton.icon(
+              //     onPressed: () async {
+              //       ScaffoldMessenger.of(context).showSnackBar(
+              //         const SnackBar(
+              //           content: Text('سيتم تشغيل الأذان بعد 10 ثوانٍ.. يمكنك الخروج من التطبيق للتحقق!'),
+              //           duration: Duration(seconds: 4),
+              //         ),
+              //       );
+              //       await AdhanNotificationService.testScheduleAdhanInSeconds(10, prayerName: 'الاختبار');
+              //     },
+              //     icon: const Icon(Icons.timer_outlined, color: Colors.white),
+              //     label: Text('اختبار الأذان (10 ثوانٍ)', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+              //     style: ElevatedButton.styleFrom(
+              //       backgroundColor: Colors.redAccent.shade400,
+              //       foregroundColor: Colors.white,
+              //       padding: EdgeInsets.symmetric(vertical: 12.h),
+              //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+              //       elevation: 0,
+              //     ),
+              //   ),
+              // ),
+
               if (_soundEnabled) ...[
                 SizedBox(height: 12.h),
                 // صف الأزرار الجديدة (صوت المؤذن + تخصيص الصلوات)

@@ -23,7 +23,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
   String _currentZekr = 'سبحان الله';
   int _currentCount = 0;
-  int _target = 33;
+  int _target = 100;
 
   double _buttonScale = 1.0;
 
@@ -45,7 +45,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
     final defaultAzkar = [
       DhikrModel(
         text: 'سبحان الله',
-        targetCount: 33,
+        targetCount: 100,
         currentCount: 0,
         createdAt: DateTime.now(),
         lastUpdated: DateTime.now(),
@@ -53,7 +53,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       ),
       DhikrModel(
         text: 'الحمد لله',
-        targetCount: 33,
+        targetCount: 100,
         currentCount: 0,
         createdAt: DateTime.now(),
         lastUpdated: DateTime.now(),
@@ -61,7 +61,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       ),
       DhikrModel(
         text: 'الله أكبر',
-        targetCount: 34,
+        targetCount: 100,
         currentCount: 0,
         createdAt: DateTime.now(),
         lastUpdated: DateTime.now(),
