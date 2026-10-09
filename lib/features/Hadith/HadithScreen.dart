@@ -86,7 +86,9 @@ class _HadithScreenState extends State<HadithScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(20.r),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.15),
@@ -122,7 +124,10 @@ class _HadithScreenState extends State<HadithScreen> {
                     ),
                     SizedBox(height: 16.h),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
+                      ),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.black12 : Colors.grey.shade50,
                         border: Border.all(
@@ -146,10 +151,13 @@ class _HadithScreenState extends State<HadithScreen> {
                             child: SliderTheme(
                               data: SliderThemeData(
                                 activeTrackColor: AppColors.goldAccent,
-                                inactiveTrackColor:
-                                    isDark ? Colors.white12 : Colors.grey.shade200,
+                                inactiveTrackColor: isDark
+                                    ? Colors.white12
+                                    : Colors.grey.shade200,
                                 thumbColor: AppColors.goldAccent,
-                                overlayColor: AppColors.goldAccent.withValues(alpha: 0.2),
+                                overlayColor: AppColors.goldAccent.withValues(
+                                  alpha: 0.2,
+                                ),
                                 valueIndicatorColor: AppColors.primary,
                                 valueIndicatorTextStyle: const TextStyle(
                                   color: Colors.white,
@@ -397,9 +405,13 @@ class _HadithScreenState extends State<HadithScreen> {
               onPressed: _isLoading ? null : _openRandomHadith,
             ),
             IconButton(
-              tooltip: _showingFavoritesOnly ? 'عرض كل الأحاديث' : 'الأحاديث المحفوظة',
+              tooltip: _showingFavoritesOnly
+                  ? 'عرض كل الأحاديث'
+                  : 'الأحاديث المحفوظة',
               icon: Icon(
-                _showingFavoritesOnly ? Icons.star_rounded : Icons.star_outline_rounded,
+                _showingFavoritesOnly
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
                 color: _showingFavoritesOnly ? Colors.amber : null,
               ),
               onPressed: _isLoading ? null : _toggleFavoritesView,

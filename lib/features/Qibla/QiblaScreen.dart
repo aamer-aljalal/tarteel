@@ -4,12 +4,15 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // تمت الإضافة من أجل الاهتزاز HapticFeedback
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
+import 'widgets/qibla_painters.dart';
+import 'widgets/qibla_info_card.dart';
 
 class QiblaScreen extends StatefulWidget {
   const QiblaScreen({super.key});
@@ -24,9 +27,10 @@ class _QiblaScreenState extends State<QiblaScreen>
   static const double _kaabaLat = 21.4225;
   static const double _kaabaLng = 39.8262;
 
-  double? _heading; // اتجاه البوصلة الحالي
+  double? _heading; // اتجاه البوصلة الحالي (تراكمي)
   double? _qiblaAngle; // زاوية القبلة من الشمال
   double? _deviceQiblaAngle; // زاوية القبلة نسبة لاتجاه الجهاز
+  double? _distanceToKaaba; // المسافة إلى الكعبة بالكيلومتر
   String _statusMessage = 'جاري تحديد موقعك...';
   bool _isLoading = true;
   bool _hasError = false;
@@ -36,6 +40,11 @@ class _QiblaScreenState extends State<QiblaScreen>
   StreamSubscription<CompassEvent>? _compassSub;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  // متغيرات التنعيم للبوصلة
+  double _lastHeading = 0.0;
+  double _cumulativeHeading = 0.0;
+  bool _isFirstHeading = true;
 
   @override
   void initState() {
@@ -62,7 +71,6 @@ class _QiblaScreenState extends State<QiblaScreen>
     });
 
     try {
-      // 0. التحميل الفوري الأوفلاين من الذاكرة المشتركة إذا كان متوفراً ولم نطلب التحديث الإجباري
       if (!forceRefresh) {
         final prefs = await SharedPreferences.getInstance();
         final double? cachedLat = prefs.getDouble('prayer_lat');
@@ -71,8 +79,16 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         if (cachedLat != null && cachedLng != null) {
           final qibla = _calculateQiblaAngle(cachedLat, cachedLng);
+          final distance = Geolocator.distanceBetween(
+            cachedLat,
+            cachedLng,
+            _kaabaLat,
+            _kaabaLng,
+          );
+
           setState(() {
             _qiblaAngle = qibla;
+            _distanceToKaaba = distance / 1000;
             _isLoading = false;
             _statusMessage = 'البوصلة نشطة (أوفلاين بالكامل)';
             _locationName =
@@ -84,14 +100,17 @@ class _QiblaScreenState extends State<QiblaScreen>
         }
       }
 
-      // 0. دعم اختبار وتطوير التطبيق على الويندوز Desktop دون انهيار البوصلة
       if (defaultTargetPlatform == TargetPlatform.windows) {
-        final qibla = _calculateQiblaAngle(
+        final qibla = _calculateQiblaAngle(21.4225, 39.8262);
+        final distance = Geolocator.distanceBetween(
           21.4225,
           39.8262,
-        ); // إحداثيات مكة المكرمة كافتراضي
+          _kaabaLat,
+          _kaabaLng,
+        );
         setState(() {
           _qiblaAngle = qibla;
+          _distanceToKaaba = distance / 1000;
           _isLoading = false;
           _statusMessage = 'البوصلة نشطة (الوضع الافتراضي للويندوز)';
           _locationName = 'مكة المكرمة (الافتراضي للويندوز)';
@@ -100,7 +119,6 @@ class _QiblaScreenState extends State<QiblaScreen>
         return;
       }
 
-      // 1. التحقق من صلاحيات الموقع عبر Geolocator مباشرة لضمان أعلى توافق وتجنب تعارض الحزم
       LocationPermission permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
@@ -131,7 +149,6 @@ class _QiblaScreenState extends State<QiblaScreen>
 
       setState(() => _statusMessage = 'جاري تحديد موقعك...');
 
-      // 2. التحقق من تفعيل خدمة تحديد الموقع بالجهاز (GPS)
       final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!isServiceEnabled) {
         setState(() {
@@ -143,13 +160,11 @@ class _QiblaScreenState extends State<QiblaScreen>
         return;
       }
 
-      // 3. محاولة الحصول على آخر موقع معروف أولاً (سريع ومجاني وبدون تعليق)
       Position? pos;
       try {
         pos = await Geolocator.getLastKnownPosition();
       } catch (_) {}
 
-      // 4. إعدادات الموقع للأندرويد التي تتجاوز مشاكل خدمات جوجل وتعتمد على محرك النظام مباشرة (Force Location Manager)
       final locationSettingsLow =
           defaultTargetPlatform == TargetPlatform.android
           ? AndroidSettings(
@@ -166,14 +181,12 @@ class _QiblaScreenState extends State<QiblaScreen>
             )
           : const LocationSettings(accuracy: LocationAccuracy.lowest);
 
-      // 5. إذا لم يتوفر آخر موقع معروف، نطلب الموقع بدقة منخفضة تفادياً لتعليق الستلايت
       if (pos == null) {
         try {
           pos = await Geolocator.getCurrentPosition(
             locationSettings: locationSettingsLow,
           ).timeout(const Duration(seconds: 6));
         } catch (_) {
-          // 6. تراجع أخير للدقة الدنيا (تعتمد على الأبراج والـ Wi-Fi وتعمل فوراً بالداخل)
           try {
             pos = await Geolocator.getCurrentPosition(
               locationSettings: locationSettingsLowest,
@@ -184,15 +197,19 @@ class _QiblaScreenState extends State<QiblaScreen>
         }
       }
 
-      // إذا نجحنا في تحديد الموقع
       if (pos != null) {
         final currentPos = pos;
         final qibla = _calculateQiblaAngle(
           currentPos.latitude,
           currentPos.longitude,
         );
+        final distance = Geolocator.distanceBetween(
+          currentPos.latitude,
+          currentPos.longitude,
+          _kaabaLat,
+          _kaabaLng,
+        );
 
-        // حفظ الموقع الجديد في الذاكرة لتحديث مواقيت الصلاة والقبلة معاً
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setDouble('prayer_lat', currentPos.latitude);
@@ -202,7 +219,6 @@ class _QiblaScreenState extends State<QiblaScreen>
             DateTime.now().toIso8601String(),
           );
 
-          // محاولة جلب اسم المدينة وحفظه
           String cityName = 'موقعي الحالي';
           try {
             final placemarks = await placemarkFromCoordinates(
@@ -223,6 +239,7 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         setState(() {
           _qiblaAngle = qibla;
+          _distanceToKaaba = distance / 1000;
           _isLoading = false;
           _statusMessage = 'البوصلة نشطة';
           _locationName =
@@ -231,7 +248,6 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         _startCompass();
       } else {
-        // فشل كامل في الحصول على الإحداثيات
         throw Exception('Location service returned null coordinates');
       }
     } catch (e) {
@@ -244,7 +260,6 @@ class _QiblaScreenState extends State<QiblaScreen>
     }
   }
 
-  /// حساب زاوية القبلة باستخدام الصيغة الكروية
   double _calculateQiblaAngle(double lat, double lng) {
     final dLng = (_kaabaLng - lng) * math.pi / 180;
     final lat1 = lat * math.pi / 180;
@@ -277,11 +292,31 @@ class _QiblaScreenState extends State<QiblaScreen>
           if (h == null) return;
           if (_qiblaAngle == null) return;
 
+          if (_isFirstHeading) {
+            _lastHeading = h;
+            _cumulativeHeading = h;
+            _isFirstHeading = false;
+          } else {
+            double delta = h - _lastHeading;
+            if (delta > 180) {
+              delta -= 360;
+            } else if (delta < -180) {
+              delta += 360;
+            }
+            _cumulativeHeading += delta;
+            _lastHeading = h;
+          }
+
           final deviceAngle = (_qiblaAngle! - h + 360) % 360;
           final aligned = deviceAngle < 3 || deviceAngle > 357;
 
+          // إضافة ميزة الاهتزاز عند الوصول للقبلة
+          if (aligned && !_isAligned) {
+            HapticFeedback.mediumImpact(); // اهتزاز خفيف
+          }
+
           setState(() {
-            _heading = h;
+            _heading = _cumulativeHeading;
             _deviceQiblaAngle = deviceAngle;
             _isAligned = aligned;
           });
@@ -330,17 +365,16 @@ class _QiblaScreenState extends State<QiblaScreen>
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF0D1B0F), Color(0xFF111111)],
-                )
-              : LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [primary.withValues(alpha: 0.08), Colors.white],
-                ),
+          image: DecorationImage(
+            image: const AssetImage('assets/img/Qibla/qibla.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              isDark
+                  ? Colors.black.withValues(alpha: 0.75)
+                  : Colors.black.withValues(alpha: 0.35),
+              BlendMode.darken,
+            ),
+          ),
         ),
         child: SafeArea(
           child: _isLoading
@@ -421,68 +455,12 @@ class _QiblaScreenState extends State<QiblaScreen>
       padding: EdgeInsets.symmetric(vertical: 16.h),
       child: Column(
         children: [
-          // حالة المحاذاة
-          _buildAlignmentBanner(isDark),
-          SizedBox(height: 20.h),
-
-          // البوصلة الرئيسية
           _buildCompassWidget(angle, primary, secondary, isDark),
           SizedBox(height: 24.h),
-
-          // معلومات الزاوية
           _buildInfoRow(primary, secondary, isDark),
           SizedBox(height: 16.h),
-
-          // الموقع الحالي
           _buildLocationCard(primary, isDark),
           SizedBox(height: 20.h),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAlignmentBanner(bool isDark) {
-    final aligned = _isAligned;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: aligned
-              ? [const Color(0xFF1B5E20), const Color(0xFF4CAF50)]
-              : [const Color(0xFF4E342E), const Color(0xFF8D6E63)],
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: (aligned ? Colors.green : Colors.brown).withValues(
-              alpha: 0.4,
-            ),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            aligned ? Icons.check_circle_rounded : Icons.explore_rounded,
-            color: Colors.white,
-            size: 22.sp,
-          ),
-          SizedBox(width: 10.w),
-          Text(
-            aligned
-                ? '🕋 أنت متجه نحو القبلة!'
-                : 'وجّه الهاتف حتى يُحاذي السهم',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14.sp,
-            ),
-          ),
         ],
       ),
     );
@@ -498,7 +476,6 @@ class _QiblaScreenState extends State<QiblaScreen>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // هالة خارجية
           AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (_, __) => Transform.scale(
@@ -520,8 +497,6 @@ class _QiblaScreenState extends State<QiblaScreen>
               ),
             ),
           ),
-
-          // البوصلة
           Container(
             width: 310.w,
             height: 310.w,
@@ -541,17 +516,21 @@ class _QiblaScreenState extends State<QiblaScreen>
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    // خلفية البوصلة سوداء كلاسيكية
                     color: const Color(0xFF151515),
                     border: Border.all(
                       color: const Color(0xFFD4AF37),
                       width: 3,
                     ),
                   ),
-                  child: Transform.rotate(
-                    angle: -(_heading ?? 0.0) * math.pi / 180,
+                  // التعديل السحري هنا: استخدام AnimatedRotation بدلاً من Transform.rotate ليعطينا نعومة فائقة
+                  child: AnimatedRotation(
+                    turns: -(_heading ?? 0.0) / 360, // نحول الزاوية إلى دورات
+                    duration: const Duration(
+                      milliseconds: 250,
+                    ), // سرعة الانزلاق
+                    curve: Curves.easeOutCubic, // نوع الحركة الفيزيائية السلسة
                     child: CustomPaint(
-                      painter: _CompassRingPainter(isDark: isDark),
+                      painter: CompassRingPainter(isDark: isDark),
                       child: Center(
                         child: Transform.rotate(
                           angle: (_qiblaAngle ?? 0.0) * math.pi / 180,
@@ -572,19 +551,21 @@ class _QiblaScreenState extends State<QiblaScreen>
   Widget _buildQiblaArrow() {
     return CustomPaint(
       size: Size(280.w, 280.w),
-      painter: _QiblaArrowPainter(isAligned: _isAligned),
+      painter: QiblaArrowPainter(isAligned: _isAligned),
     );
   }
 
   Widget _buildInfoRow(Color primary, Color secondary, bool isDark) {
-    final cardBg = isDark ? const Color(0xFF1A2B1C) : Colors.white;
+    final cardBg = (isDark ? const Color(0xFF1A2B1C) : Colors.white).withValues(
+      alpha: 0.85,
+    );
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Row(
         children: [
           Expanded(
-            child: _InfoCard(
+            child: QiblaInfoCard(
               label: 'زاوية القبلة',
               value: '${_qiblaAngle?.toStringAsFixed(1) ?? '--'}°',
               icon: Icons.explore_rounded,
@@ -595,24 +576,12 @@ class _QiblaScreenState extends State<QiblaScreen>
           ),
           SizedBox(width: 12.w),
           Expanded(
-            child: _InfoCard(
-              label: 'اتجاه الجهاز',
-              value: '${_heading?.toStringAsFixed(0) ?? '--'}°',
-              icon: Icons.navigation_rounded,
+            child: QiblaInfoCard(
+              label: 'المسافة للكعبة',
+              // إضافة المسافة المحسوبة
+              value: '${_distanceToKaaba?.toStringAsFixed(0) ?? '--'} كم',
+              icon: Icons.straighten_rounded,
               color: secondary,
-              bg: cardBg,
-              isDark: isDark,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: _InfoCard(
-              label: 'الحالة',
-              value: _isAligned ? 'محاذي ✓' : 'غير محاذي',
-              icon: _isAligned
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked,
-              color: _isAligned ? Colors.green : Colors.orange,
               bg: cardBg,
               isDark: isDark,
             ),
@@ -628,7 +597,9 @@ class _QiblaScreenState extends State<QiblaScreen>
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A2B1C) : Colors.white,
+          color: (isDark ? const Color(0xFF1A2B1C) : Colors.white).withValues(
+            alpha: 0.85,
+          ),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: primary.withValues(alpha: 0.2)),
         ),
@@ -675,11 +646,11 @@ class _QiblaScreenState extends State<QiblaScreen>
           ],
         ),
         content: Text(
-          '• السهم الأخضر يشير دائماً نحو القبلة.\n'
+          '• السهم الأصفر يشير دائماً نحو القبلة.\n'
           '• دوّر الهاتف حتى يتجه السهم للأعلى (نحو الشاشة).\n'
-          '• سيتحول اللون للأخضر عند الاستقامة نحو القبلة.\n'
-          '• حرّك الهاتف بشكل 8 لمعايرة البوصلة.\n'
-          '• تأكد من إبعاد الهاتف عن الأجسام المعدنية.',
+          '• سيهتز الهاتف ويتحول اللون للأخضر عند الاستقامة نحو القبلة.\n'
+          '• حرّك الهاتف بشكل 8 لمعايرة البوصلة إذا كانت غير دقيقة.\n'
+          '• تأكد من إبعاد الهاتف عن الأجسام المعدنية والمغناطيسية.',
           style: TextStyle(fontSize: 14.sp, height: 1.7),
         ),
         actions: [
@@ -689,230 +660,6 @@ class _QiblaScreenState extends State<QiblaScreen>
               'فهمت',
               style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ======= رسام حلقة البوصلة =======
-class _CompassRingPainter extends CustomPainter {
-  final bool isDark;
-  _CompassRingPainter({required this.isDark});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
-
-    final directions = {
-      'ش': 0.0,
-      'ق': math.pi / 2,
-      'ج': math.pi,
-      'غ': 3 * math.pi / 2,
-    };
-
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    for (int i = 0; i < 360; i += 5) {
-      final rad = i * math.pi / 180 - math.pi / 2;
-      final isMain = i % 90 == 0;
-      final isSub = i % 30 == 0;
-      
-      // تكبير الأسنان قليلاً
-      final len = isMain
-          ? 24.0
-          : isSub
-          ? 16.0
-          : 10.0;
-      final sw = isMain ? 3.0 : 1.5;
-      
-      // جعل لون الأسنان جميعها أصفر (أو درجات الذهبي) كما طلب المستخدم
-      final color = isMain
-          ? const Color(0xFFFFD700)
-          : Colors.amber.shade400;
-
-      final start = Offset(
-        center.dx + (radius - len) * math.cos(rad),
-        center.dy + (radius - len) * math.sin(rad),
-      );
-      final end = Offset(
-        center.dx + radius * math.cos(rad),
-        center.dy + radius * math.sin(rad),
-      );
-      canvas.drawLine(
-        start,
-        end,
-        Paint()
-          ..color = color
-          ..strokeWidth = sw
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-
-    directions.forEach((label, angle) {
-      final rad = angle - math.pi / 2;
-      final tr = radius - 42; // تحريك الحروف للداخل قليلاً بسبب تكبير الأسنان
-      final span = TextSpan(
-        text: label,
-        style: TextStyle(
-          // جعل كل الحروف بلون أحمر مميز ومضيء لتبرز على الخلفية السوداء
-          color: Colors.redAccent.shade400,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      textPainter.text = span;
-      textPainter.layout();
-      final dx = center.dx + tr * math.cos(rad) - textPainter.width / 2;
-      final dy = center.dy + tr * math.sin(rad) - textPainter.height / 2;
-      textPainter.paint(canvas, Offset(dx, dy));
-    });
-  }
-
-  @override
-  bool shouldRepaint(covariant _CompassRingPainter old) => old.isDark != isDark;
-}
-
-// ======= رسام سهم القبلة =======
-class _QiblaArrowPainter extends CustomPainter {
-  final bool isAligned;
-  _QiblaArrowPainter({required this.isAligned});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final arrowLen = size.width / 2 - 30;
-
-    // السهم يشير دائماً للأعلى (زاوية القبلة في إطار الرسم بعد تدويره)
-    final tip = Offset(center.dx, center.dy - arrowLen);
-
-    // شكل المعين (إبرة البوصلة الكلاسيكية)
-    final midLeft = Offset(center.dx - 22, center.dy);
-    final midRight = Offset(center.dx + 22, center.dy);
-    final tail = Offset(
-      center.dx,
-      center.dy + arrowLen * 0.45,
-    ); // الذيل أقصر من الرأس لتمييز الاتجاه
-
-    final path = Path()
-      ..moveTo(tip.dx, tip.dy)
-      ..lineTo(midRight.dx, midRight.dy)
-      ..lineTo(tail.dx, tail.dy)
-      ..lineTo(midLeft.dx, midLeft.dy)
-      ..close();
-
-    // التوهج (الظل) حول المثلث
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.amber.withValues(alpha: 0.4)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
-    );
-
-    // المثلث الأصفر الأساسي
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = isAligned ? const Color(0xFFFFD700) : Colors.amber.shade500
-        ..style = PaintingStyle.fill,
-    );
-
-    // حد للمثلث ليعطيه شكلاً أنيقاً
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.amber.shade700
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-
-    // خط في المنتصف لإعطاء إيحاء طية البوصلة الكلاسيكية (3D)
-    canvas.drawLine(
-      tip,
-      tail,
-      Paint()
-        ..color = Colors.amber.shade700
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-
-    // دائرة مركزية
-    canvas.drawCircle(center, 14, Paint()..color = const Color(0xFFD4AF37));
-    canvas.drawCircle(center, 9, Paint()..color = Colors.white);
-
-    // أيقونة الكعبة الصغيرة في المركز
-    final kaabaPaint = Paint()..color = const Color(0xFF2E2E2E);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: center, width: 10, height: 10),
-        const Radius.circular(2),
-      ),
-      kaabaPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _QiblaArrowPainter old) =>
-      old.isAligned != isAligned;
-}
-
-// ======= بطاقة معلومات صغيرة =======
-class _InfoCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final Color bg;
-  final bool isDark;
-
-  const _InfoCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.bg,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black26 : Colors.grey.shade100,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 20.sp),
-          SizedBox(height: 6.h),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.sp,
-              color: isDark ? Colors.white54 : Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
