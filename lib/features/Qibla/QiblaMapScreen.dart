@@ -140,80 +140,6 @@ class _QiblaMapScreenState extends State<QiblaMapScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // 1. بطاقة دليل ألوان الخطوط الخفيفة والذكية في الأعلى
-            // Padding(
-            //   padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-            //   child: Container(
-            //     padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
-            //     decoration: BoxDecoration(
-            //       color: const Color(0xFF101C13),
-            //       borderRadius: BorderRadius.circular(12.r),
-            //       border: Border.all(color: Colors.white12),
-            //     ),
-            //     child: Row(
-            //       mainAxisAlignment: MainAxisAlignment.spaceAround,
-            //       children: [
-            //         Row(
-            //           children: [
-            //             Container(
-            //               width: 16.w,
-            //               height: 3.5.h,
-            //               decoration: BoxDecoration(
-            //                 color: const Color(0xFF00E676),
-            //                 borderRadius: BorderRadius.circular(2.r),
-            //                 boxShadow: [
-            //                   BoxShadow(
-            //                     color: Colors.green.withValues(alpha: 0.6),
-            //                     blurRadius: 4,
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //             SizedBox(width: 6.w),
-            //             Text(
-            //               'مسار القبلة الفعلي',
-            //               style: TextStyle(
-            //                 fontSize: 10.5.sp,
-            //                 color: const Color(0xFF00E676),
-            //                 fontWeight: FontWeight.bold,
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //         Container(width: 1, height: 14.h, color: Colors.white12),
-            //         Row(
-            //           children: [
-            //             Container(
-            //               width: 16.w,
-            //               height: 3.5.h,
-            //               decoration: BoxDecoration(
-            //                 color: isAligned ? const Color(0xFF00E676) : Colors.redAccent,
-            //                 borderRadius: BorderRadius.circular(2.r),
-            //                 boxShadow: [
-            //                   BoxShadow(
-            //                     color: (isAligned ? Colors.green : Colors.red)
-            //                         .withValues(alpha: 0.6),
-            //                     blurRadius: 4,
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //             SizedBox(width: 6.w),
-            //             Text(
-            //               isAligned ? 'تم التطابق بنجاح ✓' : 'اتجاه هاتفك الحالي',
-            //               style: TextStyle(
-            //                 fontSize: 10.5.sp,
-            //                 color: isAligned ? const Color(0xFF00E676) : Colors.redAccent,
-            //                 fontWeight: FontWeight.bold,
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-            // ),
-
             // 2. ساحة المحاذاة البصرية (المسار الكامل الثابت)
             Expanded(
               child: Padding(
@@ -296,7 +222,7 @@ class _QiblaMapScreenState extends State<QiblaMapScreen>
                     _buildInfoColumn(
                       'الحالة',
                       isAligned
-                          ? 'متطابق 🎯'
+                          ? 'متطابق'
                           : (diff == null
                                 ? 'جاري...'
                                 : (diff < 0

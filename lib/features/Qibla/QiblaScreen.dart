@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +36,9 @@ class _QiblaScreenState extends State<QiblaScreen>
   static const double _kaabaLng = 39.8262;
 
   double? _heading;
+  double _filteredHeading = 0.0;
+  bool _wasAligned = false;
+  double _distanceKm = 0;
   double? _qiblaAngle;
   double? _deviceQiblaAngle;
   String _statusMessage = 'جاري تحديد موقعك...';
@@ -50,8 +52,6 @@ class _QiblaScreenState extends State<QiblaScreen>
   late Animation<double> _pulseAnimation;
 
   // تنعيم البوصلة
-  double _lastHeading = 0.0;
-  double _cumulativeHeading = 0.0;
   bool _isFirstHeading = true;
 
   @override
@@ -59,8 +59,8 @@ class _QiblaScreenState extends State<QiblaScreen>
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+      duration: const Duration(seconds: 2),
+    )..repeat();
     _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -87,7 +87,16 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         if (cachedLat != null && cachedLng != null) {
           final qibla = _calculateQiblaAngle(cachedLat, cachedLng);
+          final dist =
+              Geolocator.distanceBetween(
+                cachedLat,
+                cachedLng,
+                _kaabaLat,
+                _kaabaLng,
+              ) /
+              1000;
           setState(() {
+            _distanceKm = dist;
             _qiblaAngle = qibla;
             _isLoading = false;
             _statusMessage = 'البوصلة نشطة (أوفلاين بالكامل)';
@@ -103,6 +112,7 @@ class _QiblaScreenState extends State<QiblaScreen>
       if (defaultTargetPlatform == TargetPlatform.windows) {
         final qibla = _calculateQiblaAngle(21.4225, 39.8262);
         setState(() {
+          _distanceKm = 0;
           _qiblaAngle = qibla;
           _isLoading = false;
           _statusMessage = 'البوصلة نشطة (الوضع الافتراضي للويندوز)';
@@ -224,7 +234,17 @@ class _QiblaScreenState extends State<QiblaScreen>
           await prefs.setString('prayer_city_name', cityName);
         } catch (_) {}
 
+        final dist =
+            Geolocator.distanceBetween(
+              currentPos.latitude,
+              currentPos.longitude,
+              _kaabaLat,
+              _kaabaLng,
+            ) /
+            1000;
+
         setState(() {
+          _distanceKm = dist;
           _qiblaAngle = qibla;
           _isLoading = false;
           _statusMessage = 'البوصلة نشطة';
@@ -274,35 +294,36 @@ class _QiblaScreenState extends State<QiblaScreen>
       _compassSub = stream.listen(
         (event) {
           if (!mounted) return;
-          final h = event.heading;
-          if (h == null || _qiblaAngle == null) return;
+          final rawH = event.heading;
+          if (rawH == null || _qiblaAngle == null) return;
 
           if (_isFirstHeading) {
-            _lastHeading = h;
-            _cumulativeHeading = h;
+            _filteredHeading = rawH;
             _isFirstHeading = false;
           } else {
-            double delta = h - _lastHeading;
-            if (delta > 180) {
-              delta -= 360;
-            } else if (delta < -180) {
-              delta += 360;
+            double delta = (rawH - _filteredHeading + 180) % 360 - 180;
+
+            // عتبة تصفية الارتجاف عند ثبات الهاتف (Deadband)
+            if (delta.abs() < 0.4) {
+              return;
             }
-            _cumulativeHeading += delta;
-            _lastHeading = h;
+
+            // مرشح التنعيم الحركي (Exponential Moving Average Filter)
+            double alpha = delta.abs() > 8 ? 0.35 : 0.16;
+            _filteredHeading = (_filteredHeading + delta * alpha + 360) % 360;
           }
 
-          final deviceAngle = (_qiblaAngle! - h + 360) % 360;
-          final aligned = deviceAngle < 3 || deviceAngle > 357;
+          double diff = ((_filteredHeading - _qiblaAngle! + 180) % 360) - 180;
+          bool isAligned = diff.abs() <= 2.0;
 
-          if (aligned && !_isAligned) {
+          if (isAligned && !_wasAligned) {
             HapticFeedback.mediumImpact();
           }
+          _wasAligned = isAligned;
 
           setState(() {
-            _heading = _cumulativeHeading;
-            _deviceQiblaAngle = deviceAngle;
-            _isAligned = aligned;
+            _heading = _filteredHeading;
+            _isAligned = isAligned;
           });
         },
         onError: (error) {
@@ -376,7 +397,7 @@ class _QiblaScreenState extends State<QiblaScreen>
                       tooltip: 'تعليمات',
                     ),
                     Text(
-                      'اتجاه القبلة 🧭',
+                      'اتجاه القبلة',
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
@@ -595,6 +616,12 @@ class _QiblaScreenState extends State<QiblaScreen>
     Color secondary,
     bool isDark,
   ) {
+    double? diff;
+    if (_heading != null && _qiblaAngle != null) {
+      diff = ((_heading! - _qiblaAngle! + 180) % 360) - 180;
+    }
+    final bool isAligned = _isAligned;
+
     return Center(
       child: Stack(
         alignment: Alignment.center,
@@ -603,16 +630,16 @@ class _QiblaScreenState extends State<QiblaScreen>
           AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (_, __) => Transform.scale(
-              scale: _isAligned ? _pulseAnimation.value : 1.0,
+              scale: isAligned ? _pulseAnimation.value : 1.0,
               child: Container(
-                width: 325.w,
-                height: 325.w,
+                width: 360.w,
+                height: 360.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: _isAligned
+                    colors: isAligned
                         ? [
-                            Colors.green.withValues(alpha: 0.18),
+                            Colors.green.withValues(alpha: 0.22),
                             Colors.transparent,
                           ]
                         : [primary.withValues(alpha: 0.08), Colors.transparent],
@@ -622,46 +649,96 @@ class _QiblaScreenState extends State<QiblaScreen>
             ),
           ),
 
-          // قرص البوصلة
+          // قرص البوصلة الحاوي لخريطة المسار والتضاريس (بحجم أوسع 330.w)
           Container(
-            width: 290.w,
-            height: 290.w,
+            width: 330.w,
+            height: 330.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: primary.withValues(alpha: 0.25),
+                  color: (isAligned ? Colors.green : primary).withValues(
+                    alpha: 0.25,
+                  ),
                   blurRadius: 24,
                   spreadRadius: 4,
                 ),
               ],
             ),
             child: ClipOval(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF151515),
-                    border: Border.all(
-                      color: const Color(0xFFD4AF37),
-                      width: 2.5,
-                    ),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF09120C),
+                  border: Border.all(
+                    color: isAligned
+                        ? const Color(0xFF00E676)
+                        : const Color(0xFFD4AF37),
+                    width: 2.5,
                   ),
-                  child: AnimatedRotation(
-                    turns: -(_heading ?? 0.0) / 360,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    child: CustomPaint(
-                      painter: CompassRingPainter(isDark: isDark),
-                      child: Center(
-                        child: Transform.rotate(
-                          angle: (_qiblaAngle ?? 0.0) * math.pi / 180,
-                          child: _buildQiblaArrow(),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // 1. الخريطة ومسار القبلة والتضاريس (تحت السهم في الخلفية)
+                    AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, _) {
+                        return Padding(
+                          padding: EdgeInsets.all(34.w),
+                          child: CustomPaint(
+                            size: Size(262.w, 262.w),
+                            painter: QiblaRadarVisualizerPainter(
+                              diffAngle: diff ?? 0.0,
+                              isAligned: isAligned,
+                              animValue: _pulseController.value,
+                              distanceKm: _distanceKm,
+                            ),
+                            child: Stack(
+                              children: [
+                                // الكعبة المشرفة في رأس القرص
+                                Positioned(
+                                  top: 0.h,
+                                  left: 0,
+                                  right: 0,
+                                  child: Center(
+                                    child: _buildKaabaTargetWidget(isAligned),
+                                  ),
+                                ),
+
+                                // موقع المستخدم في أسفل القرص
+                                Positioned(
+                                  bottom: 4.h,
+                                  left: 0,
+                                  right: 0,
+                                  child: Center(
+                                    child: _buildUserLocationWidget(isAligned),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // 2. البوصلة: حلقة التدريجات والاتجاهات وسهم القبلة الدوار (فوق الخريطة)
+                    AnimatedRotation(
+                      turns: -(_heading ?? 0.0) / 360,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      child: CustomPaint(
+                        size: Size(330.w, 330.w),
+                        painter: CompassRingPainter(isDark: isDark),
+                        child: Center(
+                          child: Transform.rotate(
+                            angle: (_qiblaAngle ?? 0.0) * math.pi / 180,
+                            child: _buildQiblaArrow(isAligned),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -671,10 +748,156 @@ class _QiblaScreenState extends State<QiblaScreen>
     );
   }
 
-  Widget _buildQiblaArrow() {
+  Widget _buildQiblaArrow(bool isAligned) {
     return CustomPaint(
-      size: Size(260.w, 260.w),
-      painter: QiblaArrowPainter(isAligned: _isAligned),
+      size: Size(330.w, 330.w),
+      painter: QiblaArrowPainter(isAligned: isAligned),
+    );
+  }
+
+  /// ودجت الكعبة في رأس قرص البوصلة
+  Widget _buildKaabaTargetWidget(bool isAligned) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD4AF37),
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.35),
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: Text(
+            ' الكعبة المشرفة',
+            style: TextStyle(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        SizedBox(height: 2.5.h),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 36.w,
+              height: 36.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isAligned
+                      ? const Color(0xFF00E676)
+                      : const Color(0xFFD4AF37),
+                  width: 1.8,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isAligned ? Colors.green : const Color(0xFFD4AF37))
+                        .withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 20.w,
+              height: 20.w,
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212),
+                borderRadius: BorderRadius.circular(2.5.r),
+                border: Border.all(color: const Color(0xFFD4AF37), width: 1.3),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 2.h),
+                    height: 1.8.h,
+                    width: 14.w,
+                    color: const Color(0xFFD4AF37),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 4.w,
+              height: 4.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isAligned ? Colors.greenAccent : const Color(0xFFD4AF37),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// ودجت المستخدم في أسفل قرص البوصلة
+  Widget _buildUserLocationWidget(bool isAligned) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 30.w,
+              height: 30.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue.withValues(alpha: 0.15),
+                border: Border.all(
+                  color: Colors.blueAccent.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            Container(
+              width: 18.w,
+              height: 18.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF2979FF),
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withValues(alpha: 0.5),
+                    blurRadius: 5,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 11,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 2.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Text(
+            'موقعك الحالي',
+            style: TextStyle(
+              fontSize: 8.sp,
+              color: Colors.white70,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

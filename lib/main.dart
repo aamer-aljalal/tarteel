@@ -76,9 +76,9 @@ class tarteel extends StatelessWidget {
             return MediaQuery(
               // نثبت نسبة تكبير الخط (Text Scale) لتكون 1.0 أو قريبة منها
               // لمنع إعدادات خط الهاتف (النظام) من تدمير وتكبير التصميم بشكل عشوائي
-              data: MediaQuery.of(context).copyWith(
-                textScaler: const TextScaler.linear(1.0),
-              ),
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.0)),
               child: ScrollConfiguration(
                 behavior: MyBehavior(),
                 child: AdhanOverlayWrapper(child: widget!),

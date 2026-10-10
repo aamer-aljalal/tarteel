@@ -9,7 +9,7 @@ class CompassRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
+    final radius = size.width / 2 - 5.0;
 
     final directions = {
       'ش': 0.0,
@@ -26,15 +26,11 @@ class CompassRingPainter extends CustomPainter {
       final isSub = i % 30 == 0;
 
       // تكبير الأسنان قليلاً
-      final len = isMain
-          ? 24.0
-          : isSub
-          ? 16.0
-          : 10.0;
-      final sw = isMain ? 3.0 : 1.5;
+      final len = isMain ? 16.0 : (isSub ? 12.0 : 7.0);
+      final sw = isMain ? 2.5 : 1.5;
 
-      // جعل لون الأسنان جميعها أصفر (أو درجات الذهبي) كما طلب المستخدم
-      final color = isMain ? const Color(0xFFFFD700) : Colors.amber.shade400;
+      // السن الرئيسي أصفر، والبقية أبيض
+      final color = isMain ? const Color(0xFFFFD700) : Colors.white;
 
       final start = Offset(
         center.dx + (radius - len) * math.cos(rad),
@@ -56,13 +52,13 @@ class CompassRingPainter extends CustomPainter {
 
     directions.forEach((label, angle) {
       final rad = angle - math.pi / 2;
-      final tr = radius - 42; // تحريك الحروف للداخل قليلاً بسبب تكبير الأسنان
+      // وضع الحروف بمحاذاة المحيط الخارجي مع إبعادها قليلاً عن الأسنان الجديدة
+      final tr = radius - 24.0;
       final span = TextSpan(
         text: label,
-        style: TextStyle(
-          // جعل كل الحروف بلون أحمر مميز ومضيء لتبرز على الخلفية السوداء
-          color: Colors.redAccent.shade400,
-          fontSize: 18,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14.0,
           fontWeight: FontWeight.bold,
         ),
       );
@@ -86,18 +82,15 @@ class QiblaArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final arrowLen = size.width / 2 - 30;
+    // طول السهم محدد بدقة ليصل باتجاه الكعبة دون اختراقها
+    final arrowLen = size.width / 2 - 58.0;
 
-    // السهم يشير دائماً للأعلى (زاوية القبلة في إطار الرسم بعد تدويره)
     final tip = Offset(center.dx, center.dy - arrowLen);
 
-    // شكل المعين (إبرة البوصلة الكلاسيكية)
-    final midLeft = Offset(center.dx - 22, center.dy);
-    final midRight = Offset(center.dx + 22, center.dy);
-    final tail = Offset(
-      center.dx,
-      center.dy + arrowLen * 0.45,
-    ); // الذيل أقصر من الرأس لتمييز الاتجاه
+    // سهم رشيق وأنيق لا يحجب مسار الرادار
+    final midLeft = Offset(center.dx - 11.0, center.dy);
+    final midRight = Offset(center.dx + 11.0, center.dy);
+    final tail = Offset(center.dx, center.dy + 22.0);
 
     final path = Path()
       ..moveTo(tip.dx, tip.dy)
@@ -106,54 +99,44 @@ class QiblaArrowPainter extends CustomPainter {
       ..lineTo(midLeft.dx, midLeft.dy)
       ..close();
 
-    // التوهج (الظل) حول المثلث
+    // التوهج حول السهم
     canvas.drawPath(
       path,
       Paint()
-        ..color = Colors.amber.withValues(alpha: 0.4)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+        ..color = (isAligned ? Colors.green : Colors.amber).withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
     );
 
-    // المثلث الأصفر الأساسي
+    // جسم السهم بلون جذاب
     canvas.drawPath(
       path,
       Paint()
-        ..color = isAligned ? const Color(0xFFFFD700) : Colors.amber.shade500
+        ..color = (isAligned ? const Color(0xFFFFD700) : Colors.amber.shade500).withValues(alpha: 0.85)
         ..style = PaintingStyle.fill,
     );
 
-    // حد للمثلث ليعطيه شكلاً أنيقاً
+    // حواف السهم
     canvas.drawPath(
       path,
-      Paint()
-        ..color = Colors.amber.shade700
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-
-    // خط في المنتصف لإعطاء إيحاء طية البوصلة الكلاسيكية (3D)
-    canvas.drawLine(
-      tip,
-      tail,
       Paint()
         ..color = Colors.amber.shade700
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
 
-    // دائرة مركزية
-    canvas.drawCircle(center, 14, Paint()..color = const Color(0xFFD4AF37));
-    canvas.drawCircle(center, 9, Paint()..color = Colors.white);
-
-    // أيقونة الكعبة الصغيرة في المركز
-    final kaabaPaint = Paint()..color = const Color(0xFF2E2E2E);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: center, width: 10, height: 10),
-        const Radius.circular(2),
-      ),
-      kaabaPaint,
+    // خط طي ثلاثي الأبعاد بالمنتصف
+    canvas.drawLine(
+      tip,
+      tail,
+      Paint()
+        ..color = Colors.amber.shade800
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
     );
+
+    // محور ارتكاز دائري مدمج وأنيق
+    canvas.drawCircle(center, 7.0, Paint()..color = const Color(0xFFD4AF37));
+    canvas.drawCircle(center, 4.0, Paint()..color = Colors.white);
   }
 
   @override
