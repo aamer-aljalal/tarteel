@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'widgets/qibla_painters.dart';
 import 'widgets/qibla_info_card.dart';
+import 'QiblaMapScreen.dart';
 
 class QiblaScreen extends StatefulWidget {
   const QiblaScreen({super.key});
@@ -460,6 +461,38 @@ class _QiblaScreenState extends State<QiblaScreen>
           _buildInfoRow(primary, secondary, isDark),
           SizedBox(height: 16.h),
           _buildLocationCard(primary, isDark),
+          SizedBox(height: 16.h),
+          
+          // زر فتح الخريطة
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final lat = prefs.getDouble('prayer_lat') ?? 0.0;
+                final lng = prefs.getDouble('prayer_lng') ?? 0.0;
+                if (lat != 0.0 && mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => QiblaMapScreen(userLat: lat, userLng: lng),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.map_rounded),
+              label: const Text('دقة القبلة بالخريطة'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary.withValues(alpha: 0.85),
+                foregroundColor: Colors.white,
+                minimumSize: Size(double.infinity, 48.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+              ),
+            ),
+          ),
+          
           SizedBox(height: 20.h),
         ],
       ),
