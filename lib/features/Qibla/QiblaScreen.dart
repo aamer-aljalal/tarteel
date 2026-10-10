@@ -4,19 +4,27 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // تمت الإضافة من أجل الاهتزاز HapticFeedback
+import 'package:flutter/services.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'widgets/qibla_painters.dart';
-import 'widgets/qibla_info_card.dart';
 import 'QiblaMapScreen.dart';
 
 class QiblaScreen extends StatefulWidget {
   const QiblaScreen({super.key});
+
+  /// دالة مساعدة لفتح البوصلة كقائمة سفلية منبثقة (Bottom Sheet) من أي مكان
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const QiblaScreen(),
+    );
+  }
 
   @override
   State<QiblaScreen> createState() => _QiblaScreenState();
@@ -28,10 +36,9 @@ class _QiblaScreenState extends State<QiblaScreen>
   static const double _kaabaLat = 21.4225;
   static const double _kaabaLng = 39.8262;
 
-  double? _heading; // اتجاه البوصلة الحالي (تراكمي)
-  double? _qiblaAngle; // زاوية القبلة من الشمال
-  double? _deviceQiblaAngle; // زاوية القبلة نسبة لاتجاه الجهاز
-  double? _distanceToKaaba; // المسافة إلى الكعبة بالكيلومتر
+  double? _heading;
+  double? _qiblaAngle;
+  double? _deviceQiblaAngle;
   String _statusMessage = 'جاري تحديد موقعك...';
   bool _isLoading = true;
   bool _hasError = false;
@@ -42,7 +49,7 @@ class _QiblaScreenState extends State<QiblaScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  // متغيرات التنعيم للبوصلة
+  // تنعيم البوصلة
   double _lastHeading = 0.0;
   double _cumulativeHeading = 0.0;
   bool _isFirstHeading = true;
@@ -80,16 +87,8 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         if (cachedLat != null && cachedLng != null) {
           final qibla = _calculateQiblaAngle(cachedLat, cachedLng);
-          final distance = Geolocator.distanceBetween(
-            cachedLat,
-            cachedLng,
-            _kaabaLat,
-            _kaabaLng,
-          );
-
           setState(() {
             _qiblaAngle = qibla;
-            _distanceToKaaba = distance / 1000;
             _isLoading = false;
             _statusMessage = 'البوصلة نشطة (أوفلاين بالكامل)';
             _locationName =
@@ -103,15 +102,8 @@ class _QiblaScreenState extends State<QiblaScreen>
 
       if (defaultTargetPlatform == TargetPlatform.windows) {
         final qibla = _calculateQiblaAngle(21.4225, 39.8262);
-        final distance = Geolocator.distanceBetween(
-          21.4225,
-          39.8262,
-          _kaabaLat,
-          _kaabaLng,
-        );
         setState(() {
           _qiblaAngle = qibla;
-          _distanceToKaaba = distance / 1000;
           _isLoading = false;
           _statusMessage = 'البوصلة نشطة (الوضع الافتراضي للويندوز)';
           _locationName = 'مكة المكرمة (الافتراضي للويندوز)';
@@ -204,12 +196,6 @@ class _QiblaScreenState extends State<QiblaScreen>
           currentPos.latitude,
           currentPos.longitude,
         );
-        final distance = Geolocator.distanceBetween(
-          currentPos.latitude,
-          currentPos.longitude,
-          _kaabaLat,
-          _kaabaLng,
-        );
 
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -240,7 +226,6 @@ class _QiblaScreenState extends State<QiblaScreen>
 
         setState(() {
           _qiblaAngle = qibla;
-          _distanceToKaaba = distance / 1000;
           _isLoading = false;
           _statusMessage = 'البوصلة نشطة';
           _locationName =
@@ -256,7 +241,7 @@ class _QiblaScreenState extends State<QiblaScreen>
         _isLoading = false;
         _hasError = true;
         _statusMessage =
-            'تعذّر تحديد إحداثيات موقعك: ${e.toString().split("\n").first}\nيرجى التأكد من تفعيل الـ GPS والاتصال والمحاولة مجدداً.';
+            'تعذّر تحديد إحداثيات موقعك: ${e.toString().split("\n").first}\nيرجى التأكد من تفعيل الـ GPS والمحاولة مجدداً.';
       });
     }
   }
@@ -290,8 +275,7 @@ class _QiblaScreenState extends State<QiblaScreen>
         (event) {
           if (!mounted) return;
           final h = event.heading;
-          if (h == null) return;
-          if (_qiblaAngle == null) return;
+          if (h == null || _qiblaAngle == null) return;
 
           if (_isFirstHeading) {
             _lastHeading = h;
@@ -311,9 +295,8 @@ class _QiblaScreenState extends State<QiblaScreen>
           final deviceAngle = (_qiblaAngle! - h + 360) % 360;
           final aligned = deviceAngle < 3 || deviceAngle > 357;
 
-          // إضافة ميزة الاهتزاز عند الوصول للقبلة
           if (aligned && !_isAligned) {
-            HapticFeedback.mediumImpact(); // اهتزاز خفيف
+            HapticFeedback.mediumImpact();
           }
 
           setState(() {
@@ -326,8 +309,7 @@ class _QiblaScreenState extends State<QiblaScreen>
           if (!mounted) return;
           setState(() {
             _hasError = true;
-            _statusMessage =
-                'حدث خطأ في حساس البوصلة بالجهاز أو البوصلة غير مدعومة.';
+            _statusMessage = 'حدث خطأ في حساس البوصلة بالجهاز.';
           });
         },
       );
@@ -352,37 +334,79 @@ class _QiblaScreenState extends State<QiblaScreen>
     final primary = Theme.of(context).colorScheme.primary;
     final secondary = Theme.of(context).colorScheme.secondary;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: tarteelAppBar(
-        titleText: 'اتجاه القبلة',
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline_rounded),
-            onPressed: () => _showHelpDialog(context),
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage('assets/img/Qibla/qibla.png'),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              isDark
-                  ? Colors.black.withValues(alpha: 0.75)
-                  : Colors.black.withValues(alpha: 0.35),
-              BlendMode.darken,
-            ),
-          ),
+    // تصميم البوصلة كقائمة منبثقة من الأسفل (Bottom Sheet)
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F1712) : Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black12,
+          width: 1,
         ),
-        child: SafeArea(
-          child: _isLoading
-              ? _buildLoadingState(primary)
-              : _hasError
-              ? _buildErrorState(primary)
-              : _buildCompassView(context, isDark, primary, secondary),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 12.h,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. مقبض السحب (Drag Handle)
+              Container(
+                margin: EdgeInsets.only(top: 10.h, bottom: 4.h),
+                width: 36.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black26,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+
+              // 2. شريط العنوان وأزرار التحكم
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 2.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.help_outline_rounded),
+                      onPressed: () => _showHelpDialog(context),
+                      tooltip: 'تعليمات',
+                    ),
+                    Text(
+                      'اتجاه القبلة 🧭',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                      tooltip: 'إغلاق',
+                    ),
+                  ],
+                ),
+              ),
+
+              // 3. محتوى البوصلة
+              if (_isLoading)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 36.h),
+                  child: _buildLoadingState(primary),
+                )
+              else if (_hasError)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.h),
+                  child: _buildErrorState(primary),
+                )
+              else
+                _buildCompassView(context, isDark, primary, secondary),
+            ],
+          ),
         ),
       ),
     );
@@ -394,14 +418,14 @@ class _QiblaScreenState extends State<QiblaScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 60.w,
-            height: 60.w,
+            width: 50.w,
+            height: 50.w,
             child: CircularProgressIndicator(color: primary, strokeWidth: 3),
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 18.h),
           Text(
             _statusMessage,
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
         ],
@@ -412,18 +436,18 @@ class _QiblaScreenState extends State<QiblaScreen>
   Widget _buildErrorState(Color primary) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(32.w),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.location_off_rounded, size: 64.sp, color: primary),
-            SizedBox(height: 16.h),
+            Icon(Icons.location_off_rounded, size: 50.sp, color: primary),
+            SizedBox(height: 12.h),
             Text(
               _statusMessage,
-              style: TextStyle(fontSize: 15.sp, height: 1.6),
+              style: TextStyle(fontSize: 13.sp, height: 1.5),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 16.h),
             ElevatedButton.icon(
               onPressed: () => _requestPermissionsAndLocate(forceRefresh: true),
               icon: const Icon(Icons.refresh_rounded),
@@ -431,9 +455,9 @@ class _QiblaScreenState extends State<QiblaScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.r),
+                  borderRadius: BorderRadius.circular(24.r),
                 ),
               ),
             ),
@@ -451,51 +475,117 @@ class _QiblaScreenState extends State<QiblaScreen>
   ) {
     final angle = _deviceQiblaAngle ?? 0.0;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(vertical: 16.h),
-      child: Column(
-        children: [
-          _buildCompassWidget(angle, primary, secondary, isDark),
-          SizedBox(height: 24.h),
-          _buildInfoRow(primary, secondary, isDark),
-          SizedBox(height: 16.h),
-          _buildLocationCard(primary, isDark),
-          SizedBox(height: 16.h),
-          
-          // زر فتح الخريطة
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final lat = prefs.getDouble('prayer_lat') ?? 0.0;
-                final lng = prefs.getDouble('prayer_lng') ?? 0.0;
-                if (lat != 0.0 && mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => QiblaMapScreen(userLat: lat, userLng: lng),
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.map_rounded),
-              label: const Text('دقة القبلة بالخريطة'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary.withValues(alpha: 0.85),
-                foregroundColor: Colors.white,
-                minimumSize: Size(double.infinity, 48.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 1. البوصلة بحجم كبير وواضح وبارز
+        _buildCompassWidget(angle, primary, secondary, isDark),
+        SizedBox(height: 16.h),
+
+        // 2. زر الموقع وزر عرض القبلة بالخريطة بجانب بعضهما في نفس الصف
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Row(
+            children: [
+              // زر / حاوية الموقع مع زر التحديث
+              Expanded(
+                child: Container(
+                  height: 48.h,
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF162518)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(color: primary.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_rounded,
+                        color: primary,
+                        size: 18.sp,
+                      ),
+                      SizedBox(width: 6.w),
+                      Expanded(
+                        child: Text(
+                          _locationName.isNotEmpty
+                              ? _locationName
+                              : 'تحديد الموقع...',
+                          style: TextStyle(
+                            fontSize: 11.5.sp,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.white70
+                                : Colors.grey.shade800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.refresh_rounded,
+                          size: 18.sp,
+                          color: primary,
+                        ),
+                        onPressed: () =>
+                            _requestPermissionsAndLocate(forceRefresh: true),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'تحديث الموقع',
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              SizedBox(width: 10.w),
+
+              // زر عرض القبلة بالخريطة
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    final lat = prefs.getDouble('prayer_lat') ?? 0.0;
+                    final lng = prefs.getDouble('prayer_lng') ?? 0.0;
+                    if (!context.mounted) return;
+                    if (lat != 0.0) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              QiblaMapScreen(userLat: lat, userLng: lng),
+                        ),
+                      );
+                    }
+                  },
+                  icon: Icon(Icons.map_rounded, size: 18.sp),
+                  label: Text(
+                    'القبلة بالخريطة',
+                    style: TextStyle(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size(0, 48.h),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                    elevation: 2,
+                  ),
+                ),
+              ),
+            ],
           ),
-          
-          SizedBox(height: 20.h),
-        ],
-      ),
+        ),
+        SizedBox(height: 12.h),
+      ],
     );
   }
 
@@ -509,19 +599,20 @@ class _QiblaScreenState extends State<QiblaScreen>
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // هالة خارجية نابضة
           AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (_, __) => Transform.scale(
               scale: _isAligned ? _pulseAnimation.value : 1.0,
               child: Container(
-                width: 350.w,
-                height: 350.w,
+                width: 325.w,
+                height: 325.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: _isAligned
                         ? [
-                            Colors.green.withValues(alpha: 0.15),
+                            Colors.green.withValues(alpha: 0.18),
                             Colors.transparent,
                           ]
                         : [primary.withValues(alpha: 0.08), Colors.transparent],
@@ -530,16 +621,18 @@ class _QiblaScreenState extends State<QiblaScreen>
               ),
             ),
           ),
+
+          // قرص البوصلة
           Container(
-            width: 310.w,
-            height: 310.w,
+            width: 290.w,
+            height: 290.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: primary.withValues(alpha: 0.25),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+                  blurRadius: 24,
+                  spreadRadius: 4,
                 ),
               ],
             ),
@@ -552,16 +645,13 @@ class _QiblaScreenState extends State<QiblaScreen>
                     color: const Color(0xFF151515),
                     border: Border.all(
                       color: const Color(0xFFD4AF37),
-                      width: 3,
+                      width: 2.5,
                     ),
                   ),
-                  // التعديل السحري هنا: استخدام AnimatedRotation بدلاً من Transform.rotate ليعطينا نعومة فائقة
                   child: AnimatedRotation(
-                    turns: -(_heading ?? 0.0) / 360, // نحول الزاوية إلى دورات
-                    duration: const Duration(
-                      milliseconds: 250,
-                    ), // سرعة الانزلاق
-                    curve: Curves.easeOutCubic, // نوع الحركة الفيزيائية السلسة
+                    turns: -(_heading ?? 0.0) / 360,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
                     child: CustomPaint(
                       painter: CompassRingPainter(isDark: isDark),
                       child: Center(
@@ -583,81 +673,8 @@ class _QiblaScreenState extends State<QiblaScreen>
 
   Widget _buildQiblaArrow() {
     return CustomPaint(
-      size: Size(280.w, 280.w),
+      size: Size(260.w, 260.w),
       painter: QiblaArrowPainter(isAligned: _isAligned),
-    );
-  }
-
-  Widget _buildInfoRow(Color primary, Color secondary, bool isDark) {
-    final cardBg = (isDark ? const Color(0xFF1A2B1C) : Colors.white).withValues(
-      alpha: 0.85,
-    );
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Row(
-        children: [
-          Expanded(
-            child: QiblaInfoCard(
-              label: 'زاوية القبلة',
-              value: '${_qiblaAngle?.toStringAsFixed(1) ?? '--'}°',
-              icon: Icons.explore_rounded,
-              color: primary,
-              bg: cardBg,
-              isDark: isDark,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: QiblaInfoCard(
-              label: 'المسافة للكعبة',
-              // إضافة المسافة المحسوبة
-              value: '${_distanceToKaaba?.toStringAsFixed(0) ?? '--'} كم',
-              icon: Icons.straighten_rounded,
-              color: secondary,
-              bg: cardBg,
-              isDark: isDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationCard(Color primary, bool isDark) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: (isDark ? const Color(0xFF1A2B1C) : Colors.white).withValues(
-            alpha: 0.85,
-          ),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: primary.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.location_on_rounded, color: primary, size: 20.sp),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: Text(
-                'موقعك: $_locationName',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: isDark ? Colors.white70 : Colors.grey.shade700,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(Icons.refresh_rounded, size: 18.sp, color: primary),
-              onPressed: () => _requestPermissionsAndLocate(forceRefresh: true),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -680,11 +697,11 @@ class _QiblaScreenState extends State<QiblaScreen>
         ),
         content: Text(
           '• السهم الأصفر يشير دائماً نحو القبلة.\n'
-          '• دوّر الهاتف حتى يتجه السهم للأعلى (نحو الشاشة).\n'
+          '• دوّر الهاتف حتى يتجه السهم للأعلى (نحو رأس الشاشة).\n'
           '• سيهتز الهاتف ويتحول اللون للأخضر عند الاستقامة نحو القبلة.\n'
-          '• حرّك الهاتف بشكل 8 لمعايرة البوصلة إذا كانت غير دقيقة.\n'
-          '• تأكد من إبعاد الهاتف عن الأجسام المعدنية والمغناطيسية.',
-          style: TextStyle(fontSize: 14.sp, height: 1.7),
+          '• حرّك الهاتف بشكل دائري لمعايرة البوصلة إذا كانت غير دقيقة.\n'
+          '• يمكنك الضغط على "عرض القبلة بالخريطة" لمشاهدة المسار المباشر',
+          style: TextStyle(fontSize: 13.5.sp, height: 1.7),
         ),
         actions: [
           TextButton(

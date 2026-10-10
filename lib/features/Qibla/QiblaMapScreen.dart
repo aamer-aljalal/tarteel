@@ -298,10 +298,10 @@ class _QiblaMapScreenState extends State<QiblaMapScreen>
                       isAligned
                           ? 'متطابق 🎯'
                           : (diff == null
-                              ? 'جاري...'
-                              : (diff < 0
-                                  ? '${diff.abs().toStringAsFixed(1)}° يسار'
-                                  : '${diff.toStringAsFixed(1)}° يمين')),
+                                ? 'جاري...'
+                                : (diff < 0
+                                      ? '${diff.abs().toStringAsFixed(1)}° يسار'
+                                      : '${diff.toStringAsFixed(1)}° يمين')),
                       valueColor: isAligned
                           ? const Color(0xFF00E676)
                           : Colors.amber.shade400,
@@ -459,7 +459,9 @@ class _QiblaMapScreenState extends State<QiblaMapScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.blue.withValues(alpha: 0.15),
-                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: Colors.blueAccent.withValues(alpha: 0.3),
+                ),
               ),
             ),
             Container(
@@ -523,10 +525,7 @@ class QiblaRadarVisualizerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // رفع نقطة البداية للمستخدم قليلاً لتوفير مساحة آمنة تحتها عند توجيه السهم للخلف/للأسفل
-    final startPoint = Offset(
-      size.width / 2,
-      size.height - 55,
-    );
+    final startPoint = Offset(size.width / 2, size.height - 55);
     final kaabaTarget = Offset(size.width / 2, 40);
     final pathLength = startPoint.dy - kaabaTarget.dy;
 
@@ -627,7 +626,10 @@ class QiblaRadarVisualizerPainter extends CustomPainter {
       // السهم متجه نحو الأسفل: نحسب المساحة المتبقية تحت المستخدم
       final availableDown = size.height - origin.dy - 8;
       if (availableDown > 0) {
-        effectiveLength = math.min(length, (availableDown / sinVal).clamp(30.0, length));
+        effectiveLength = math.min(
+          length,
+          (availableDown / sinVal).clamp(30.0, length),
+        );
       }
     }
 
@@ -661,12 +663,17 @@ class QiblaRadarVisualizerPainter extends CustomPainter {
 
     // كتابة عمودية بيضاء بدون خلفية بمحاذاة خط الهاتف
     if (!isAligned && diffAngle.abs() > 3.0) {
-      final normalAngle = currentRad + (diffAngle > 0 ? -math.pi / 2 : math.pi / 2);
+      final normalAngle =
+          currentRad + (diffAngle > 0 ? -math.pi / 2 : math.pi / 2);
 
       // وضع النص في منتصف الشعاع الفعلي مع إزاحة جانبية
       var labelPos = Offset(
-        origin.dx + (effectiveLength * 0.5) * cosVal + 14 * math.cos(normalAngle),
-        origin.dy + (effectiveLength * 0.5) * sinVal + 14 * math.sin(normalAngle),
+        origin.dx +
+            (effectiveLength * 0.5) * cosVal +
+            14 * math.cos(normalAngle),
+        origin.dy +
+            (effectiveLength * 0.5) * sinVal +
+            14 * math.sin(normalAngle),
       );
 
       // حصر مكان الكتابة بصرامة داخل حدود Canvas المرئية (لا تخرج للأسفل أبداً)
@@ -675,12 +682,7 @@ class QiblaRadarVisualizerPainter extends CustomPainter {
         labelPos.dy.clamp(16.0, size.height - 14.0),
       );
 
-      _drawVerticalLabel(
-        canvas,
-        labelPos,
-        'اتجاه هاتفك الحالي',
-        currentRad,
-      );
+      _drawVerticalLabel(canvas, labelPos, 'اتجاه هاتفك الحالي', currentRad);
     }
 
     // إذا كان مائلاً، خط قياس الفارق بين رأس خطه والكعبة

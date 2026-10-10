@@ -73,7 +73,11 @@ class RouteGenerator {
       // ========================= القبلة =========================
 
       case AppRoutes.qibla:
-        return MaterialPageRoute(builder: (_) => const QiblaScreen());
+        return ModalBottomSheetRoute(
+          builder: (_) => const QiblaScreen(),
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+        );
 
       // ========================= الإعدادات =========================
 
