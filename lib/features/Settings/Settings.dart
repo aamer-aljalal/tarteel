@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/providers/theme_provider.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
@@ -51,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       final String jsonStr = jsonEncode(backupData);
-      await Share.share(jsonStr, subject: 'نسخة احتياطية من تطبيق هدى');
+      await Share.share(jsonStr, subject: 'نسخة احتياطية من تطبيق ترتيل');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(12.0),
         ),
         title: const Text(
           'استيراد نسخة احتياطية',
@@ -90,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               textAlign: TextAlign.right,
               style: TextStyle(fontSize: 12),
             ),
-            SizedBox(height: 12.h),
+            const SizedBox(height: 12.0),
             TextField(
               controller: controller,
               maxLines: 5,
@@ -99,11 +98,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 hintText: '{...}',
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
-                contentPadding: EdgeInsets.all(12.w),
+                contentPadding: const EdgeInsets.all(12.0),
               ),
-              style: TextStyle(fontSize: 11.sp, fontFamily: 'monospace'),
+              style: const TextStyle(fontSize: 12.0, fontFamily: 'monospace'),
             ),
           ],
         ),
@@ -176,7 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
+                borderRadius: BorderRadius.circular(8.0),
               ),
             ),
             child: const Text('استيراد وتطبيق'),
@@ -192,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(12.0),
         ),
         title: const Text(
           'تنبيه هام! إعادة الضبط',
@@ -233,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: Colors.red.shade700,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
+                borderRadius: BorderRadius.circular(8.0),
               ),
             ),
             child: const Text('إعادة ضبط ومسح'),
@@ -241,6 +240,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _toggleTheme() async {
+    String nextTheme;
+    if (_themeMode == 'تلقائي') {
+      nextTheme = 'نهاري';
+    } else if (_themeMode == 'نهاري') {
+      nextTheme = 'ليلي';
+    } else {
+      nextTheme = 'تلقائي';
+    }
+
+    setState(() {
+      _themeMode = nextTheme;
+    });
+
+    if (_hapticFeedback) HapticFeedback.lightImpact();
+
+    if (mounted) {
+      await Provider.of<ThemeProvider>(
+        context,
+        listen: false,
+      ).updateTheme(nextTheme);
+    }
+  }
+
+  IconData _getThemeIcon() {
+    if (_themeMode == 'نهاري') return Icons.wb_sunny_outlined;
+    if (_themeMode == 'ليلي') return Icons.nights_stay_outlined;
+    return Icons.settings_brightness_outlined;
   }
 
   @override
@@ -252,73 +281,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: const tarteelAppBar(titleText: 'الإعدادات', elevation: 0),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            _buildSection(
+              title: 'التفضيلات والتنبيهات',
+              isDark: isDark,
               children: [
-                _buildThemeChip('نهاري', Icons.wb_sunny_outlined, isDark),
-                _buildThemeChip('ليلي', Icons.nights_stay_outlined, isDark),
-                _buildThemeChip(
-                  'تلقائي',
-                  Icons.settings_brightness_outlined,
-                  isDark,
+                _buildActionTile(
+                  icon: _getThemeIcon(),
+                  title: 'المظهر: $_themeMode',
+                  color: isDark ? Colors.indigoAccent : Colors.orangeAccent,
+                  onTap: _toggleTheme,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16),
+                _buildSwitchTile(
+                  title: 'الاهتزاز التفاعلي',
+                  subtitle:
+                      'اهتزاز خفيف للأزرار والعداد لتحسين تجربة الاستخدام',
+                  value: _hapticFeedback,
+                  icon: Icons.vibration_rounded,
+                  onChanged: (val) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('haptic_feedback', val);
+                    setState(() {
+                      _hapticFeedback = val;
+                    });
+                    if (val) HapticFeedback.mediumImpact();
+                  },
+                  iconColor: Colors.blueGrey,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16),
+                _buildSwitchTile(
+                  title: 'تذكير أذكار الصباح والمساء',
+                  subtitle: 'تنبيهات يومية لقراءة الأذكار المأثورة في أوقاتها',
+                  value: _notificationsAzkar,
+                  icon: Icons.spa_outlined,
+                  onChanged: (val) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('notifications_azkar', val);
+                    setState(() {
+                      _notificationsAzkar = val;
+                    });
+                    await GeneralNotificationService.scheduleAllEnabledNotifications();
+                    if (_hapticFeedback) HapticFeedback.lightImpact();
+                  },
+                  iconColor: Colors.amber.shade700,
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16),
+                _buildSwitchTile(
+                  title: 'تنبيهات يوم الجمعة',
+                  subtitle: 'تذكير بقراءة سورة الكهف والصلاة على النبي ﷺ',
+                  value: _notificationsFriday,
+                  icon: Icons.mosque_outlined,
+                  onChanged: (val) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('notifications_friday', val);
+                    setState(() {
+                      _notificationsFriday = val;
+                    });
+                    await GeneralNotificationService.scheduleAllEnabledNotifications();
+                    if (_hapticFeedback) HapticFeedback.lightImpact();
+                  },
+                  iconColor: Colors.green.shade700,
                 ),
               ],
             ),
-            SizedBox(height: 10.h),
-            _buildSwitchTile(
-              title: 'الاهتزاز التفاعلي',
-              subtitle: 'اهتزاز خفيف للأزرار والعداد لتحسين تجربة الاستخدام',
-              value: _hapticFeedback,
-              icon: Icons.vibration_rounded,
-              onChanged: (val) async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('haptic_feedback', val);
-                setState(() {
-                  _hapticFeedback = val;
-                });
-                if (val) HapticFeedback.mediumImpact();
-              },
-              iconColor: Colors.blueGrey,
-            ),
-            const Divider(height: 1, indent: 60, endIndent: 20),
-            _buildSwitchTile(
-              title: 'تذكير أذكار الصباح والمساء',
-              subtitle: 'تنبيهات يومية لقراءة الأذكار المأثورة في أوقاتها',
-              value: _notificationsAzkar,
-              icon: Icons.spa_outlined,
-              onChanged: (val) async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('notifications_azkar', val);
-                setState(() {
-                  _notificationsAzkar = val;
-                });
-                await GeneralNotificationService.scheduleAllEnabledNotifications();
-                if (_hapticFeedback) HapticFeedback.lightImpact();
-              },
-              iconColor: Colors.amber.shade700,
-            ),
-            const Divider(height: 1, indent: 60, endIndent: 20),
-            _buildSwitchTile(
-              title: 'تنبيهات يوم الجمعة',
-              subtitle: 'تذكير بقراءة سورة الكهف والصلاة على النبي ﷺ',
-              value: _notificationsFriday,
-              icon: Icons.mosque_outlined,
-              onChanged: (val) async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('notifications_friday', val);
-                setState(() {
-                  _notificationsFriday = val;
-                });
-                await GeneralNotificationService.scheduleAllEnabledNotifications();
-                if (_hapticFeedback) HapticFeedback.lightImpact();
-              },
-              iconColor: Colors.green.shade700,
-            ),
-            SizedBox(height: 20.h),
+
+            const SizedBox(height: 16.0),
 
             _buildSection(
               title: 'النسخ الاحتياطي والصيانة',
@@ -330,14 +361,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: Colors.blue.shade700,
                   onTap: _exportData,
                 ),
-                const Divider(height: 1, indent: 60, endIndent: 20),
+                const Divider(height: 1, indent: 50, endIndent: 16),
                 _buildActionTile(
                   icon: Icons.download_outlined,
                   title: 'استيراد البيانات والمحفوظات',
                   color: AppColors.primary,
                   onTap: _showImportDialog,
                 ),
-                const Divider(height: 1, indent: 60, endIndent: 20),
+                const Divider(height: 1, indent: 50, endIndent: 16),
                 _buildActionTile(
                   icon: Icons.delete_forever_outlined,
                   title: 'إعادة ضبط المصنع',
@@ -346,14 +377,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 20.h),
+            const SizedBox(height: 16.0),
 
             // Premium Caution Box
             Container(
-              padding: EdgeInsets.all(16.w),
+              padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(20.r),
+                borderRadius: BorderRadius.circular(12.0),
                 border: Border.all(
                   color: Colors.red.shade700.withValues(alpha: 0.15),
                 ),
@@ -363,14 +394,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Icon(
                     Icons.warning_amber_rounded,
                     color: Colors.red.shade700,
-                    size: 24.sp,
+                    size: 20.0,
                   ),
-                  SizedBox(width: 12.w),
+                  const SizedBox(width: 8.0),
                   Expanded(
                     child: Text(
                       'تنبيه: عملية إعادة ضبط المصنع ستقوم بمسح كامل للإعدادات المخزنة محلياً على جهازك بشكل دائم ولا يمكن استردادها.',
                       style: TextStyle(
-                        fontSize: 12.sp,
+                        fontSize: 12.0,
                         color: isDark ? Colors.white70 : Colors.grey.shade700,
                         height: 1.5,
                       ),
@@ -379,81 +410,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 20.h),
+            const SizedBox(height: 16.0),
 
-            // 3. App Info Gilded Card
+            // App Info Card
             Container(
-              padding: EdgeInsets.all(20.w),
+              padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isDark
-                      ? [const Color(0xFF1E1E1E), const Color(0xFF121212)]
+                      ? [const Color(0xFF2A2A2A), const Color(0xFF1E1E1E)]
                       : [Colors.grey.shade50, Colors.white],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(24.r),
+                borderRadius: BorderRadius.circular(12.0),
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.15),
-                  width: 1.5,
+                  width: 1.0,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? Colors.black.withValues(alpha: 0.2)
-                        : Colors.grey.shade100,
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               child: Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(12.w),
+                    padding: const EdgeInsets.all(8.0),
                     decoration: BoxDecoration(
                       color: AppColors.goldAccent.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.mosque_outlined,
-                      size: 36.sp,
+                      size: 28.0,
                       color: AppColors.goldAccent,
                     ),
                   ),
-                  SizedBox(height: 12.h),
+                  const SizedBox(height: 8.0),
                   Text(
                     'تطبيق ترتيل الإسلامي',
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: 14.0,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white : AppColors.primary,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  const SizedBox(height: 4.0),
                   Text(
                     'الإصدار 1.0.0',
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: 12.0,
                       color: Colors.grey.shade500,
                     ),
                   ),
-                  SizedBox(height: 12.h),
+                  const SizedBox(height: 8.0),
                   Text(
                     'نسأل الله أن يتقبل منا ومنكم صالح الأعمال، وأن يجعل هذا العمل خالصاً لوجهه الكريم.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: 11.0,
                       color: isDark
                           ? Colors.grey.shade400
                           : Colors.grey.shade600,
-                      height: 1.6,
+                      height: 1.5,
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 30.h),
+            const SizedBox(height: 24.0),
           ],
         ),
       ),
@@ -466,24 +488,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required List<Widget> children,
   }) {
     return Container(
-      width: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.3)
-                : Colors.grey.shade100,
-            blurRadius: 16,
-            spreadRadius: 2,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.05)
-              : Colors.grey.shade100,
+              : Colors.grey.shade200,
           width: 1,
         ),
       ),
@@ -491,30 +502,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(
-              right: 20.w,
-              left: 20.w,
-              top: 18.h,
-              bottom: 8.h,
+            padding: const EdgeInsets.only(
+              right: 16.0,
+              left: 16.0,
+              top: 12.0,
+              bottom: 4.0,
             ),
             child: Row(
               children: [
                 Container(
-                  width: 4.w,
-                  height: 16.h,
+                  width: 3.0,
+                  height: 14.0,
                   decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2.r),
+                    borderRadius: BorderRadius.circular(2.0),
                   ),
                 ),
-                SizedBox(width: 8.w),
+                const SizedBox(width: 8.0),
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : AppColors.primary,
-                    letterSpacing: 0.2,
                   ),
                 ),
               ],
@@ -536,19 +546,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     final effectiveIconColor = iconColor ?? AppColors.primary;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(10.w),
+            padding: const EdgeInsets.all(8.0),
             decoration: BoxDecoration(
               color: effectiveIconColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: effectiveIconColor, size: 20.sp),
+            child: Icon(icon, color: effectiveIconColor, size: 20.0),
           ),
-          SizedBox(width: 14.w),
+          const SizedBox(width: 12.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,17 +566,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 13.5.sp,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
+                  style: const TextStyle(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (subtitle.isNotEmpty) ...[],
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.0,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
               ],
             ),
           ),
-          SizedBox(width: 10.w),
+          const SizedBox(width: 8.0),
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
@@ -586,108 +602,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16.r),
+      borderRadius: BorderRadius.circular(12.0),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(10.w),
+              padding: const EdgeInsets.all(8.0),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 20.sp),
+              child: Icon(icon, color: color, size: 20.0),
             ),
-            SizedBox(width: 14.w),
+            const SizedBox(width: 12.0),
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontSize: 13.5.sp,
-                  fontWeight: FontWeight.w700,
+                style: const TextStyle(
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             Icon(
               Icons.arrow_back_ios_new_rounded,
-              size: 12.sp,
+              size: 14.0,
               color: Colors.grey.shade400,
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThemeChip(String label, IconData icon, bool isDark) {
-    final isSelected = _themeMode == label;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          setState(() {
-            _themeMode = label;
-          });
-          if (_hapticFeedback) HapticFeedback.lightImpact();
-
-          // Real-time dynamic theme update!
-          if (mounted) {
-            await Provider.of<ThemeProvider>(
-              context,
-              listen: false,
-            ).updateTheme(label);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          margin: EdgeInsets.symmetric(horizontal: 4.w),
-          padding: EdgeInsets.symmetric(vertical: 12.h),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.12)
-                : (isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50),
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primary
-                  : (isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.grey.shade200),
-              width: 1.5,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 16.sp,
-                color: isSelected
-                    ? AppColors.primary
-                    : (isDark ? Colors.white60 : Colors.grey.shade600),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  color: isSelected
-                      ? AppColors.primary
-                      : (isDark ? Colors.white70 : Colors.grey.shade700),
-                  fontSize: 12.sp,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

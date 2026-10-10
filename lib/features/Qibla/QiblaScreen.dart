@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -53,6 +53,7 @@ class _QiblaScreenState extends State<QiblaScreen>
 
   // تنعيم البوصلة
   bool _isFirstHeading = true;
+  double _lastTickHeading = 0.0;
 
   @override
   void initState() {
@@ -299,6 +300,7 @@ class _QiblaScreenState extends State<QiblaScreen>
 
           if (_isFirstHeading) {
             _filteredHeading = rawH;
+            _lastTickHeading = rawH;
             _isFirstHeading = false;
           } else {
             double delta = (rawH - _filteredHeading + 180) % 360 - 180;
@@ -317,8 +319,27 @@ class _QiblaScreenState extends State<QiblaScreen>
           bool isAligned = diff.abs() <= 2.0;
 
           if (isAligned && !_wasAligned) {
-            HapticFeedback.mediumImpact();
+            // اهتزاز مميز (نجاح) عند التطابق التام
+            HapticFeedback.heavyImpact();
+            Future.delayed(const Duration(milliseconds: 120), () {
+              if (mounted) HapticFeedback.mediumImpact();
+            });
+          } else if (!isAligned) {
+            // اهتزاز ميكانيكي (ترس) أثناء الدوران
+            double tickDelta =
+                ((_filteredHeading - _lastTickHeading + 180) % 360) - 180;
+            if (tickDelta.abs() >= 2.5) {
+              // طقة خفيفة كل 2.5 درجة
+              HapticFeedback.selectionClick();
+              _lastTickHeading = _filteredHeading;
+            }
           }
+
+          if (isAligned) {
+            _lastTickHeading =
+                _filteredHeading; // مزامنة الترس لمنع اهتزاز مفاجئ عند الخروج
+          }
+
           _wasAligned = isAligned;
 
           setState(() {
@@ -729,7 +750,10 @@ class _QiblaScreenState extends State<QiblaScreen>
                       curve: Curves.easeOutCubic,
                       child: CustomPaint(
                         size: Size(330.w, 330.w),
-                        painter: CompassRingPainter(isDark: isDark),
+                        painter: CompassRingPainter(
+                          isDark: isDark,
+                          isAligned: isAligned,
+                        ),
                         child: Center(
                           child: Transform.rotate(
                             angle: (_qiblaAngle ?? 0.0) * math.pi / 180,
@@ -741,6 +765,86 @@ class _QiblaScreenState extends State<QiblaScreen>
                   ],
                 ),
               ),
+            ),
+          ),
+
+          // 3. شاشة العرض الرقمية (HUD) في الزوايا الفارغة
+          // الزاوية (أعلى اليسار)
+          Positioned(
+            top: 4.h,
+            left: 4.w,
+            child: _buildCornerBadge(
+              'الزاوية',
+              '${_heading?.toInt() ?? 0}°',
+              Icons.explore_rounded,
+              isDark,
+              primary,
+              isAligned,
+            ),
+          ),
+
+          // المسافة (أعلى اليمين)
+          Positioned(
+            top: 4.h,
+            right: 4.w,
+            child: _buildCornerBadge(
+              'المسافة',
+              '${_distanceKm.toInt()} كم',
+              Icons.route_rounded,
+              isDark,
+              primary,
+              isAligned,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCornerBadge(
+    String title,
+    String value,
+    IconData icon,
+    bool isDark,
+    Color primary,
+    bool isAligned,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 13.sp,
+                color: isAligned ? const Color(0xFF00FF7F) : primary,
+              ),
+              SizedBox(width: 4.w),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  color: isDark ? Colors.white60 : Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+              color: isAligned
+                  ? const Color(0xFF00FF7F)
+                  : (isDark ? Colors.white : Colors.black87),
+              shadows: isAligned
+                  ? [const Shadow(color: Colors.green, blurRadius: 6)]
+                  : [],
             ),
           ),
         ],
@@ -775,7 +879,7 @@ class _QiblaScreenState extends State<QiblaScreen>
           child: Text(
             ' الكعبة المشرفة',
             style: TextStyle(
-              fontSize: 9.sp,
+              fontSize: 6.sp,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
@@ -891,7 +995,7 @@ class _QiblaScreenState extends State<QiblaScreen>
           child: Text(
             'موقعك الحالي',
             style: TextStyle(
-              fontSize: 8.sp,
+              fontSize: 6.sp,
               color: Colors.white70,
               fontWeight: FontWeight.bold,
             ),

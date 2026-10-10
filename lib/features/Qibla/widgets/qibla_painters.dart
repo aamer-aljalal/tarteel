@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 // ======= رسام حلقة البوصلة =======
 class CompassRingPainter extends CustomPainter {
   final bool isDark;
-  CompassRingPainter({required this.isDark});
+  final bool isAligned; // NEW
+  CompassRingPainter({required this.isDark, required this.isAligned});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -29,8 +30,10 @@ class CompassRingPainter extends CustomPainter {
       final len = isMain ? 16.0 : (isSub ? 12.0 : 7.0);
       final sw = isMain ? 2.5 : 1.5;
 
-      // السن الرئيسي أصفر، والبقية أبيض
-      final color = isMain ? const Color(0xFFFFD700) : Colors.white;
+      // السن الرئيسي أصفر، والبقية أبيض، وإذا كان متطابق يصبح مضيئاً
+      final color = isAligned
+          ? const Color(0xFF00FF7F) // لون نيون أخضر
+          : (isMain ? const Color(0xFFFFD700) : Colors.white);
 
       final start = Offset(
         center.dx + (radius - len) * math.cos(rad),
@@ -40,6 +43,21 @@ class CompassRingPainter extends CustomPainter {
         center.dx + radius * math.cos(rad),
         center.dy + radius * math.sin(rad),
       );
+
+      // رسم توهج نيون عند التطابق
+      if (isAligned) {
+        canvas.drawLine(
+          start,
+          end,
+          Paint()
+            ..color = const Color(0xFF00FF00).withValues(alpha: 0.6)
+            ..strokeWidth = sw * 2.5
+            ..strokeCap = StrokeCap.round
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        );
+      }
+
+      // السن الفعلي
       canvas.drawLine(
         start,
         end,
@@ -56,10 +74,13 @@ class CompassRingPainter extends CustomPainter {
       final tr = radius - 24.0;
       final span = TextSpan(
         text: label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: isAligned ? const Color(0xFF00FF7F) : Colors.white,
           fontSize: 14.0,
           fontWeight: FontWeight.bold,
+          shadows: isAligned
+              ? [const Shadow(color: Colors.green, blurRadius: 12)]
+              : [],
         ),
       );
       textPainter.text = span;
@@ -71,7 +92,8 @@ class CompassRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CompassRingPainter old) => old.isDark != isDark;
+  bool shouldRepaint(covariant CompassRingPainter old) =>
+      old.isDark != isDark || old.isAligned != isAligned;
 }
 
 // ======= رسام سهم القبلة =======
@@ -103,15 +125,17 @@ class QiblaArrowPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = (isAligned ? Colors.green : Colors.amber).withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        ..color = (isAligned ? const Color(0xFF00FF00) : Colors.amber)
+            .withValues(alpha: isAligned ? 0.75 : 0.35)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, isAligned ? 14 : 8),
     );
 
     // جسم السهم بلون جذاب
     canvas.drawPath(
       path,
       Paint()
-        ..color = (isAligned ? const Color(0xFFFFD700) : Colors.amber.shade500).withValues(alpha: 0.85)
+        ..color = (isAligned ? const Color(0xFF00FFAA) : Colors.amber.shade500)
+            .withValues(alpha: isAligned ? 0.95 : 0.85)
         ..style = PaintingStyle.fill,
     );
 
@@ -119,7 +143,7 @@ class QiblaArrowPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = Colors.amber.shade700
+        ..color = isAligned ? const Color(0xFF00FF7F) : Colors.amber.shade700
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
@@ -129,13 +153,18 @@ class QiblaArrowPainter extends CustomPainter {
       tip,
       tail,
       Paint()
-        ..color = Colors.amber.shade800
+        ..color = isAligned ? const Color(0xFF004400) : Colors.amber.shade800
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2,
     );
 
     // محور ارتكاز دائري مدمج وأنيق
-    canvas.drawCircle(center, 7.0, Paint()..color = const Color(0xFFD4AF37));
+    canvas.drawCircle(
+      center,
+      7.0,
+      Paint()
+        ..color = isAligned ? const Color(0xFF00FF7F) : const Color(0xFFD4AF37),
+    );
     canvas.drawCircle(center, 4.0, Paint()..color = Colors.white);
   }
 

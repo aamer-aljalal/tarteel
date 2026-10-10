@@ -4,12 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
-import 'dart:math' as math;
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:tarteel/core/services/stats_service.dart';
+import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 
 class HisnDetailsScreen extends StatefulWidget {
   final HisnCategory category;
@@ -21,20 +21,20 @@ class HisnDetailsScreen extends StatefulWidget {
 
 class _HisnDetailsScreenState extends State<HisnDetailsScreen>
     with SingleTickerProviderStateMixin {
-  double _buttonScale = 1.0;
   int currentHisnIndex = 0;
   bool _hapticEnabled = true;
   double _activeMaxFontSize = 14.0;
-  
+
   // Since Hisn has no built-in target counts, we default to 1, or let it increment infinitely.
   // We'll maintain a list of current counts here:
   late List<int> _counters;
 
   String get currentText => widget.category.texts[currentHisnIndex];
-  
+
   // We can assume a target of 1 for the progress ring to look full after 1 tap.
-  int get _totalRepeat => 1; 
-  double get _progress => (_counters[currentHisnIndex] / _totalRepeat).clamp(0.0, 1.0);
+  int get _totalRepeat => 1;
+  double get _progress =>
+      (_counters[currentHisnIndex] / _totalRepeat).clamp(0.0, 1.0);
 
   bool get _isAllCompleted => _counters.every((count) => count >= _totalRepeat);
 
@@ -76,7 +76,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
 
       final savedIndex =
           prefs.getInt('hisn_index_${widget.category.title}') ?? 0;
-          
+
       if (mounted) {
         setState(() {
           if (savedIndex > 0 && savedIndex < widget.category.texts.length) {
@@ -124,7 +124,6 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
     }
 
     setState(() {
-      _buttonScale = 0.95;
       _counters[currentHisnIndex]++;
     });
 
@@ -136,14 +135,6 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
 
     // Update global stats
     StatsService.recordAction('hisn', amount: 1);
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() {
-          _buttonScale = 1.0;
-        });
-      }
-    });
 
     // Auto navigate if they reached 1 (or more)
     if (_counters[currentHisnIndex] == _totalRepeat) {
@@ -168,58 +159,18 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
     }
   }
 
-  void _showResetCategoryDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1E1E1E)
-              : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          title: Text(
-            'إعادة تعيين',
-            style: TextStyle(
-              fontFamily: 'Cairo',
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
-          content: Text(
-            'هل أنت متأكد من تصفير جميع العدادات في ${widget.category.title} والبدء من جديد؟',
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 14.sp),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(
-                'إلغاء',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontFamily: 'Cairo',
-                ),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _resetCategory();
-              },
-              child: const Text(
-                'نعم، تصفير',
-                style: TextStyle(color: Colors.white, fontFamily: 'Cairo'),
-              ),
-            ),
-          ],
-        ),
-      ),
+  Future<void> _showResetCategoryDialog() async {
+    final confirmed = await InteractiveCounterControl.showResetConfirmation(
+      context,
+      title: 'إعادة تعيين',
+      message:
+          'هل أنت متأكد من تصفير جميع العدادات في ${widget.category.title} والبدء من جديد؟',
+      confirmText: 'نعم، تصفير',
+      confirmColor: Colors.redAccent,
     );
+    if (confirmed) {
+      _resetCategory();
+    }
   }
 
   Future<void> _resetCategory() async {
@@ -348,7 +299,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                   if (widget.category.footnotes.length > index) {
                     footnote = widget.category.footnotes[index];
                   }
-                  
+
                   return AnimatedPadding(
                     duration: const Duration(milliseconds: 200),
                     padding: EdgeInsets.symmetric(
@@ -362,83 +313,37 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
             ),
 
             SizedBox(height: 20.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // زر التالي (يسار الشاشة)
-                IconButton(
-                  onPressed: currentHisnIndex < widget.category.texts.length - 1
-                      ? () {
-                          if (_pageController.hasClients) {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                        }
-                      : null,
-                  icon: Icon(
-                    Icons.arrow_forward_ios_rounded, // Right arrow for next in RTL
-                    size: 30.sp,
-                    color: currentHisnIndex < widget.category.texts.length - 1
-                        ? AppColors.primary
-                        : Colors.grey.shade400,
-                  ),
-                ),
-                SizedBox(width: 20.w),
-                _buildCounterButton(),
-                SizedBox(width: 20.w),
-                // زر السابق (يمين الشاشة)
-                IconButton(
-                  onPressed: currentHisnIndex > 0
-                      ? () {
-                          if (_pageController.hasClients) {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                        }
-                      : null,
-                  icon: Icon(
-                    Icons.arrow_back_ios_new_rounded, // Left arrow for previous in RTL
-                    size: 30.sp,
-                    color: currentHisnIndex > 0
-                        ? AppColors.primary
-                        : Colors.grey.shade400,
-                  ),
-                ),
-              ],
+            InteractiveCounterControl(
+              count: _counters[currentHisnIndex],
+              totalRepeat: _totalRepeat,
+              progress: _progress,
+              onCounterTap: _onCounterTap,
+              onNext: () {
+                if (_pageController.hasClients) {
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
+              },
+              onPrevious: () {
+                if (_pageController.hasClients) {
+                  _pageController.previousPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
+              },
+              hasNext: currentHisnIndex < widget.category.texts.length - 1,
+              hasPrevious: currentHisnIndex > 0,
+              showResetButton: _hasStartedReciting,
+              onReset: _resetCategory,
+              resetConfirmTitle: 'إعادة تعيين',
+              resetConfirmMessage:
+                  'هل أنت متأكد من تصفير جميع العدادات في ${widget.category.title} والبدء من جديد؟',
+              resetConfirmActionText: 'نعم، تصفير',
+              resetColor: Colors.redAccent,
             ),
-            SizedBox(height: 16.h),
-            Text(
-              'اضغط على الزر للتكرار والاحتساب',
-              style: TextStyle(
-                fontSize: 7.sp,
-                color: Colors.grey.shade500,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (!_hasStartedReciting) ...[
-              SizedBox(height: 46.h),
-            ] else ...{
-              TextButton.icon(
-                onPressed: _showResetCategoryDialog,
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  color: Colors.redAccent,
-                ),
-                label: Text(
-                  'بدء من جديد / إعادة تعيين',
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Cairo',
-                  ),
-                ),
-              ),
-            },
             SizedBox(height: 20.h),
           ],
         ),
@@ -536,7 +441,9 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                         ),
                         onPressed: () {
                           setState(() {
-                            if (_activeMaxFontSize < 40) _activeMaxFontSize += 2;
+                            if (_activeMaxFontSize < 40) {
+                              _activeMaxFontSize += 2;
+                            }
                           });
                         },
                       ),
@@ -550,7 +457,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
               color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
               height: 1,
             ),
-            
+
             // Text Body
             Expanded(
               child: Container(
@@ -558,7 +465,10 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 16.h,
+                    ),
                     child: Column(
                       children: [
                         ResponsiveText(
@@ -568,7 +478,9 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                             fontFamily: 'Amiri',
                             fontWeight: FontWeight.w600,
                             height: 2,
-                            color: isDark ? Colors.white : const Color(0xFF2E5C2E),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF2E5C2E),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -577,13 +489,19 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                           Container(
                             padding: EdgeInsets.all(12.w),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.black12 : Colors.grey.shade50,
+                              color: isDark
+                                  ? Colors.black12
+                                  : Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(12.r),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.info_outline_rounded, size: 14.sp, color: AppColors.goldAccent),
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 14.sp,
+                                  color: AppColors.goldAccent,
+                                ),
                                 SizedBox(width: 8.w),
                                 Expanded(
                                   child: Text(
@@ -598,14 +516,14 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                               ],
                             ),
                           ),
-                        ]
+                        ],
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            
+
             Divider(
               color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
               height: 1,
@@ -617,10 +535,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: Icon(
-                      Icons.copy_rounded,
-                      size: 22.sp,
-                    ),
+                    icon: Icon(Icons.copy_rounded, size: 22.sp),
                     color: Colors.blue.shade700,
                     tooltip: 'نسخ النص',
                     onPressed: () => _copyText(text, index),
@@ -633,10 +548,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                   ),
                   SizedBox(width: 16.w),
                   IconButton(
-                    icon: Icon(
-                      Icons.share_rounded,
-                      size: 22.sp,
-                    ),
+                    icon: Icon(Icons.share_rounded, size: 22.sp),
                     color: AppColors.primary,
                     tooltip: 'مشاركة الدعاء',
                     onPressed: () => _shareText(text, index),
@@ -648,114 +560,5 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
         ),
       ),
     );
-  }
-
-  Widget _buildCounterButton() {
-    return GestureDetector(
-      onTap: _onCounterTap,
-      child: AnimatedScale(
-        scale: _buttonScale,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOutBack,
-        child: SizedBox(
-          width: 140.w,
-          height: 140.h,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 140.w,
-                height: 140.h,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-              ),
-              CustomPaint(
-                size: const Size(140, 140),
-                painter: _HisnCircularProgressPainter(
-                  progress: _progress,
-                  strokeWidth: 8.0,
-                  backgroundColor: Colors.grey.shade200,
-                  progressColor: AppColors.primary,
-                ),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _counters[currentHisnIndex].toString(),
-                    style: TextStyle(
-                      fontSize: 42.sp,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      height: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HisnCircularProgressPainter extends CustomPainter {
-  final double progress;
-  final double strokeWidth;
-  final Color backgroundColor;
-  final Color progressColor;
-
-  _HisnCircularProgressPainter({
-    required this.progress,
-    required this.strokeWidth,
-    required this.backgroundColor,
-    required this.progressColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width / 2, size.height / 2) - strokeWidth / 2;
-
-    final backgroundPaint = Paint()
-      ..color = backgroundColor
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final progressPaint = Paint()
-      ..color = progressColor
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawCircle(center, radius, backgroundPaint);
-
-    final sweepAngle = 2 * math.pi * progress;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2, // Start from top
-      sweepAngle,
-      false,
-      progressPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _HisnCircularProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.progressColor != progressColor;
   }
 }

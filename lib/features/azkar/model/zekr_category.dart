@@ -1,4 +1,3 @@
-
 import 'package:tarteel/features/azkar/model/zekr_model%20.dart';
 
 class ZekrCategory {

@@ -34,8 +34,6 @@ class _AzkarCategoriesScreenState extends State<AzkarCategoriesScreen>
     super.dispose();
   }
 
-  // List of categories (UI only)
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

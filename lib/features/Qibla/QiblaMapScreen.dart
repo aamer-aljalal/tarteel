@@ -529,7 +529,7 @@ class QiblaRadarVisualizerPainter extends CustomPainter {
     // كتابة عمودية بيضاء بدون خلفية بمحاذاة خط الكعبة
     _drawVerticalLabel(
       canvas,
-      Offset(p1.dx + 14, p1.dy - (p1.dy - p2.dy) * 0.52),
+      Offset(p1.dx + 14, p1.dy - (p1.dy - p2.dy) * 0.72),
       'مسار القبلة الفعلي',
       -math.pi / 2,
     );
@@ -637,7 +637,7 @@ class QiblaRadarVisualizerPainter extends CustomPainter {
         text: text,
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.95),
-          fontSize: 10.0,
+          fontSize: 8.0,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
           shadows: [
