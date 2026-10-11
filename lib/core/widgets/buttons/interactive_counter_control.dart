@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
+import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 
 /// [CounterSideAction]
 /// تعريف لزر جانبي جاهز ومصمم باحترافية ليوضع على يمين أو يسار العداد التفاعلي.
@@ -227,74 +227,16 @@ class InteractiveCounterControl extends StatefulWidget {
     String confirmText = 'إعادة تعيين',
     String cancelText = 'إلغاء',
     Color confirmColor = Colors.redAccent,
-  }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18.r),
-        ),
-        title: Text(
-          title ?? 'تأكيد إعادة التعيين',
-          textAlign: TextAlign.right,
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 17.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          message ?? 'هل تريد إعادة تعيين العداد والبدء من جديد؟',
-          textAlign: TextAlign.right,
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 14.sp,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8) ??
-                Colors.grey.shade700,
-          ),
-        ),
-        actionsAlignment: MainAxisAlignment.spaceEvenly,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              cancelText,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 14.sp,
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: confirmColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-            ),
-            child: Text(
-              confirmText,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+  }) {
+    return AppConfirmDialog.show(
+      context,
+      title: title ?? 'تأكيد إعادة التعيين',
+      message: message ?? 'هل تريد إعادة تعيين العداد والبدء من جديد؟',
+      confirmText: confirmText,
+      cancelText: cancelText,
+      confirmColor: confirmColor,
+      icon: Icons.refresh_rounded,
     );
-
-    if (confirmed == true) {
-      HapticFeedback.mediumImpact();
-      return true;
-    }
-    return false;
   }
 
   @override
@@ -357,7 +299,8 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
   Widget _buildSideActionWidget(CounterSideAction action, bool isDark) {
     final effectiveColor =
         action.color ?? (isDark ? AppColors.goldAccent : AppColors.primary);
-    final effectiveBg = action.backgroundColor ??
+    final effectiveBg =
+        action.backgroundColor ??
         effectiveColor.withValues(alpha: isDark ? 0.16 : 0.08);
 
     return Column(
@@ -379,11 +322,7 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                 width: 54.w,
                 height: 54.h,
                 alignment: Alignment.center,
-                child: Icon(
-                  action.icon,
-                  color: effectiveColor,
-                  size: 26.sp,
-                ),
+                child: Icon(action.icon, color: effectiveColor, size: 26.sp),
               ),
             ),
           ),
@@ -397,7 +336,6 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
               fontSize: 11.5.sp,
               fontWeight: FontWeight.bold,
               color: effectiveColor,
-              fontFamily: 'Cairo',
             ),
           ),
         ],
@@ -411,9 +349,11 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
     final isDark = theme.brightness == Brightness.dark;
 
     final effectivePrimaryColor = widget.progressColor ?? AppColors.primary;
-    final effectiveProgressBg = widget.progressBackgroundColor ??
+    final effectiveProgressBg =
+        widget.progressBackgroundColor ??
         (isDark ? Colors.grey.shade800 : Colors.grey.shade200);
-    final effectiveButtonBg = widget.buttonBackgroundColor ??
+    final effectiveButtonBg =
+        widget.buttonBackgroundColor ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final double effectiveSize = widget.size ?? 140.w;
@@ -421,45 +361,48 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
 
     // المكونات الجانبية:
     // الجانب الأيسر (السابق / رجوع للخلف أو زر الإجراء الأيسر)
-    final effectiveLeftAction = widget.leftAction ??
+    final effectiveLeftAction =
+        widget.leftAction ??
         (widget.leftSideAction != null
             ? _buildSideActionWidget(widget.leftSideAction!, isDark)
             : widget.leadingAction ??
-                (widget.showNavigationButtons
-                    ? IconButton(
-                        onPressed:
-                            widget.hasPrevious ? widget.onPrevious : null,
-                        icon: Icon(
-                          widget.previousIcon,
-                          size: 30.sp,
-                          color: widget.hasPrevious
-                              ? effectivePrimaryColor
-                              : (isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade400),
-                        ),
-                      )
-                    : null));
+                  (widget.showNavigationButtons
+                      ? IconButton(
+                          onPressed: widget.hasPrevious
+                              ? widget.onPrevious
+                              : null,
+                          icon: Icon(
+                            widget.previousIcon,
+                            size: 30.sp,
+                            color: widget.hasPrevious
+                                ? effectivePrimaryColor
+                                : (isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade400),
+                          ),
+                        )
+                      : null));
 
     // الجانب الأيمن (التالي / تقدم للأمام أو زر الإجراء الأيمن)
-    final effectiveRightAction = widget.rightAction ??
+    final effectiveRightAction =
+        widget.rightAction ??
         (widget.rightSideAction != null
             ? _buildSideActionWidget(widget.rightSideAction!, isDark)
             : widget.trailingAction ??
-                (widget.showNavigationButtons
-                    ? IconButton(
-                        onPressed: widget.hasNext ? widget.onNext : null,
-                        icon: Icon(
-                          widget.nextIcon,
-                          size: 30.sp,
-                          color: widget.hasNext
-                              ? effectivePrimaryColor
-                              : (isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade400),
-                        ),
-                      )
-                    : null));
+                  (widget.showNavigationButtons
+                      ? IconButton(
+                          onPressed: widget.hasNext ? widget.onNext : null,
+                          icon: Icon(
+                            widget.nextIcon,
+                            size: 30.sp,
+                            color: widget.hasNext
+                                ? effectivePrimaryColor
+                                : (isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade400),
+                          ),
+                        )
+                      : null));
 
     // الحفاظ على المحاذاة المتوازنة في الوسط
     final hasAnySideAction =
@@ -540,7 +483,8 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                               ],
                               Text(
                                 '${widget.count}',
-                                style: widget.countTextStyle ??
+                                style:
+                                    widget.countTextStyle ??
                                     TextStyle(
                                       fontSize: effectiveCountFontSize,
                                       fontWeight: FontWeight.bold,
@@ -580,7 +524,6 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                 fontSize: 12.sp,
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
                 fontWeight: FontWeight.w500,
-                fontFamily: 'Cairo',
               ),
             ),
           ],
@@ -599,7 +542,6 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                   fontSize: 12.sp,
                   color: widget.resetColor,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'Cairo',
                 ),
               ),
             ),

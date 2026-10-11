@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
+import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
@@ -19,8 +19,7 @@ class HisnDetailsScreen extends StatefulWidget {
   State<HisnDetailsScreen> createState() => _HisnDetailsScreenState();
 }
 
-class _HisnDetailsScreenState extends State<HisnDetailsScreen>
-    with SingleTickerProviderStateMixin {
+class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
   int currentHisnIndex = 0;
   bool _hapticEnabled = true;
   double _activeMaxFontSize = 14.0;
@@ -306,7 +305,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
                       horizontal: 20.w,
                       vertical: 8.h,
                     ),
-                    child: _buildHisnCard(text, footnote, isDark, index),
+                    child: _buildHisnCard(text, footnote, index),
                   );
                 },
               ),
@@ -351,214 +350,25 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen>
     );
   }
 
-  Widget _buildHisnCard(String text, String? footnote, bool isDark, int index) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2621) : Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.subtleShadow,
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(
-          color: isDark
-              ? Colors.grey.shade900
-              : AppColors.primary.withValues(alpha: 0.15),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(top: 10, bottom: 10, left: 15.w, right: 15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header Row of the card
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Text(
-                    'الدعاء ${index + 1}',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                // Zoom Controllers
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
-                        ),
-                        icon: Icon(
-                          Icons.zoom_out_rounded,
-                          size: 20.sp,
-                          color: AppColors.primary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            if (_activeMaxFontSize > 8) _activeMaxFontSize -= 2;
-                          });
-                        },
-                      ),
-                      Container(
-                        width: 1,
-                        height: 16,
-                        color: Colors.grey.withValues(alpha: 0.3),
-                      ),
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
-                        ),
-                        icon: Icon(
-                          Icons.zoom_in_rounded,
-                          size: 20.sp,
-                          color: AppColors.primary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            if (_activeMaxFontSize < 40) {
-                              _activeMaxFontSize += 2;
-                            }
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            Divider(
-              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-              height: 1,
-            ),
-
-            // Text Body
-            Expanded(
-              child: Container(
-                alignment: Alignment.center,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 16.h,
-                    ),
-                    child: Column(
-                      children: [
-                        ResponsiveText(
-                          content: text,
-                          maxFontSize: _activeMaxFontSize,
-                          style: TextStyle(
-                            fontFamily: 'Amiri',
-                            fontWeight: FontWeight.w600,
-                            height: 2,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF2E5C2E),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (footnote != null && footnote.trim().isNotEmpty) ...[
-                          SizedBox(height: 16.h),
-                          Container(
-                            padding: EdgeInsets.all(12.w),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.black12
-                                  : Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.info_outline_rounded,
-                                  size: 14.sp,
-                                  color: AppColors.goldAccent,
-                                ),
-                                SizedBox(width: 8.w),
-                                Expanded(
-                                  child: Text(
-                                    footnote,
-                                    style: TextStyle(
-                                      fontFamily: 'Cairo',
-                                      fontSize: 10.sp,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            Divider(
-              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-              height: 1,
-            ),
-            // Bottom Action Row
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.copy_rounded, size: 22.sp),
-                    color: Colors.blue.shade700,
-                    tooltip: 'نسخ النص',
-                    onPressed: () => _copyText(text, index),
-                  ),
-                  SizedBox(width: 16.w),
-                  Container(
-                    width: 1,
-                    height: 24.h,
-                    color: Colors.grey.withValues(alpha: 0.3),
-                  ),
-                  SizedBox(width: 16.w),
-                  IconButton(
-                    icon: Icon(Icons.share_rounded, size: 22.sp),
-                    color: AppColors.primary,
-                    tooltip: 'مشاركة الدعاء',
-                    onPressed: () => _shareText(text, index),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildHisnCard(String text, String? footnote, int index) {
+    return InteractiveContentCard(
+      content: text,
+      indexLabel: 'الدعاء ${index + 1}',
+      fontSize: _activeMaxFontSize,
+      onZoomIn: () {
+        setState(() {
+          if (_activeMaxFontSize < 40) _activeMaxFontSize += 2;
+        });
+      },
+      onZoomOut: () {
+        setState(() {
+          if (_activeMaxFontSize > 8) _activeMaxFontSize -= 2;
+        });
+      },
+      description: footnote,
+      onCopy: () => _copyText(text, index),
+      onShare: () => _shareText(text, index),
+      showCounterBadge: false,
     );
   }
 }

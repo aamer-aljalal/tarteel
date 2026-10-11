@@ -52,7 +52,7 @@ class TasbeehNotificationService {
     try {
       await _notifications.zonedSchedule(
         id: id,
-        title: 'حان موعد ذكرك اليومي 📿',
+        title: 'حان موعد ذكرك اليومي',
         body: dhikr.text,
         scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
         notificationDetails: const NotificationDetails(

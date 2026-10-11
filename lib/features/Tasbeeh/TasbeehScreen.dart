@@ -6,11 +6,12 @@ import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:tarteel/features/Tasbeeh/models/dhikr_model.dart';
 import 'package:tarteel/features/Tasbeeh/services/tasbeeh_notification_service.dart';
-import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
 
 import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
+import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
+import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 
 class TasbeehScreen extends StatefulWidget {
   const TasbeehScreen({super.key});
@@ -19,15 +20,13 @@ class TasbeehScreen extends StatefulWidget {
   State<TasbeehScreen> createState() => _TasbeehScreenState();
 }
 
-class _TasbeehScreenState extends State<TasbeehScreen>
-    with SingleTickerProviderStateMixin {
+class _TasbeehScreenState extends State<TasbeehScreen> {
   late Box<DhikrModel> dhikrBox;
 
   String _currentZekr = 'سبحان الله';
   int _currentCount = 0;
   int _target = 100;
-
-  double _buttonScale = 1.0;
+  double _activeFontSize = 18.0;
 
   @override
   void initState() {
@@ -103,17 +102,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
   Future<void> _onCounterTap() async {
     if (dhikrBox.isEmpty || _currentZekr.isEmpty) return;
-
-    setState(() {
-      _buttonScale = 0.9;
-    });
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() {
-          _buttonScale = 1.0;
-        });
-      }
-    });
 
     final selectedDhikr = dhikrBox.values.firstWhere(
       (dhikr) => dhikr.text == _currentZekr,
@@ -191,38 +179,21 @@ class _TasbeehScreenState extends State<TasbeehScreen>
               ),
               tooltip: 'حذف الذكر',
               onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('حذف الذكر', textAlign: TextAlign.right),
-                    content: Text(
-                      'هل أنت متأكد من حذف "${dhikr.text}"؟',
-                      textAlign: TextAlign.right,
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('إلغاء'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('حذف'),
-                      ),
-                    ],
-                  ),
+                final confirm = await AppConfirmDialog.show(
+                  context,
+                  title: 'حذف الذكر',
+                  message: 'هل أنت متأكد من حذف "${dhikr.text}"؟',
+                  confirmText: 'حذف',
+                  isDestructive: true,
+                  icon: Icons.delete_outline_rounded,
                 );
-                if (confirm == true) {
+                if (confirm) {
                   await TasbeehNotificationService.cancelReminder(dhikr);
                   await dhikr.delete();
-                  if (mounted) {
-                    Navigator.pop(context);
-                    _loadFirstDhikr();
-                    _showDummyMessage('تم حذف الذكر بنجاح');
-                  }
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  _loadFirstDhikr();
+                  _showDummyMessage('تم حذف الذكر بنجاح');
                 }
               },
             )
@@ -353,7 +324,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
               controller: targetController,
               decoration: InputDecoration(
                 labelText: 'العدد المستهدف',
-                hintText: '33',
+                hintText: '100',
                 prefixIcon: const Icon(Icons.flag_outlined, size: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -477,7 +448,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
     AppModalBottomSheet.show(
       context: context,
       title: 'قائمة الأذكار والتسبيحات',
-      // subtitle: 'اختر ذكراً للتسبيح أو اضغط لتعديله',
       heightFraction: 0.75,
       trailing: IconButton(
         icon: Icon(
@@ -491,155 +461,79 @@ class _TasbeehScreenState extends State<TasbeehScreen>
           _showAddZekrDialog();
         },
       ),
-      itemCount: dhikrBox.length,
       emptyMessage: 'لا توجد أذكار حالياً، يمكنك إضافة ذكرك الأول الآن',
-      itemBuilder: (context, index) {
-        final dhikr = dhikrBox.getAt(index);
-        if (dhikr == null) return const SizedBox.shrink();
-
+      items: dhikrBox.values.map((dhikr) {
         final isSelected = _currentZekr == dhikr.text;
 
-        return Container(
-          margin: EdgeInsets.only(bottom: 10.h),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.06)
-                : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.4)
-                  : Colors.grey.withValues(alpha: 0.2),
-              width: isSelected ? 1.5 : 1.0,
-            ),
-          ),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 14.w,
-              vertical: 4.h,
-            ),
-            onTap: () {
-              setState(() {
-                _currentZekr = dhikr.text;
-                _target = dhikr.targetCount;
-                _currentCount = dhikr.currentCount;
-              });
-              Navigator.pop(context);
-            },
-            title: Text(
-              dhikr.text,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected ? AppColors.primary : null,
-                fontSize: 15.sp,
-              ),
-              textAlign: TextAlign.right,
-            ),
-            subtitle: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (dhikr.isReminderEnabled) ...[
-                  Icon(
-                    Icons.notifications_active_outlined,
-                    size: 13.sp,
+        return BottomSheetItem(
+          title: dhikr.text,
+          isSelected: isSelected,
+          onTap: () {
+            setState(() {
+              _currentZekr = dhikr.text;
+              _target = dhikr.targetCount;
+              _currentCount = dhikr.currentCount;
+            });
+            Navigator.pop(context);
+          },
+          subtitleWidget: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (dhikr.isReminderEnabled) ...[
+                Icon(
+                  Icons.notifications_active_outlined,
+                  size: 13.sp,
+                  color: AppColors.goldAccent,
+                ),
+                SizedBox(width: 4.w),
+                Text(
+                  '${dhikr.reminderHour.toString().padLeft(2, '0')}:${dhikr.reminderMinute.toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    fontSize: 11.sp,
                     color: AppColors.goldAccent,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${dhikr.reminderHour.toString().padLeft(2, '0')}:${dhikr.reminderMinute.toString().padLeft(2, '0')}',
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: AppColors.goldAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                ],
-                Text(
-                  'الهدف: ${dhikr.targetCount}',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(width: 8.w),
-                Text(
-                  'الحالي: ${dhikr.currentCount}',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                SizedBox(width: 10.w),
               ],
-            ),
-            leading: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 18.sp,
-                    color: Colors.blue.shade700,
-                  ),
-                  tooltip: 'تعديل',
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showEditZekrDialog(dhikr);
-                  },
+              Text(
+                'الهدف: ${dhikr.targetCount}',
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'الحالي: ${dhikr.currentCount}',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    size: 18.sp,
-                    color: Colors.red.shade700,
-                  ),
-                  tooltip: 'حذف',
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text(
-                          'حذف الذكر',
-                          textAlign: TextAlign.right,
-                        ),
-                        content: Text(
-                          'هل أنت متأكد من حذف "${dhikr.text}"؟',
-                          textAlign: TextAlign.right,
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('إلغاء'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('حذف'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirm == true) {
-                      await TasbeehNotificationService.cancelReminder(dhikr);
-                      await dhikr.delete();
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        _loadFirstDhikr();
-                        _showDummyMessage('تم حذف الذكر');
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          actions: [
+            BottomSheetItemAction.edit(
+              onEdit: () {
+                Navigator.pop(context);
+                _showEditZekrDialog(dhikr);
+              },
+            ),
+            BottomSheetItemAction.delete(
+              confirmTitle: 'حذف الذكر',
+              confirmMessage: 'هل أنت متأكد من حذف "${dhikr.text}"؟',
+              onDelete: () async {
+                await TasbeehNotificationService.cancelReminder(dhikr);
+                await dhikr.delete();
+                if (mounted) {
+                  Navigator.pop(context);
+                  _loadFirstDhikr();
+                  _showDummyMessage('تم حذف الذكر');
+                }
+              },
+            ),
+          ],
         );
-      },
+      }).toList(),
     );
   }
 
@@ -654,7 +548,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
     final bool isEmpty = dhikrBox.isEmpty || _currentZekr.isEmpty;
 
     return Scaffold(
@@ -738,87 +631,60 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                 ),
               ),
             )
-          : SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+          : Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               child: Column(
                 children: [
-                  // Current Zekr Display
-                  Container(
-                    width: double.infinity,
-                    height: 130.h,
-                    padding: EdgeInsets.symmetric(
-                      vertical: 12.h,
-                      horizontal: 16.w,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(30.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.subtleShadow,
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  // بطاقة الذكر التفاعلية الموحدة
+                  Expanded(
+                    child: InteractiveContentCard(
+                      content: _currentZekr,
+                      fontSize: _activeFontSize,
+                      onZoomIn: () {
+                        if (_activeFontSize < 35.0) {
+                          setState(() {
+                            _activeFontSize += 2.0;
+                          });
+                          HapticFeedback.lightImpact();
+                        }
+                      },
+                      onZoomOut: () {
+                        if (_activeFontSize > 12.0) {
+                          setState(() {
+                            _activeFontSize -= 2.0;
+                          });
+                          HapticFeedback.lightImpact();
+                        }
+                      },
+                      showZoomControls: true,
+                      showFavorite: false,
+                      showShare: false,
+                      showCopy: true,
+                      onCopy: () {
+                        Clipboard.setData(ClipboardData(text: _currentZekr));
+                        HapticFeedback.mediumImpact();
+                        _showDummyMessage('تم نسخ الذكر بنجاح');
+                      },
+                      counterBadgeText: 'الهدف : $_currentCount / $_target',
+                      showCounterBadge: true,
+                      showIndexLabel: false,
+                      customActions: [
+                        CardAction(
+                          icon: Icons.edit_outlined,
+                          tooltip: 'تعديل الذكر',
+                          color: Colors.amber.shade800,
+                          onTap: () {
+                            final currentDhikr = dhikrBox.values.firstWhere(
+                              (d) => d.text == _currentZekr,
+                              orElse: () => dhikrBox.values.first,
+                            );
+                            _showEditZekrDialog(currentDhikr);
+                          },
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: ResponsiveText(
-                        content: _currentZekr,
-                        fontSize: 24,
-                        maxFontSize: 28,
-                        minFontSize: 12,
-                        fontFamily: 'Amiri',
-                        fontWeight: FontWeight.bold,
-                        height: 1.8,
-                        textAlign: TextAlign.center,
-                        maxLines: 8,
-                        color: isDark
-                            ? AppColors.goldAccent
-                            : AppColors.primary,
-                      ),
-                    ),
                   ),
-                  SizedBox(height: 40.h),
-
-                  // Main Counter Circle
-                  GestureDetector(
-                    onTap: _onCounterTap,
-                    child: AnimatedScale(
-                      scale: _buttonScale,
-                      duration: const Duration(milliseconds: 100),
-                      child: Container(
-                        width: 220.w,
-                        height: 220.h,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [AppColors.primary, AppColors.secondary],
-                            center: Alignment.center,
-                            radius: 0.8,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.28),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$_currentCount',
-                            style: TextStyle(
-                              fontSize: 56.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 30.h),
+                  SizedBox(height: 32.h),
 
                   // العداد التفاعلي مع أزرار الإجراءات الجانبية وإعادة التعيين
                   InteractiveCounterControl(

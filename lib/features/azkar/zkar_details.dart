@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/azkar/model/zekr_category.dart';
@@ -11,6 +10,7 @@ import 'package:tarteel/features/azkar/model/zekr_category.dart';
 import 'package:tarteel/core/services/in_app_notification_service.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
+import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 
 class AzkarDetailsScreen extends StatefulWidget {
   final ZekrCategory category;
@@ -20,8 +20,7 @@ class AzkarDetailsScreen extends StatefulWidget {
   State<AzkarDetailsScreen> createState() => _AzkarDetailsScreenState();
 }
 
-class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
-    with SingleTickerProviderStateMixin {
+class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
   int currentZekrIndex = 0;
   bool _hapticEnabled = true;
   double _activeMaxFontSize = 14.0;
@@ -236,7 +235,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
       title: 'إعادة تعيين الأذكار',
       message:
           'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-      confirmColor: AppColors.primary,
+      confirmColor: Colors.redAccent,
     );
     if (confirmed) {
       _resetCategory();
@@ -453,7 +452,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
                       horizontal: 20.w,
                       vertical: 8.h,
                     ),
-                    child: _buildZekrCard(zekr, isDark),
+                    child: _buildZekrCard(zekr),
                   );
                 },
               ),
@@ -488,7 +487,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
               resetConfirmTitle: 'إعادة تعيين الأذكار',
               resetConfirmMessage:
                   'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-              resetColor: AppColors.primary,
+              resetColor: Colors.redAccent,
             ),
             SizedBox(height: 20.h),
           ],
@@ -497,222 +496,19 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen>
     );
   }
 
-  Widget _buildZekrCard(dynamic zekr, bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2621) : Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.subtleShadow,
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(
-          color: isDark
-              ? Colors.grey.shade900
-              : AppColors.primary.withValues(alpha: 0.15),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(top: 10, bottom: 10, left: 15.w, right: 15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header Row of the card: index and Zoom tools
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Text(
-                    'الذكر ${currentZekrIndex + 1}',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                // Zoom Controllers
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildZoomButton(
-                        Icons.zoom_in_rounded,
-                        _onZoomIn,
-                        'تكبير',
-                      ),
-                      Container(
-                        width: 1.w,
-                        height: 20.h,
-                        color: Colors.grey.withValues(alpha: 0.2),
-                      ),
-                      _buildZoomButton(
-                        Icons.zoom_out_rounded,
-                        _onZoomOut,
-                        'تصغير',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            // SizedBox(height: 16.h),
-
-            // Content scroll area to prevent overflow of long azkar paragraphs!
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    ResponsiveText(
-                      content: zekr.content,
-                      fontSize: _activeMaxFontSize,
-                      maxFontSize: _activeMaxFontSize,
-                      minFontSize: 10,
-                      fontFamily: 'Amiri',
-                      fontWeight: FontWeight.bold,
-                      height: 2.8,
-                      textAlign: TextAlign.center,
-                      maxLines: 10,
-                      color: isDark ? Colors.white : const Color(0xFF2E5C2E),
-                    ),
-                    if (zekr.description.isNotEmpty) ...[
-                      SizedBox(height: 8.h),
-                      Container(
-                        padding: EdgeInsets.all(10.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.goldAccent.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(16.r),
-                          border: Border.all(
-                            color: AppColors.goldAccent.withValues(alpha: 0.15),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Text(
-                          zekr.description,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: isDark
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade700,
-                            height: 1.6,
-                            fontStyle: FontStyle.italic,
-                            fontFamily: 'Amiri',
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (zekr.reference.isNotEmpty) ...[
-                      SizedBox(height: 12.h),
-                      Text(
-                        'المصدر: ${zekr.reference}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Cairo',
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-
-            // Bottom Actions: Copy, Share, and Repeat Progress bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildActionButton(
-                  icon: Icons.copy_rounded,
-                  onTap: _copyZekr,
-                  color: Colors.blue.shade700,
-                ),
-                _buildActionButton(
-                  icon: Icons.share_rounded,
-                  onTap: _shareZekr,
-                  color: AppColors.primary,
-                ),
-                SizedBox(width: 15.w),
-                // Repeat Counter Card
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                    ),
-                  ),
-                  child: Text(
-                    'التكرار  : ${zekr.currentCount} / $_totalRepeat',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Cairo',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildZoomButton(IconData icon, VoidCallback onTap, String tooltip) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-          child: Icon(icon, size: 22.sp, color: AppColors.primary),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    required Color color,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(40.r),
-      child: Container(
-        padding: EdgeInsets.all(12.w),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: color, size: 20.sp),
-      ),
+  Widget _buildZekrCard(dynamic zekr) {
+    return InteractiveContentCard(
+      content: zekr.content,
+      indexLabel: 'الذكر ${currentZekrIndex + 1}',
+      fontSize: _activeMaxFontSize,
+      onZoomIn: _onZoomIn,
+      onZoomOut: _onZoomOut,
+      showFavorite: true,
+      description: zekr.description,
+      reference: zekr.reference,
+      onCopy: _copyZekr,
+      onShare: _shareZekr,
+      counterBadgeText: 'التكرار  : ${zekr.currentCount} / $_totalRepeat',
     );
   }
 }
