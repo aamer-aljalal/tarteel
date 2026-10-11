@@ -226,7 +226,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
         .catchError((_) {});
 
     _saveRecentAzkarAction();
-    _showMessage('تمت إعادة تعيين العدادات بالكامل 🔄');
+    _showMessage('تمت إعادة تعيين العدادات بالكامل');
   }
 
   Future<void> _showResetCategoryDialog() async {

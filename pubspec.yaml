@@ -55,6 +55,7 @@ dependencies:
   flutter_native_splash: ^2.4.7
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
+  lottie: ^3.1.2
 
 dev_dependencies:
   flutter_test:
@@ -88,6 +89,7 @@ flutter:
     - assets/json/names_of_allah.json
     - assets/json/hisn_almuslim.json
     - assets/json/Stories/Stories_Prophets.json
+    - assets/animation/tasbih/
     - assets/img/
     - assets/img/icon/
     - assets/img/Qibla/

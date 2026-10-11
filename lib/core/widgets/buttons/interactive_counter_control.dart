@@ -167,6 +167,12 @@ class InteractiveCounterControl extends StatefulWidget {
   /// تنسيق نص رقم العداد المخصص
   final TextStyle? countTextStyle;
 
+  /// هل يتم عرض حلقة مؤشر التقدم الدائري (افتراضياً true)
+  final bool showProgressRing;
+
+  /// مكون ويدجت مخصص يوضع حول الزر أو بدلاً من مؤشر التقدم (مثل أنميشن المسبحة)
+  final Widget? customProgressRing;
+
   /// مقياس تصغير الزر عند الضغط
   final double pressedScale;
 
@@ -215,6 +221,8 @@ class InteractiveCounterControl extends StatefulWidget {
     this.showCenterIcon = true,
     this.countFontSize,
     this.countTextStyle,
+    this.showProgressRing = true,
+    this.customProgressRing,
     this.pressedScale = 0.92,
     this.scaleDuration = const Duration(milliseconds: 100),
   });
@@ -437,6 +445,7 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                   height: effectiveSize,
                   child: Stack(
                     alignment: Alignment.center,
+                    clipBehavior: Clip.none,
                     children: [
                       // خلفية وظلال الزر
                       Container(
@@ -457,16 +466,25 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                         ),
                       ),
 
-                      // مؤشر التقدم الدائري
-                      CustomPaint(
-                        size: Size(effectiveSize, effectiveSize),
-                        painter: CircularCounterProgressPainter(
-                          progress: _calculatedProgress,
-                          strokeWidth: widget.strokeWidth,
-                          backgroundColor: effectiveProgressBg,
-                          progressColor: effectivePrimaryColor,
+                      // مؤشر التقدم الدائري أو المكون المخصص (مثل أنميشن المسبحة)
+                      if (widget.customProgressRing != null)
+                        IgnorePointer(
+                          child: OverflowBox(
+                            maxWidth: double.infinity,
+                            maxHeight: double.infinity,
+                            child: widget.customProgressRing!,
+                          ),
+                        )
+                      else if (widget.showProgressRing)
+                        CustomPaint(
+                          size: Size(effectiveSize, effectiveSize),
+                          painter: CircularCounterProgressPainter(
+                            progress: _calculatedProgress,
+                            strokeWidth: widget.strokeWidth,
+                            backgroundColor: effectiveProgressBg,
+                            progressColor: effectivePrimaryColor,
+                          ),
                         ),
-                      ),
 
                       // محتوى الزر الداخلي
                       widget.centerChild ??

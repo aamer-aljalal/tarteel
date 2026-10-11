@@ -1,6 +1,7 @@
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -20,8 +21,10 @@ class TasbeehScreen extends StatefulWidget {
   State<TasbeehScreen> createState() => _TasbeehScreenState();
 }
 
-class _TasbeehScreenState extends State<TasbeehScreen> {
+class _TasbeehScreenState extends State<TasbeehScreen>
+    with SingleTickerProviderStateMixin {
   late Box<DhikrModel> dhikrBox;
+  late final AnimationController _misbahaController;
 
   String _currentZekr = 'سبحان الله';
   int _currentCount = 0;
@@ -31,8 +34,18 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
   @override
   void initState() {
     super.initState();
+    _misbahaController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     dhikrBox = Hive.box<DhikrModel>('dhikrBox');
     _initializeDhikr();
+  }
+
+  @override
+  void dispose() {
+    _misbahaController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeDhikr() async {
@@ -110,6 +123,9 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
 
     // Record stats
     await StatsService.recordAction('tasbeeh');
+
+    // تشغيل أنميشن المسبحة لتدور وتتفاعل مع الضغطة
+    _misbahaController.forward(from: 0.0);
 
     setState(() {
       _currentCount++;
@@ -191,7 +207,7 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
                   await TasbeehNotificationService.cancelReminder(dhikr);
                   await dhikr.delete();
                   if (!mounted) return;
-                  Navigator.pop(context);
+                  // Navigator.pop(context);
                   _loadFirstDhikr();
                   _showDummyMessage('تم حذف الذكر بنجاح');
                 }
@@ -692,6 +708,18 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
                     totalRepeat: _target,
                     progress: _progress,
                     onCounterTap: _onCounterTap,
+                    showProgressRing: false,
+                    size: 115.w,
+                    countFontSize: 34.sp,
+                    customProgressRing: SizedBox(
+                      width: 175.w,
+                      height: 175.w,
+                      child: Lottie.asset(
+                        'assets/animation/tasbih/misbaha_tasbeeh.json',
+                        controller: _misbahaController,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                     showNavigationButtons: false,
                     // الزر الأيمن: إظهار قائمة الأذكار
                     rightSideAction: CounterSideAction(

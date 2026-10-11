@@ -100,6 +100,9 @@ class InteractiveContentCard extends StatelessWidget {
   /// قائمة أزرار ويدجت إضافية حرة في الشريط السفلي
   final List<Widget>? extraActions;
 
+  /// إضافة محتوى مخصص بالكامل (مثل صورة أو أنميشن) يعرض بدلاً من النص أو مع النص
+  final Widget? customBody;
+
   /// حشوة داخلية مخصصة
   final EdgeInsetsGeometry? padding;
 
@@ -138,6 +141,7 @@ class InteractiveContentCard extends StatelessWidget {
     this.showCounterBadge = true,
     this.customActions,
     this.extraActions,
+    this.customBody,
     this.padding,
     this.margin,
     this.height,
@@ -154,18 +158,20 @@ class InteractiveContentCard extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: 8.h),
-          ResponsiveText(
-            content: content,
-            fontSize: fontSize,
-            maxFontSize: fontSize,
-            minFontSize: minFontSize,
-            fontFamily: 'Amiri',
-            fontWeight: FontWeight.bold,
-            height: 2.5,
-            textAlign: TextAlign.center,
-            maxLines: 12,
-            color: isDark ? Colors.white : const Color(0xFF2E5C2E),
-          ),
+          if (customBody != null) customBody!,
+          if (content.isNotEmpty)
+            ResponsiveText(
+              content: content,
+              fontSize: fontSize,
+              maxFontSize: fontSize,
+              minFontSize: minFontSize,
+              fontFamily: 'Amiri',
+              fontWeight: FontWeight.bold,
+              height: 2.5,
+              textAlign: TextAlign.center,
+              maxLines: 12,
+              color: isDark ? Colors.white : const Color(0xFF2E5C2E),
+            ),
 
           // فضل الذكر / الشرح (إن وجد)
           if (description != null && description!.trim().isNotEmpty) ...[
