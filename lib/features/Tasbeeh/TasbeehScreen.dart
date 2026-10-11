@@ -26,7 +26,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   late Box<DhikrModel> dhikrBox;
   late final AnimationController _misbahaController;
 
-  String _currentZekr = 'سبحان الله';
+  String _currentZekr = 'سبحان الله والحمد لله ولا إله إلا الله والله أكبر';
   int _currentCount = 0;
   int _target = 100;
   double _activeFontSize = 18.0;
@@ -36,7 +36,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
     super.initState();
     _misbahaController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
     );
     dhikrBox = Hive.box<DhikrModel>('dhikrBox');
     _initializeDhikr();
@@ -58,6 +58,14 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
     final defaultAzkar = [
       DhikrModel(
+        text: 'سبحان الله والحمد لله ولا إله إلا الله والله أكبر',
+        targetCount: 100,
+        currentCount: 0,
+        createdAt: DateTime.now(),
+        lastUpdated: DateTime.now(),
+        isReminderEnabled: false,
+      ),
+      DhikrModel(
         text: 'استغفر الله',
         targetCount: 100,
         currentCount: 0,
@@ -75,14 +83,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       ),
       DhikrModel(
         text: 'سبحان الله وبحمده سبحان الله العظيم',
-        targetCount: 100,
-        currentCount: 0,
-        createdAt: DateTime.now(),
-        lastUpdated: DateTime.now(),
-        isReminderEnabled: false,
-      ),
-      DhikrModel(
-        text: 'سبحان الله والحمد لله ولا إله إلا الله والله أكبر',
         targetCount: 100,
         currentCount: 0,
         createdAt: DateTime.now(),
