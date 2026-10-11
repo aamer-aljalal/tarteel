@@ -711,6 +711,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                     showProgressRing: false,
                     size: 115.w,
                     countFontSize: 34.sp,
+                    pressedScale: 1.0,
                     customProgressRing: SizedBox(
                       width: 175.w,
                       height: 175.w,

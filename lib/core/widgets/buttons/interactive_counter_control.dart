@@ -279,17 +279,19 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
   }
 
   void _handleTap() {
-    setState(() {
-      _buttonScale = widget.pressedScale;
-    });
+    if (widget.pressedScale != 1.0) {
+      setState(() {
+        _buttonScale = widget.pressedScale;
+      });
 
-    Future.delayed(widget.scaleDuration, () {
-      if (mounted) {
-        setState(() {
-          _buttonScale = 1.0;
-        });
-      }
-    });
+      Future.delayed(widget.scaleDuration, () {
+        if (mounted) {
+          setState(() {
+            _buttonScale = 1.0;
+          });
+        }
+      });
+    }
 
     widget.onCounterTap();
   }
