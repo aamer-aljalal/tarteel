@@ -13,6 +13,7 @@ import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
+import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
 import 'package:tarteel/features/azkar/icons/azkar_icons.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
 
@@ -404,131 +405,135 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
         elevation: 0,
         toolbarHeight: 90,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: 16.h),
-            // Dynamic Progress Indicator at the top of page
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'التقدم في القسم',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.goldAccent,
+      body: AnimatedSkyBackground(
+        categoryTitle: widget.category.title,
+        child: SafeArea(
+          child: Column(
+            children: [
+              SizedBox(height: 16.h),
+              // Dynamic Progress Indicator at the top of page
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'التقدم في القسم',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.goldAccent,
+                          ),
+                        ),
+                        Text(
+                          '${currentZekrIndex + 1} / ${widget.category.azkar.length}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.goldAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 6.h),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10.r),
+                      child: LinearProgressIndicator(
+                        value:
+                            (currentZekrIndex + 1) /
+                            widget.category.azkar.length,
+                        minHeight: 6.h,
+                        backgroundColor: isDark
+                            ? Colors.grey.shade900
+                            : AppColors.primary.withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.goldAccent,
                         ),
                       ),
-                      Text(
-                        '${currentZekrIndex + 1} / ${widget.category.azkar.length}',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.goldAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 6.h),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10.r),
-                    child: LinearProgressIndicator(
-                      value:
-                          (currentZekrIndex + 1) / widget.category.azkar.length,
-                      minHeight: 6.h,
-                      backgroundColor: isDark
-                          ? Colors.grey.shade900
-                          : AppColors.primary.withValues(alpha: 0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.goldAccent,
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            // SizedBox(height: 16.h),
+              // SizedBox(height: 16.h),
 
-            // Page View Container
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: widget.category.azkar.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    currentZekrIndex = index;
-                  });
-                  _saveRecentAzkarAction();
-                },
-                itemBuilder: (context, index) {
-                  final zekr = widget.category.azkar[index];
-                  return AnimatedPadding(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 8.h,
-                    ),
-                    child: _buildZekrCard(zekr),
-                  );
-                },
+              // Page View Container
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.category.azkar.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      currentZekrIndex = index;
+                    });
+                    _saveRecentAzkarAction();
+                  },
+                  itemBuilder: (context, index) {
+                    final zekr = widget.category.azkar[index];
+                    return AnimatedPadding(
+                      duration: const Duration(milliseconds: 200),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 8.h,
+                      ),
+                      child: _buildZekrCard(zekr),
+                    );
+                  },
+                ),
               ),
-            ),
 
-            // SizedBox(height: 20.h),
-            InteractiveCounterControl(
-              count: currentZekr.currentCount,
-              totalRepeat: _totalRepeat,
-              progress: _progress,
-              onCounterTap: _onCounterTap,
-              cornerAction: CounterSideAction(
-                icon: Icons.format_list_bulleted_rounded,
-                tooltip: 'أقسام الأذكار',
-                onTap: _showCategoriesBottomSheet,
-              ),
-              leftCornerAction: CounterSideAction(
-                icon: Icons.home_rounded,
-                tooltip: 'الصفحة الرئيسية',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRoutes.homePage,
-                    (route) => false,
-                  );
+              // SizedBox(height: 20.h),
+              InteractiveCounterControl(
+                count: currentZekr.currentCount,
+                totalRepeat: _totalRepeat,
+                progress: _progress,
+                onCounterTap: _onCounterTap,
+                cornerAction: CounterSideAction(
+                  icon: Icons.format_list_bulleted_rounded,
+                  tooltip: 'أقسام الأذكار',
+                  onTap: _showCategoriesBottomSheet,
+                ),
+                leftCornerAction: CounterSideAction(
+                  icon: Icons.home_rounded,
+                  tooltip: 'الصفحة الرئيسية',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      AppRoutes.homePage,
+                      (route) => false,
+                    );
+                  },
+                ),
+                onNext: () {
+                  if (_pageController.hasClients) {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
                 },
+                onPrevious: () {
+                  if (_pageController.hasClients) {
+                    _pageController.previousPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                },
+                hasNext: currentZekrIndex < widget.category.azkar.length - 1,
+                hasPrevious: currentZekrIndex > 0,
+                // showResetButton: _hasStartedReciting,
+                onReset: _resetCategory,
+                showResetButton: true,
+                resetConfirmTitle: 'إعادة تعيين الأذكار',
+                resetConfirmMessage:
+                    'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
+                resetColor: Colors.redAccent,
               ),
-              onNext: () {
-                if (_pageController.hasClients) {
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
-              },
-              onPrevious: () {
-                if (_pageController.hasClients) {
-                  _pageController.previousPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
-              },
-              hasNext: currentZekrIndex < widget.category.azkar.length - 1,
-              hasPrevious: currentZekrIndex > 0,
-              // showResetButton: _hasStartedReciting,
-              onReset: _resetCategory,
-              showResetButton: true,
-              resetConfirmTitle: 'إعادة تعيين الأذكار',
-              resetConfirmMessage:
-                  'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-              resetColor: Colors.redAccent,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

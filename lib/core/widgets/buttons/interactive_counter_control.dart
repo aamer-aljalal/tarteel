@@ -412,7 +412,7 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
     double? iconSize,
   }) {
     final effectiveColor =
-        action.color ?? (isDark ? AppColors.goldAccent : AppColors.black);
+        action.color ?? (isDark ? AppColors.goldAccent : AppColors.goldAccent);
     // action.color ?? AppColors.goldAccent;
     final effectiveBg =
         action.backgroundColor ??

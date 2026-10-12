@@ -13,10 +13,11 @@ class HomeActions {
       route: AppRoutes.quran,
       title: 'القرآن',
     ),
+
     AccessListModel(
-      icon: Icons.record_voice_over_outlined,
-      route: AppRoutes.adhanMuezzin,
-      title: 'المؤذن',
+      icon: Icons.auto_stories_outlined,
+      route: AppRoutes.hisnCategories,
+      title: 'حصن المسلم',
     ),
 
     AccessListModel(
@@ -24,11 +25,7 @@ class HomeActions {
       route: AppRoutes.azkarCategories,
       title: 'الأذكار',
     ),
-    AccessListModel(
-      icon: Icons.auto_stories_outlined,
-      route: AppRoutes.hisnCategories,
-      title: 'حصن المسلم',
-    ),
+
     AccessListModel(
       icon: Icons.format_quote_outlined,
       route: AppRoutes.hadith,
@@ -41,20 +38,25 @@ class HomeActions {
       title: 'الأسماء',
     ),
     AccessListModel(
+      icon: Icons.timer_outlined,
+      route: AppRoutes.tasbeeh,
+      title: 'التسبيح',
+    ),
+    AccessListModel(
       icon: Icons.import_contacts_outlined,
       route: AppRoutes.prophetsStories,
       title: 'قصص الأنبياء',
     ),
+
     AccessListModel(
       icon: Icons.explore_outlined,
       route: AppRoutes.qibla,
       title: 'البوصلة',
     ),
-
     AccessListModel(
-      icon: Icons.timer_outlined,
-      route: AppRoutes.tasbeeh,
-      title: 'التسبيح',
+      icon: Icons.record_voice_over_outlined,
+      route: AppRoutes.adhanMuezzin,
+      title: 'المؤذن',
     ),
 
     // AccessListModel(
@@ -62,7 +64,6 @@ class HomeActions {
     //   route: AppRoutes.namesOfProphet,
     //   title: 'أسماء النبي ﷺ',
     // ),
-    
     AccessListModel(
       icon: Icons.favorite_border,
       route: AppRoutes.bookmarks,
