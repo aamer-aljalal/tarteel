@@ -380,8 +380,10 @@ class AlarmActivity : Activity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
+            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+            keyguardManager?.requestDismissKeyguard(this, null)
         }
-        // إضافة الأعلام (Flags) بشكل إجباري لجميع أنظمة سامسونج (One UI) لضمان إضاءة وعزلة شاشة القفل بنسبة 100%
+        // إضافة الأعلام (Flags) بشكل إجباري لجميع أنظمة سامسونج وشاومي لضمان إضاءة وعزلة شاشة القفل بنسبة 100%
         @Suppress("DEPRECATION")
         window.addFlags(
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or

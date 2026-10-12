@@ -103,6 +103,9 @@ class InteractiveContentCard extends StatelessWidget {
   /// إضافة محتوى مخصص بالكامل (مثل صورة أو أنميشن) يعرض بدلاً من النص أو مع النص
   final Widget? customBody;
 
+  /// مكون إضافي يوضع في شريط الرأس بجانب أدوات التكبير (مثل أزرار التحكم بالصوت والاهتزاز)
+  final Widget? headerTrailing;
+
   /// حشوة داخلية مخصصة
   final EdgeInsetsGeometry? padding;
 
@@ -142,6 +145,7 @@ class InteractiveContentCard extends StatelessWidget {
     this.customActions,
     this.extraActions,
     this.customBody,
+    this.headerTrailing,
     this.padding,
     this.margin,
     this.height,
@@ -280,7 +284,7 @@ class InteractiveContentCard extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, bool isDark) {
     final hasHeaderElements =
-        (showIndexLabel && indexLabel != null) || showZoomControls;
+        (showIndexLabel && indexLabel != null) || showZoomControls || headerTrailing != null;
 
     if (!hasHeaderElements) return const SizedBox.shrink();
 
@@ -308,35 +312,42 @@ class InteractiveContentCard extends StatelessWidget {
         else
           const SizedBox.shrink(),
 
-        // الجانب الأيسر للرأس: أدوات التكبير والتصغير
-        if (showZoomControls)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14.r),
-            ),
-            child: Row(
-              children: [
-                _buildZoomButton(
-                  Icons.zoom_in_rounded,
-                  onZoomIn,
-                  'تكبير الخط',
+        // الجانب الأيسر للرأس: أدوات التحكم المخصصة + أدوات التكبير والتصغير
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (headerTrailing != null) ...[
+              headerTrailing!,
+              if (showZoomControls) SizedBox(width: 8.w),
+            ],
+            if (showZoomControls)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14.r),
                 ),
-                Container(
-                  width: 1.w,
-                  height: 20.h,
-                  color: Colors.grey.withValues(alpha: 0.2),
+                child: Row(
+                  children: [
+                    _buildZoomButton(
+                      Icons.zoom_in_rounded,
+                      onZoomIn,
+                      'تكبير الخط',
+                    ),
+                    Container(
+                      width: 1.w,
+                      height: 20.h,
+                      color: Colors.grey.withValues(alpha: 0.2),
+                    ),
+                    _buildZoomButton(
+                      Icons.zoom_out_rounded,
+                      onZoomOut,
+                      'تصغير الخط',
+                    ),
+                  ],
                 ),
-                _buildZoomButton(
-                  Icons.zoom_out_rounded,
-                  onZoomOut,
-                  'تصغير الخط',
-                ),
-              ],
-            ),
-          )
-        else
-          const SizedBox.shrink(),
+              ),
+          ],
+        ),
       ],
     );
   }

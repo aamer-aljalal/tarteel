@@ -1,37 +1,24 @@
 // ============================================================================
 // اسم الملف: adhan_notification_service.dart
-// وصف الملف: خدمة جدولة وعرض إشعارات الأذان المحلية عند دخول أوقات الصلوات الخمس.
-//            يعتمد الملف على حزمة 'flutter_local_notifications' للتعامل مع نظام
-//            التشغيل لجدولة منبهات دقيقة، وتشغيل صوت الأذان المخصص لكل مؤذن
-//            حتى لو كان التطبيق مغلقاً أو الهاتف في وضع السبات.
+// وصف الملف: خدمة جدولة وعرض إشعارات الأذان والمنبه الدقيق عند دخول أوقات الصلوات الخمس.
+//            يعتمد الملف على نظام التنبيه الأصلي للهاتف Native Alarm مع دعم بديل عبر
+//            'flutter_local_notifications' لضمان العمل بالثانية في الخلفية وفوق شاشة القفل.
 // ============================================================================
 
+import 'dart:io' show Platform;
 import 'package:adhan/adhan.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'dart:io' show Platform;
+
+import '../models/adhan_muezzin.dart';
 import 'native_alarm_service.dart';
 
-/// كلاس يمثل بيانات المؤذن (الاسم، المعرف، ومسار ملف الصوت)
-class AdhanMuezzin {
-  const AdhanMuezzin({
-    required this.id,
-    required this.name,
-    required this.rawResourceName,
-    required this.assetPath,
-  });
-
-  final String id; // المعرف الفريد للمؤذن (يستخدم في الإعدادات)
-  final String name; // الاسم المعروض للمستخدم باللغة العربية
-  final String
-  rawResourceName; // اسم ملف الصوت بدون صيغة (للاستخدام في نظام أندرويد res/raw)
-  final String assetPath; // مسار ملف الصوت في الأصول (للاستخدام داخل التطبيق)
-}
+export '../models/adhan_muezzin.dart';
 
 /// الخدمة المسؤولة عن إعداد، طلب صلاحيات، وجدولة إشعارات الأذان المحددة بالثانية
 class AdhanNotificationService {
@@ -39,6 +26,7 @@ class AdhanNotificationService {
 
   static const String _selectedMuezzinKey = 'selected_adhan_muezzin';
   static const String _notificationsEnabledKey = 'prayer_notifications_enabled';
+  static const String _advanceTimeKey = 'adhan_advance_minutes';
 
   // رقم أساسي تبدأ منه معرفات الإشعارات (ID) لتجنب التداخل مع إشعارات أخرى في التطبيق
   static const int _notificationBaseId = 9000;
@@ -104,7 +92,7 @@ class AdhanNotificationService {
 
     try {
       await _notifications.initialize(settings: initializationSettings);
-      await _requestPermissions();
+      await requestExactAlarmAndNotificationPermissions();
     } on MissingPluginException {
       _notificationsAvailable = false;
     } on PlatformException {
@@ -119,33 +107,35 @@ class AdhanNotificationService {
     try {
       final localTimezone = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(localTimezone.identifier));
-    } on MissingPluginException {
-      tz.setLocalLocation(tz.getLocation('Asia/Riyadh'));
-    } on PlatformException {
+    } catch (_) {
       tz.setLocalLocation(tz.getLocation('Asia/Riyadh'));
     }
   }
 
-  /// طلب الأذونات الخاصة بالإشعارات والمنبه الدقيق من نظام تشغيل أندرويد
-  static Future<void> _requestPermissions() async {
+  /// طلب الأذونات الخاصة بالإشعارات والمنبه الدقيق من نظام تشغيل أندرويد (Exact Alarm & Notification)
+  static Future<void> requestExactAlarmAndNotificationPermissions() async {
+    if (!Platform.isAndroid) return;
+
     final androidPlugin = _notifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
 
-    // طلب إذن عرض الإشعارات (أندرويد 13+)
-    await androidPlugin?.requestNotificationsPermission();
+    try {
+      // 1. طلب إذن عرض الإشعارات (أندرويد 13+)
+      await androidPlugin?.requestNotificationsPermission();
 
-    // طلب إذن جدولة منبهات دقيقة بالثانية (ضروري جداً لتشغيل الأذان في وقته تماماً)
-    await androidPlugin?.requestExactAlarmsPermission();
+      // 2. طلب إذن المنبهات الدقيقة (SCHEDULE_EXACT_ALARM في أندرويد 12 و 13 و 14)
+      await androidPlugin?.requestExactAlarmsPermission();
+    } catch (e) {
+      debugPrint('Error requesting exact alarm permissions: $e');
+    }
   }
 
-  static const String _advanceTimeKey = 'adhan_advance_minutes';
-
-  /// الحصول على وقت الأذان المسبق بالدقائق (الافتراضي 15 دقيقة)
+  /// الحصول على وقت الأذان المسبق بالدقائق (الافتراضي 0 دقيقة = عند دخول وقت الصلاة تماماً)
   static Future<int> getAdhanAdvanceMinutes() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_advanceTimeKey) ?? 15;
+    return prefs.getInt(_advanceTimeKey) ?? 0;
   }
 
   /// حفظ وقت الأذان المسبق بالدقائق
@@ -157,44 +147,45 @@ class AdhanNotificationService {
   /// التحقق من حالة تفعيل إشعارات الأذان من إعدادات التطبيق
   static Future<bool> arePrayerNotificationsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_notificationsEnabledKey) ?? false;
+    return prefs.getBool(_notificationsEnabledKey) ?? true;
   }
 
   /// حفظ حالة تفعيل أو إلغاء تفعيل إشعارات الأذان
   static Future<void> setPrayerNotificationsEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_notificationsEnabledKey, enabled);
+    if (!enabled) {
+      await cancelPrayerAdhan();
+    }
   }
 
-  /// الحصول على المؤذن المختار حالياً من قبل المستخدم
+  /// جلب المؤذن الحالي المحدد، أو المؤذن الافتراضي
   static Future<AdhanMuezzin> selectedMuezzin() async {
     final prefs = await SharedPreferences.getInstance();
-    final id = prefs.getString(_selectedMuezzinKey);
-
+    final savedId = prefs.getString(_selectedMuezzinKey);
     return muezzins.firstWhere(
-      (muezzin) => muezzin.id == id,
+      (m) => m.id == savedId,
       orElse: () => defaultMuezzin,
     );
   }
 
-  /// حفظ المؤذن المختار الجديد
+  /// تعيين وحفظ المؤذن الجديد
   static Future<void> setSelectedMuezzin(AdhanMuezzin muezzin) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_selectedMuezzinKey, muezzin.id);
   }
 
-  /// الحصول على مفتاح الذاكرة الخاص بكل صلاة
-  static String _prayerEnabledKey(Prayer prayer) {
-    return 'adhan_enabled_${prayer.name}';
-  }
+  /// مفتاح حفظ حالة كل صلاة مفردة
+  static String _prayerEnabledKey(Prayer prayer) =>
+      'adhan_prayer_enabled_${prayer.name}';
 
-  /// التحقق مما إذا كان الأذان مفعلاً لصلاة معينة
+  /// فحص هل الأذان مفعل لصلاة معينة
   static Future<bool> isSinglePrayerAdhanEnabled(Prayer prayer) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_prayerEnabledKey(prayer)) ?? true;
   }
 
-  /// حفظ حالة تفعيل أو إلغاء الأذان لصلاة معينة
+  /// تفعيل أو تعطيل الأذان لصلاة معينة
   static Future<void> setSinglePrayerAdhanEnabled(
     Prayer prayer,
     bool enabled,
@@ -207,6 +198,7 @@ class AdhanNotificationService {
   static Future<void> schedulePrayerAdhan({
     required Coordinates coordinates,
     required CalculationParameters calculationParameters,
+    bool forceReschedule = false,
   }) async {
     await initialize();
     if (!_notificationsAvailable) return;
@@ -214,41 +206,37 @@ class AdhanNotificationService {
     final enabled = await arePrayerNotificationsEnabled();
     final prefs = await SharedPreferences.getInstance();
 
+    // إذا كانت خدمة الأذان معطلة، نمسح كل المنبهات فوراً وننهي الجدولة
+    if (!enabled) {
+      await cancelPrayerAdhan();
+      await prefs.remove('last_adhan_schedule_hash');
+      return;
+    }
+
     final selected = await selectedMuezzin();
     final advanceMinutes = await getAdhanAdvanceMinutes();
     final now = DateTime.now();
 
     // --- نظام الجدولة الذكي (Smart Scheduling) ---
-    // لمنع التطبيق من تكرار جدولة 225 صلاة عند كل فتح للتطبيق، نقوم بصنع "بصمة" للإعدادات
     final enabledPrayersList = <String>[];
-    for (final p in [Prayer.fajr, Prayer.dhuhr, Prayer.asr, Prayer.maghrib, Prayer.isha]) {
+    for (final p in [
+      Prayer.fajr,
+      Prayer.dhuhr,
+      Prayer.asr,
+      Prayer.maghrib,
+      Prayer.isha,
+    ]) {
       final isPrayerEnabled = await isSinglePrayerAdhanEnabled(p);
       if (isPrayerEnabled) enabledPrayersList.add(p.name);
     }
-    
-    final currentSettingsHash = '${coordinates.latitude}_${coordinates.longitude}_${calculationParameters.method}_${selected.id}_${advanceMinutes}_${enabledPrayersList.join('-')}_$enabled';
-    final lastSettingsHash = prefs.getString('last_adhan_schedule_hash');
-    final lastScheduleTimeMillis = prefs.getInt('last_adhan_schedule_time') ?? 0;
-    
-    final daysSinceLastSchedule = now.difference(DateTime.fromMillisecondsSinceEpoch(lastScheduleTimeMillis)).inDays;
-    
-    // إذا كانت الإعدادات متطابقة (الموقع والمؤذن والصلوات)، ولم يمر 10 أيام منذ آخر جدولة، فلا داعي لحذف وجدولة 225 منبه مجدداً
-    if (currentSettingsHash == lastSettingsHash && daysSinceLastSchedule < 10) {
-      debugPrint('Adhan Schedule is perfectly up to date, skipping heavy scheduling.');
-      return; 
-    }
-    // ----------------------------------------------
 
-    // مسح كافة التنبيهات المجدولة سابقاً لتجنب التكرار والتضارب
+    debugPrint('بدء جدولة مواعيد الأذان بشكل كامل ومباشر...');
+
+    // مسح كافة التنبيهات المجدولة سابقاً لتجنب التكرار والتضارب قبل البدء بجدولة جديدة
     await cancelPrayerAdhan();
-    
-    if (!enabled) {
-      await prefs.setString('last_adhan_schedule_hash', currentSettingsHash);
-      return;
-    }
 
-    // جدولة الصلوات لمدة 45 يوماً متلفة ومتتابعة للمستقبل (حوالي 225 صلاة) ليعمل الأذان دون توقف حتى لو اغلق التطبيق
-    const int totalDaysToSchedule = 45;
+    // جدولة الصلوات لمدة 30 يوماً للمستقبل لضمان عمل الأذان أوفلاين دون فتح التطبيق
+    const int totalDaysToSchedule = 30;
     int notificationOffset = 0;
 
     final prayers = <Prayer>[
@@ -293,17 +281,21 @@ class AdhanNotificationService {
         notificationOffset++;
       }
     }
-    
-    // حفظ البصمة ووقت الجدولة بعد نجاح العملية بالكامل
-    await prefs.setString('last_adhan_schedule_hash', currentSettingsHash);
-    await prefs.setInt('last_adhan_schedule_time', DateTime.now().millisecondsSinceEpoch);
+
+    await prefs.setInt(
+      'last_adhan_schedule_time',
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    debugPrint(
+      'Adhan successfully scheduled for $notificationOffset prayer times.',
+    );
   }
 
-  /// إلغاء كافة إشعارات الأذان المجدولة في النظام
+  /// إلغاء كافة إشعارات ومنبهات الأذان المجدولة في النظام
   static Future<void> cancelPrayerAdhan() async {
     if (!_notificationsAvailable) return;
 
-    // مسح نطاق كامل يغطي كافة الـ 300 إشعار المحتمله المجدولة للأذان
+    // مسح نطاق كامل يغطي كافة الإشعارات المحتملة للأذان
     for (var index = 0; index < 300; index++) {
       await _notifications.cancel(id: _notificationBaseId + index);
     }
@@ -314,7 +306,7 @@ class AdhanNotificationService {
     }
   }
 
-  /// دالة مخصصة لاختبار المنبه بعد מספר من الثواني بأمان دون تداخل الصلوات
+  /// دالة مخصصة لاختبار المنبه بعد عدد من الثواني بأمان
   static Future<void> testScheduleAdhanInSeconds(
     int seconds, {
     String prayerName = 'المغرب',
@@ -371,7 +363,8 @@ class AdhanNotificationService {
         subtitle: alarmSubtitle,
         audioFile: muezzin.rawResourceName,
         audioSource: 'RAW_RESOURCE',
- 
+        // لتجربة الأذان المجدول بعد 10 ثوانٍ (للصلاة الأولى id == 9000)
+        // scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
         scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,
@@ -383,7 +376,6 @@ class AdhanNotificationService {
         debugPrint(
           'Native Adhan scheduled successfully for $prayerName at $scheduledTime (Advance: $advanceMinutes m)',
         );
-
         return; // ننهي الدالة لكي لا تتم جدولة إشعار مكرر عبر flutter_local_notifications
       } else {
         debugPrint(
@@ -397,12 +389,14 @@ class AdhanNotificationService {
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      'أذان ${muezzin.name}',
-      channelDescription: 'تشغيل أذان ${muezzin.name} عند دخول وقت الصلاة',
+      'أذان بصوت ${muezzin.name}',
+      channelDescription: 'إشعارات الأذان المجدولة للصلوات',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
       sound: RawResourceAndroidNotificationSound(muezzin.rawResourceName),
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,
       visibility: NotificationVisibility.public,
     );

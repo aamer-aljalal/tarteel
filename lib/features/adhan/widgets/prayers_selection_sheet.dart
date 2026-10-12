@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
-import 'package:tarteel/core/services/adhan_notification_service.dart';
+import '../services/adhan_notification_service.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/custom_grid_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/cards/action_grid_card.dart';
 

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 
@@ -179,6 +181,18 @@ class InteractiveCounterControl extends StatefulWidget {
   /// مدة تأثير الضغط
   final Duration scaleDuration;
 
+  /// هل يتم تفعيل صوت النقر عند الضغط على الزر تلقائياً
+  final bool enableSound;
+
+  /// مسار ملف الصوت المراد تشغيله (افتراضياً نقرة المسبحة)
+  final String? soundAsset;
+
+  /// مستوى حجم الصوت من 0.0 إلى 1.0 (افتراضياً 0.25 لصوت هادئ ومريح وغير مزعج)
+  final double soundVolume;
+
+  /// هل يتم تفعيل الاهتزاز عند الضغط
+  final bool enableHaptic;
+
   const InteractiveCounterControl({
     super.key,
     required this.count,
@@ -225,6 +239,10 @@ class InteractiveCounterControl extends StatefulWidget {
     this.customProgressRing,
     this.pressedScale = 0.92,
     this.scaleDuration = const Duration(milliseconds: 100),
+    this.enableSound = false,
+    this.soundAsset = 'assets/audio/tasbeeh/bead_click.wav',
+    this.soundVolume = 0.25,
+    this.enableHaptic = true,
   });
 
   /// دالة مساعدة عامة لإظهار نافذة تأكيد إعادة التعيين من أي مكان في التطبيق (مثل الـ AppBar)
@@ -254,6 +272,55 @@ class InteractiveCounterControl extends StatefulWidget {
 
 class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
   double _buttonScale = 1.0;
+  AudioPlayer? _audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAudio();
+  }
+
+  @override
+  void didUpdateWidget(covariant InteractiveCounterControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enableSound != oldWidget.enableSound ||
+        widget.soundAsset != oldWidget.soundAsset) {
+      _initAudio();
+    } else if (widget.soundVolume != oldWidget.soundVolume) {
+      _audioPlayer?.setVolume(widget.soundVolume.clamp(0.0, 1.0)).catchError((_) {});
+    }
+  }
+
+  Future<void> _initAudio() async {
+    if (!widget.enableSound) {
+      _audioPlayer?.dispose();
+      _audioPlayer = null;
+      return;
+    }
+
+    try {
+      _audioPlayer ??= AudioPlayer();
+      if (widget.soundAsset != null) {
+        await _audioPlayer!.setAsset(widget.soundAsset!);
+      }
+      await _audioPlayer!.setVolume(widget.soundVolume.clamp(0.0, 1.0));
+    } catch (_) {}
+  }
+
+  void _playSound() {
+    if (!widget.enableSound) return;
+    try {
+      if (_audioPlayer != null) {
+        _audioPlayer!.seek(Duration.zero).then((_) => _audioPlayer!.play()).catchError((_) {});
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer?.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleReset() async {
     if (widget.onReset == null) return;
@@ -279,6 +346,16 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
   }
 
   void _handleTap() {
+    // 1. تشغيل الاهتزاز المدمج في المكون تلقائياً (دعم شامل لكافة أنواع الهواتف وإصدارات أندرويد)
+    if (widget.enableHaptic) {
+      HapticFeedback.vibrate();
+      HapticFeedback.heavyImpact();
+    }
+
+    // 2. تشغيل الصوت المدمج في المكون تلقائياً مع التحكم بالحجم
+    _playSound();
+
+    // 3. تأثير الانكماش اللحظي إن كان مفعلاً
     if (widget.pressedScale != 1.0) {
       setState(() {
         _buttonScale = widget.pressedScale;

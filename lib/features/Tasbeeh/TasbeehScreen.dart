@@ -2,6 +2,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -26,6 +27,9 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   late Box<DhikrModel> dhikrBox;
   late final AnimationController _misbahaController;
 
+  bool _isSoundEnabled = true;
+  bool _isHapticEnabled = true;
+
   String _currentZekr = 'سبحان الله والحمد لله ولا إله إلا الله والله أكبر';
   int _currentCount = 0;
   int _target = 100;
@@ -39,7 +43,46 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       duration: const Duration(milliseconds: 350),
     );
     dhikrBox = Hive.box<DhikrModel>('dhikrBox');
+    _loadPreferences();
     _initializeDhikr();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isSoundEnabled = prefs.getBool('tasbeeh_sound_enabled') ?? true;
+        _isHapticEnabled = prefs.getBool('tasbeeh_haptic_enabled') ?? true;
+      });
+    }
+  }
+
+  Future<void> _toggleSound() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isSoundEnabled = !_isSoundEnabled;
+    });
+    await prefs.setBool('tasbeeh_sound_enabled', _isSoundEnabled);
+    if (_isHapticEnabled) {
+      HapticFeedback.lightImpact();
+    }
+    _showDummyMessage(
+      _isSoundEnabled ? 'تم تفعيل صوت نقرة المسبحة' : 'تم كتم صوت المسبحة',
+    );
+  }
+
+  Future<void> _toggleHaptic() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isHapticEnabled = !_isHapticEnabled;
+    });
+    await prefs.setBool('tasbeeh_haptic_enabled', _isHapticEnabled);
+    if (_isHapticEnabled) {
+      HapticFeedback.mediumImpact();
+    }
+    _showDummyMessage(
+      _isHapticEnabled ? 'تم تفعيل الاهتزاز التفاعلي' : 'تم تعطيل الاهتزاز',
+    );
   }
 
   @override
@@ -131,10 +174,8 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       _currentCount++;
       if (_currentCount >= _target) {
         _currentCount = 0;
-        HapticFeedback.vibrate();
+        if (_isHapticEnabled) HapticFeedback.vibrate();
         _showDummyMessage('تقبل الله طاعتك! تم الوصول للهدف');
-      } else {
-        HapticFeedback.mediumImpact();
       }
     });
 
@@ -465,18 +506,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       context: context,
       title: 'قائمة الأذكار والتسبيحات',
       heightFraction: 0.75,
-      trailing: IconButton(
-        icon: Icon(
-          Icons.add_circle_outline_rounded,
-          color: AppColors.primary,
-          size: 26.sp,
-        ),
-        tooltip: 'إضافة ذكر جديد',
-        onPressed: () {
-          Navigator.pop(context);
-          _showAddZekrDialog();
-        },
-      ),
+
       emptyMessage: 'لا توجد أذكار حالياً، يمكنك إضافة ذكرك الأول الآن',
       items: dhikrBox.values.map((dhikr) {
         final isSelected = _currentZekr == dhikr.text;
@@ -568,18 +598,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: tarteelAppBar(
-        titleText: 'التسبيح',
-        toolbarHeight: 90,
-
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded),
-            onPressed: _showAddZekrDialog,
-            tooltip: 'إضافة ذكر جديد',
-          ),
-        ],
-      ),
+      appBar: tarteelAppBar(titleText: 'التسبيح', toolbarHeight: 90),
       body: isEmpty
           ? Center(
               child: SingleChildScrollView(
@@ -684,6 +703,41 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                       counterBadgeText: 'الهدف : $_currentCount / $_target',
                       showCounterBadge: true,
                       showIndexLabel: false,
+                      headerTrailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Tooltip(
+                            message: _isSoundEnabled
+                                ? 'كتم صوت نقرة المسبحة'
+                                : 'تفعيل صوت نقرة المسبحة',
+                            child: InkWell(
+                              onTap: _toggleSound,
+                              borderRadius: BorderRadius.circular(12.r),
+                              child: Container(
+                                padding: EdgeInsets.all(6.w),
+                                decoration: BoxDecoration(
+                                  color: _isSoundEnabled
+                                      ? AppColors.primary.withValues(
+                                          alpha: 0.12,
+                                        )
+                                      : Colors.grey.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Icon(
+                                  _isSoundEnabled
+                                      ? Icons.volume_up_rounded
+                                      : Icons.volume_off_rounded,
+                                  size: 19.sp,
+                                  color: _isSoundEnabled
+                                      ? AppColors.primary
+                                      : Colors.grey.shade500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                        ],
+                      ),
                       customActions: [
                         CardAction(
                           icon: Icons.edit_outlined,
@@ -712,9 +766,13 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                     size: 115.w,
                     countFontSize: 34.sp,
                     pressedScale: 1.0,
+                    enableSound: _isSoundEnabled,
+                    soundAsset: 'assets/audio/tasbeeh/bead_click.wav',
+                    soundVolume: 0.05,
+                    enableHaptic: _isHapticEnabled,
                     customProgressRing: SizedBox(
-                      width: 175.w,
-                      height: 175.w,
+                      width: 170.w,
+                      height: 170.w,
                       child: Lottie.asset(
                         'assets/animation/tasbih/misbaha_tasbeeh.json',
                         controller: _misbahaController,

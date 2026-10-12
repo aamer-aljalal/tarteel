@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
-import 'package:tarteel/core/services/adhan_notification_service.dart';
-import 'package:tarteel/core/services/native_alarm_service.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/adhan_notification_service.dart';
+import '../services/native_alarm_service.dart';
 
 import '../widgets/muezzin_selection_sheet.dart';
 import '../widgets/prayers_selection_sheet.dart';
@@ -120,7 +121,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     await AdhanNotificationService.setAdhanAdvanceMinutes(minutes);
     if (mounted) {
       final prayerProvider = context.read<PrayerProvider>();
-      await prayerProvider.scheduleAdhanNotifications();
+      await prayerProvider.scheduleAdhanNotifications(force: true);
     }
   }
 
@@ -130,12 +131,16 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
       _soundEnabled = enabled;
     });
 
+    if (enabled) {
+      await AdhanNotificationService.requestExactAlarmAndNotificationPermissions();
+    }
+
     await AdhanNotificationService.setPrayerNotificationsEnabled(enabled);
 
     if (!mounted) return;
     final prayerProvider = context.read<PrayerProvider>();
     if (enabled) {
-      await prayerProvider.scheduleAdhanNotifications();
+      await prayerProvider.scheduleAdhanNotifications(force: true);
     } else {
       await AdhanNotificationService.cancelPrayerAdhan();
     }
@@ -157,7 +162,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     }
     if (mounted) {
       final prayerProvider = context.read<PrayerProvider>();
-      await prayerProvider.scheduleAdhanNotifications();
+      await prayerProvider.scheduleAdhanNotifications(force: true);
     }
   }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
 import 'package:tarteel/Routes/RouteGenerator.dart';
 import 'package:tarteel/core/database/hive_database.dart';
-import 'package:tarteel/core/services/adhan_notification_service.dart';
+import 'package:tarteel/features/adhan/services/adhan_notification_service.dart';
 import 'package:tarteel/core/services/general_notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -13,7 +13,7 @@ import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
 import 'package:provider/provider.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
-import 'package:tarteel/core/services/adhan_player_service.dart';
+import 'package:tarteel/features/adhan/services/adhan_player_service.dart';
 import 'package:tarteel/core/providers/theme_provider.dart';
 
 void main() async {

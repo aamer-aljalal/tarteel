@@ -34,8 +34,8 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
     return zekr.currentCount >= repeat;
   });
 
-  bool get _hasStartedReciting =>
-      widget.category.azkar.any((zekr) => zekr.currentCount > 0);
+  // bool get _hasStartedReciting =>
+  //     widget.category.azkar.any((zekr) => zekr.currentCount > 0);
 
   late final PageController _pageController;
 
@@ -229,18 +229,18 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
     _showMessage('تمت إعادة تعيين العدادات بالكامل');
   }
 
-  Future<void> _showResetCategoryDialog() async {
-    final confirmed = await InteractiveCounterControl.showResetConfirmation(
-      context,
-      title: 'إعادة تعيين الأذكار',
-      message:
-          'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-      confirmColor: Colors.redAccent,
-    );
-    if (confirmed) {
-      _resetCategory();
-    }
-  }
+  // Future<void> _showResetCategoryDialog() async {
+  //   final confirmed = await InteractiveCounterControl.showResetConfirmation(
+  //     context,
+  //     title: 'إعادة تعيين الأذكار',
+  //     message:
+  //         'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
+  //     confirmColor: Colors.redAccent,
+  //   );
+  //   if (confirmed) {
+  //     _resetCategory();
+  //   }
+  // }
 
   void _showCompletionSheet() {
     // Record completion of the entire Azkar category!
@@ -375,13 +375,13 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
         elevation: 0,
         toolbarHeight: 90,
 
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.restart_alt_rounded, color: Colors.white),
-            tooltip: 'إعادة تعيين الأذكار',
-            onPressed: _showResetCategoryDialog,
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.restart_alt_rounded, color: Colors.white),
+        //     tooltip: 'إعادة تعيين الأذكار',
+        //     onPressed: _showResetCategoryDialog,
+        //   ),
+        // ],
       ),
       body: SafeArea(
         child: Column(
@@ -482,8 +482,9 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
               },
               hasNext: currentZekrIndex < widget.category.azkar.length - 1,
               hasPrevious: currentZekrIndex > 0,
-              showResetButton: _hasStartedReciting,
+              // showResetButton: _hasStartedReciting,
               onReset: _resetCategory,
+              showResetButton: true,
               resetConfirmTitle: 'إعادة تعيين الأذكار',
               resetConfirmMessage:
                   'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',

@@ -37,18 +37,42 @@ class AlarmReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "بدء تشغيل منبه بمعرف: $alarmId")
 
-        // 2. إعداد النية لتشغيل الخدمة الخلفية المستمرة وتمرير معرف المنبه لها
+        // إيقاظ المعالج عبر WakeLock لضمان بقاء الهاتف مستيقظاً لإظهار الشاشة والصوت
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        val wakeLock = powerManager?.newWakeLock(
+            android.os.PowerManager.PARTIAL_WAKE_LOCK or android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "Tarteel:AlarmReceiverWakeLock"
+        )
+        try {
+            wakeLock?.acquire(30 * 1000L) // 30 ثانية
+        } catch (e: Exception) {
+            Log.w(TAG, "تعذر حجز WakeLock: ${e.message}")
+        }
+
+        // 2. إطلاق شاشة الأذان فوراً فوق قفل الشاشة مباشرة
+        val activityIntent = Intent(context, AlarmActivity::class.java).apply {
+            putExtra("alarm_id", alarmId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        }
+        try {
+            context.startActivity(activityIntent)
+            Log.d(TAG, "تم إرسال أمر فتح AlarmActivity من AlarmReceiver بنجاح")
+        } catch (e: Exception) {
+            Log.e(TAG, "تعذر فتح AlarmActivity من AlarmReceiver: ${e.message}")
+        }
+
+        // 3. إعداد النية لتشغيل الخدمة الخلفية المستمرة وتمرير معرف المنبه لها
         val serviceIntent = Intent(context, AlarmForegroundService::class.java).apply {
             putExtra("alarm_id", alarmId)
         }
 
-        // 3. تشغيل الخدمة الخلفية بشكل آمن يعتمد على إصدار الأندرويد
+        // 4. تشغيل الخدمة الخلفية بشكل آمن يعتمد على إصدار الأندرويد
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                // في أندرويد 8 فما فوق، يجب تشغيل الخدمات الخلفية كخدمات مرئية (Foreground)
                 context.startForegroundService(serviceIntent)
             } else {
-                // في الإصدارات القديمة، يتم التشغيل كخدمة عادية
                 context.startService(serviceIntent)
             }
             Log.d(TAG, "تم إرسال أمر تشغيل الخدمة الخلفية للمنبه بنجاح")

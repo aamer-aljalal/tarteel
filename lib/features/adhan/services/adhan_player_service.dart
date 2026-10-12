@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/core/services/adhan_notification_service.dart';
+import 'adhan_notification_service.dart';
 
 class AdhanPlayerService {
   static final AdhanPlayerService _instance = AdhanPlayerService._internal();
@@ -178,9 +178,6 @@ class _AdhanPlayingScreenState extends State<AdhanPlayingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
       color: Colors.black.withValues(alpha: 0.92),
       child: SafeArea(

@@ -186,7 +186,7 @@ class GeneralNotificationService {
     // Morning Azkar (7:00 AM)
     await _scheduleDailyTime(
       id: idMorningAzkar,
-      title: 'أذكار الصباح ☀️',
+      title: 'أذكار الصباح',
       body: '«أصبحنا وأصبح الملك لله».. حان وقت أذكار الصباح المأثورة لتنير يومك وتصون عملك.',
       hour: 7,
       minute: 0,
@@ -197,7 +197,7 @@ class GeneralNotificationService {
     // Evening Azkar (5:00 PM)
     await _scheduleDailyTime(
       id: idEveningAzkar,
-      title: 'أذكار المساء 🌙',
+      title: 'أذكار المساء',
       body: '«أمسينا وأمسى الملك لله».. حان وقت أذكار المساء لتحفظك وتحرسك حتى تصبح.',
       hour: 17,
       minute: 0,
@@ -235,8 +235,8 @@ class GeneralNotificationService {
 
     await _scheduleWeeklyDayAndTime(
       id: idFridayKahf,
-      title: 'جمعة مباركة عامرة بالذكر 🕌',
-      body: 'لا تنسَ سنن الجمعة: قراءة سورة الكهف لنور ما بين الجمعتين، الصلاة على النبي ﷺ وكثرة الدعاء.',
+      title: 'جمعة مباركة عامرة بالذكر',
+      body: 'لا تنسَ سنن الجمعة: قراءة سورة الكهف لنور ما بين الجمعتين، الصلاة على النبي وكثرة الدعاء.',
       dayOfWeek: DateTime.friday,
       hour: 9,
       minute: 0,

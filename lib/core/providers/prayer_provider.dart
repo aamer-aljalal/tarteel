@@ -8,8 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tarteel/core/services/adhan_notification_service.dart';
-import 'package:tarteel/core/services/adhan_player_service.dart';
+import 'package:tarteel/features/adhan/services/adhan_notification_service.dart';
+import 'package:tarteel/features/adhan/services/adhan_player_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
 
@@ -763,10 +763,11 @@ class PrayerProvider extends ChangeNotifier {
     _updateNextPrayer();
   }
 
-  Future<void> scheduleAdhanNotifications() {
+  Future<void> scheduleAdhanNotifications({bool force = false}) {
     return AdhanNotificationService.schedulePrayerAdhan(
       coordinates: _coordinates,
       calculationParameters: _calculationParameters,
+      forceReschedule: force,
     );
   }
 
