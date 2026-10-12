@@ -23,7 +23,7 @@ class AzkarDetailsScreen extends StatefulWidget {
 class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
   int currentZekrIndex = 0;
   bool _hapticEnabled = true;
-  double _activeMaxFontSize = 14.0;
+  double _activeMaxFontSize = 20.0;
 
   dynamic get currentZekr => widget.category.azkar[currentZekrIndex];
   int get _totalRepeat => int.tryParse(currentZekr.count) ?? 1;
@@ -172,7 +172,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
   }
 
   void _onZoomIn() {
-    if (_activeMaxFontSize < 25.0) {
+    if (_activeMaxFontSize < 34.0) {
       setState(() {
         _activeMaxFontSize += 2.0;
       });
@@ -181,29 +181,12 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
   }
 
   void _onZoomOut() {
-    if (_activeMaxFontSize > 12.0) {
+    if (_activeMaxFontSize > 14.0) {
       setState(() {
         _activeMaxFontSize -= 2.0;
       });
       if (_hapticEnabled) HapticFeedback.mediumImpact();
     }
-  }
-
-  void _copyZekr() async {
-    await Clipboard.setData(ClipboardData(text: currentZekr.content));
-    if (_hapticEnabled) HapticFeedback.mediumImpact();
-    _showMessage('تم نسخ الذكر بنجاح');
-  }
-
-  void _shareZekr() async {
-    final text =
-        '${currentZekr.content}\n\n'
-        'فضل الذكر: ${currentZekr.description.isNotEmpty ? currentZekr.description : "من الأذكار النبوية"}\n'
-        'المصدر: ${currentZekr.reference.isNotEmpty ? currentZekr.reference : "حصن المسلم"}\n\n'
-        'تمت المشاركة من تطبيق ترتيل الإسلامي';
-    await Clipboard.setData(ClipboardData(text: text));
-    if (_hapticEnabled) HapticFeedback.mediumImpact();
-    _showMessage('تم نسخ نص الذكر والفضل لمشاركته فوراً');
   }
 
   void _resetCategory() {
@@ -507,8 +490,6 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
       showFavorite: true,
       description: zekr.description,
       reference: zekr.reference,
-      onCopy: _copyZekr,
-      onShare: _shareZekr,
       counterBadgeText: 'التكرار  : ${zekr.currentCount} / $_totalRepeat',
     );
   }

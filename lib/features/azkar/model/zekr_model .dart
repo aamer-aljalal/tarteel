@@ -22,13 +22,22 @@ class ZekrModel {
   });
 
   factory ZekrModel.fromJson(Map<String, dynamic> json) {
-
     return ZekrModel(
-      category: json['category'] ?? '',
-      count: json['count'] ?? '1',
-      description: json['description'] ?? '',
-      reference: json['reference'] ?? '',
-      content: json['content'] ?? '',
+      category: json['category']?.toString() ?? '',
+      count: json['count']?.toString() ?? '1',
+      description: json['description']?.toString() ?? '',
+      reference: json['reference']?.toString() ?? '',
+      content: json['content']?.toString() ?? json['zekr']?.toString() ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'category': category,
+      'count': count,
+      'description': description,
+      'reference': reference,
+      'content': content,
+    };
   }
 }

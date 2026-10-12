@@ -2,28 +2,22 @@ import 'package:flutter/material.dart';
 
 class AzkarIcons {
   static Map<String, IconData> icons = {
-    'أذكار الصباح': Icons.wb_sunny,
-
+    'أذكار الصباح': Icons.wb_sunny_rounded,
     'أذكار المساء': Icons.nightlight_round,
-
-    'أذكار النوم': Icons.bed,
-
-    'أذكار اللباس': Icons.checkroom,
-
-    'أذكار الاستيقاظ': Icons.alarm,
-
-    'أذكار الطعام': Icons.restaurant,
-
-    'أذكار المنزل': Icons.home,
-
-    'أذكار الخروج': Icons.directions_walk,
-
-    'أذكار المسجد': Icons.mosque,
-
-    'أذكار عامة': Icons.favorite,
-
-    'أذكار المرض': Icons.health_and_safety,
-
-    'أذكار السفر': Icons.air,
+    'أذكار الاستيقاظ': Icons.alarm_rounded,
+    'أذكار النوم': Icons.bed_rounded,
+    'أذكار بعد السلام من الصلاة': Icons.mosque_rounded,
+    'أذكار الآذان': Icons.volume_up_rounded,
+    'أدعية الصلاة': Icons.accessibility_new_rounded,
+    'التسبيح والتحميد والتهليل والتكبير': Icons.all_inclusive_rounded,
+    'الاستغفار والتوبة': Icons.refresh_rounded,
+    'فضل الصلاة على النبي ﷺ': Icons.favorite_rounded,
+    'الرُّقية الشرعية من القرآن الكريم': Icons.menu_book_rounded,
+    'الرُّقية الشرعية من السنة النبوية': Icons.healing_rounded,
+    'أدعية تفريج الهم والكرب وقضاء الدين': Icons.shield_rounded,
+    'أدعية عيادة المريض والشفاء': Icons.health_and_safety_rounded,
+    'أدعية قرآنية': Icons.auto_stories_rounded,
+    'أدعية الأنبياء': Icons.stars_rounded,
+    'تسابيح': Icons.all_inclusive_rounded,
   };
 }

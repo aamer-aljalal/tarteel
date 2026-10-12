@@ -85,6 +85,7 @@ flutter:
     - assets/json/metadata.json
     - assets/json/Interpretation.json
     - assets/json/azkar.json
+    - assets/json/azkar/
     - assets/json/hadith_nawawi.json
     - assets/json/names_of_allah.json
     - assets/json/hisn_almuslim.json

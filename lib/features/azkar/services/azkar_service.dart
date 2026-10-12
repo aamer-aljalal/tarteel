@@ -10,30 +10,39 @@ import 'package:tarteel/features/azkar/model/zekr_model%20.dart';
 import 'package:tarteel/routes/AppRoutes.dart';
 
 class AzkarService {
+  static List<ZekrCategory>? _cachedCategories;
+
   static Future<List<ZekrCategory>> loadAzkar() async {
+    if (_cachedCategories != null) return _cachedCategories!;
+
     // قراءة ملف json
     final String jsonString = await rootBundle.loadString(
-      'assets/json/azkar.json',
+      'assets/json/azkar/azkar.json',
     );
 
-    // تحويل النص إلى Map
-    final Map<String, dynamic> data = jsonDecode(jsonString);
-
-    // القائمة النهائية
+    final dynamic decoded = jsonDecode(jsonString);
     List<ZekrCategory> categories = [];
 
-    // المرور على الأقسام
-    data.forEach((key, value) {
-      // تحويل الأذكار داخل القسم
-      List<ZekrModel> azkar = (value as List)
-          .map((e) => ZekrModel.fromJson(e))
+    if (decoded is List) {
+      categories = decoded
+          .map((e) => ZekrCategory.fromJson(e as Map<String, dynamic>))
           .toList();
+    } else if (decoded is Map<String, dynamic>) {
+      int idx = 1;
+      decoded.forEach((key, value) {
+        List<ZekrModel> azkar = (value as List)
+            .map((e) => ZekrModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+        categories.add(ZekrCategory(id: idx++, title: key, azkar: azkar));
+      });
+    }
 
-      // إضافة القسم للقائمة
-      categories.add(ZekrCategory(title: key, azkar: azkar));
-    });
-
+    _cachedCategories = categories;
     return categories;
+  }
+
+  static void clearCache() {
+    _cachedCategories = null;
   }
 
   // ================= تحويلها إلى Actions =================

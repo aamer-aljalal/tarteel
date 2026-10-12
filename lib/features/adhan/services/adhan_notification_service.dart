@@ -147,13 +147,14 @@ class AdhanNotificationService {
   /// التحقق من حالة تفعيل إشعارات الأذان من إعدادات التطبيق
   static Future<bool> arePrayerNotificationsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_notificationsEnabledKey) ?? true;
+    return prefs.getBool(_notificationsEnabledKey) ?? false;
   }
 
   /// حفظ حالة تفعيل أو إلغاء تفعيل إشعارات الأذان
   static Future<void> setPrayerNotificationsEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_notificationsEnabledKey, enabled);
+    await prefs.setBool('has_prompted_adhan_activation', true);
     if (!enabled) {
       await cancelPrayerAdhan();
     }
@@ -203,11 +204,16 @@ class AdhanNotificationService {
     await initialize();
     if (!_notificationsAvailable) return;
 
-    final enabled = await arePrayerNotificationsEnabled();
     final prefs = await SharedPreferences.getInstance();
+    final bool isLocationSaved = prefs.getBool('user_location_saved') ?? false;
+    final bool hasPromptedAdhan =
+        prefs.getBool('has_prompted_adhan_activation') ?? false;
+    final enabled = await arePrayerNotificationsEnabled();
 
-    // إذا كانت خدمة الأذان معطلة، نمسح كل المنبهات فوراً وننهي الجدولة
-    if (!enabled) {
+    // نتحقق من الشروط الأساسية للجدولة:
+    // 1. لا نقوم بجدولة الأذان إذا لم يتم حفظ موقع المستخدم الفعلي بعد (لتجنب الأذان بتوقيت مكة لمستخدم في بلد آخر).
+    // 2. لا نقوم بجدولة الأذان إذا لم يقم المستخدم بالموافقة على تفعيل الأذان التلقائي أو إذا كان معطلاً.
+    if (!isLocationSaved || !hasPromptedAdhan || !enabled) {
       await cancelPrayerAdhan();
       await prefs.remove('last_adhan_schedule_hash');
       return;
@@ -364,8 +370,8 @@ class AdhanNotificationService {
         audioFile: muezzin.rawResourceName,
         audioSource: 'RAW_RESOURCE',
         // لتجربة الأذان المجدول بعد 10 ثوانٍ (للصلاة الأولى id == 9000)
-        scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
-        // scheduledTime: scheduledTime,
+        // scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
+        scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,
         volume: volumeLevel,

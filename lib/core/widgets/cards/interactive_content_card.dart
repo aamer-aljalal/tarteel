@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
 
@@ -124,10 +125,10 @@ class InteractiveContentCard extends StatelessWidget {
     required this.content,
     this.indexLabel,
     this.showIndexLabel = true,
-    this.fontSize = 14.0,
+    this.fontSize = 20.0,
     this.fontStep = 2.0,
-    this.minFontSize = 10.0,
-    this.maxFontSize = 35.0,
+    this.minFontSize = 12.0,
+    this.maxFontSize = 36.0,
     this.onZoomIn,
     this.onZoomOut,
     this.showZoomControls = true,
@@ -157,78 +158,81 @@ class InteractiveContentCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    Widget contentBody = SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      child: Column(
-        children: [
-          SizedBox(height: 8.h),
-          if (customBody != null) customBody!,
-          if (content.isNotEmpty)
-            ResponsiveText(
-              content: content,
-              fontSize: fontSize,
-              maxFontSize: fontSize,
-              minFontSize: minFontSize,
-              fontFamily: 'Amiri',
-              fontWeight: FontWeight.bold,
-              height: 2.5,
-              textAlign: TextAlign.center,
-              maxLines: 12,
-              color: isDark ? Colors.white : const Color(0xFF2E5C2E),
-            ),
+    Widget contentBody = Scrollbar(
+      thumbVisibility: false,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            SizedBox(height: 8.h),
+            if (customBody != null) customBody!,
+            if (content.isNotEmpty)
+              ResponsiveText(
+                content: content,
+                fontSize: fontSize,
+                maxFontSize: maxFontSize,
+                minFontSize: minFontSize,
+                fontFamily: 'Amiri',
+                fontWeight: FontWeight.bold,
+                height: 2.2,
+                textAlign: TextAlign.center,
+                maxLines: null,
+                overflow: TextOverflow.visible,
+                color: isDark ? Colors.white : const Color(0xFF2E5C2E),
+              ),
 
-          // فضل الذكر / الشرح (إن وجد)
-          if (description != null && description!.trim().isNotEmpty) ...[
-            SizedBox(height: 12.h),
-            Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: AppColors.goldAccent.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(
-                  color: AppColors.goldAccent.withValues(alpha: 0.15),
-                  width: 0.5,
+            // فضل الذكر / الشرح (إن وجد)
+            if (description != null && description!.trim().isNotEmpty) ...[
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: AppColors.goldAccent.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(
+                    color: AppColors.goldAccent.withValues(alpha: 0.15),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  description!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                    height: 1.6,
+                    fontStyle: FontStyle.italic,
+                    fontFamily: 'Amiri',
+                  ),
                 ),
               ),
-              child: Text(
-                description!,
+            ],
+
+            // المصدر / التخريج (إن وجد)
+            if (reference != null && reference!.trim().isNotEmpty) ...[
+              SizedBox(height: 12.h),
+              Text(
+                'المصدر: $reference',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12.sp,
-                  color: isDark
-                      ? Colors.grey.shade400
-                      : Colors.grey.shade700,
-                  height: 1.6,
-                  fontStyle: FontStyle.italic,
-                  fontFamily: 'Amiri',
+                  fontSize: 11.sp,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Cairo',
                 ),
               ),
-            ),
+            ],
+            SizedBox(height: 8.h),
           ],
-
-          // المصدر / التخريج (إن وجد)
-          if (reference != null && reference!.trim().isNotEmpty) ...[
-            SizedBox(height: 12.h),
-            Text(
-              'المصدر: $reference',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: Colors.grey.shade500,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Cairo',
-              ),
-            ),
-          ],
-          SizedBox(height: 8.h),
-        ],
+        ),
       ),
     );
 
     return LayoutBuilder(
       builder: (context, constraints) {
         // إذا كان هناك قيود ارتفاع محددة أو تم طلب isExpanded صراحة
-        final bool shouldExpand = isExpanded ??
+        final bool shouldExpand =
+            isExpanded ??
             (constraints.maxHeight != double.infinity && height == null);
 
         return Container(
@@ -252,8 +256,14 @@ class InteractiveContentCard extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: padding ??
-                EdgeInsets.only(top: 10.h, bottom: 10.h, left: 15.w, right: 15.w),
+            padding:
+                padding ??
+                EdgeInsets.only(
+                  top: 10.h,
+                  bottom: 10.h,
+                  left: 15.w,
+                  right: 15.w,
+                ),
             child: Column(
               mainAxisSize: shouldExpand ? MainAxisSize.max : MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -284,7 +294,9 @@ class InteractiveContentCard extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, bool isDark) {
     final hasHeaderElements =
-        (showIndexLabel && indexLabel != null) || showZoomControls || headerTrailing != null;
+        (showIndexLabel && indexLabel != null) ||
+        showZoomControls ||
+        headerTrailing != null;
 
     if (!hasHeaderElements) return const SizedBox.shrink();
 
@@ -372,7 +384,8 @@ class InteractiveContentCard extends StatelessWidget {
   }
 
   Widget _buildFooterActions(BuildContext context, bool isDark) {
-    final hasBadge = showCounterBadge &&
+    final hasBadge =
+        showCounterBadge &&
         counterBadgeText != null &&
         counterBadgeText!.isNotEmpty;
 
@@ -394,7 +407,10 @@ class InteractiveContentCard extends StatelessWidget {
               color: Colors.blue.shade700,
               tooltip: 'نسخ النص',
             ),
-          if (showCopy && (showShare || showFavorite || (extraActions != null && extraActions!.isNotEmpty)))
+          if (showCopy &&
+              (showShare ||
+                  showFavorite ||
+                  (extraActions != null && extraActions!.isNotEmpty)))
             SizedBox(width: 8.w),
           if (showShare)
             _buildActionButton(
@@ -403,13 +419,15 @@ class InteractiveContentCard extends StatelessWidget {
                 if (onShare != null) {
                   onShare!();
                 } else {
-                  _defaultCopy(context);
+                  _defaultShare(context);
                 }
               },
               color: AppColors.primary,
               tooltip: 'مشاركة',
             ),
-          if (showShare && (showFavorite || (extraActions != null && extraActions!.isNotEmpty)))
+          if (showShare &&
+              (showFavorite ||
+                  (extraActions != null && extraActions!.isNotEmpty)))
             SizedBox(width: 8.w),
           if (showFavorite)
             _buildActionButton(
@@ -425,7 +443,10 @@ class InteractiveContentCard extends StatelessWidget {
           // أزرار مخصصة ممررة كمصفوفة بيانات CardAction
           if (customActions != null)
             for (final action in customActions!) ...[
-              if (showCopy || showShare || showFavorite || customActions!.indexOf(action) > 0)
+              if (showCopy ||
+                  showShare ||
+                  showFavorite ||
+                  customActions!.indexOf(action) > 0)
                 SizedBox(width: 8.w),
               _buildActionButton(
                 icon: action.icon,
@@ -436,7 +457,10 @@ class InteractiveContentCard extends StatelessWidget {
             ],
 
           if (extraActions != null) ...[
-            if (showCopy || showShare || showFavorite || (customActions != null && customActions!.isNotEmpty))
+            if (showCopy ||
+                showShare ||
+                showFavorite ||
+                (customActions != null && customActions!.isNotEmpty))
               SizedBox(width: 8.w),
             ...extraActions!,
           ],
@@ -446,10 +470,7 @@ class InteractiveContentCard extends StatelessWidget {
           // الجانب الأيمن: شارة التكرار (إن وجدت)
           if (hasBadge)
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 6.h,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(14.r),
@@ -502,7 +523,15 @@ class InteractiveContentCard extends StatelessWidget {
   }
 
   void _defaultCopy(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: content));
+    final buffer = StringBuffer(content);
+    if (description != null && description!.trim().isNotEmpty) {
+      buffer.write('\n\nفضل الذكر: ${description!.trim()}');
+    }
+    if (reference != null && reference!.trim().isNotEmpty) {
+      buffer.write('\nالمصدر: ${reference!.trim()}');
+    }
+
+    Clipboard.setData(ClipboardData(text: buffer.toString()));
     HapticFeedback.mediumImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -513,11 +542,23 @@ class InteractiveContentCard extends StatelessWidget {
         ),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         backgroundColor: AppColors.primary,
       ),
     );
+  }
+
+  void _defaultShare(BuildContext context) {
+    final buffer = StringBuffer(content);
+    if (description != null && description!.trim().isNotEmpty) {
+      buffer.write('\n\nفضل الذكر: ${description!.trim()}');
+    }
+    if (reference != null && reference!.trim().isNotEmpty) {
+      buffer.write('\nالمصدر: ${reference!.trim()}');
+    }
+    buffer.write('\n\nتمت المشاركة من تطبيق ترتيل');
+
+    HapticFeedback.lightImpact();
+    Share.share(buffer.toString());
   }
 }

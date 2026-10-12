@@ -58,13 +58,17 @@ class _AzkarCategoriesScreenState extends State<AzkarCategoriesScreen>
             return Center(child: Text(snapshot.error.toString()));
           }
 
-          return Padding(
-            padding: EdgeInsets.all(16.w),
-
-            child: AccessListGrid(
-              actions: snapshot.data!,
-
-              controller: _animationController,
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            child: Column(
+              children: [
+                AccessListGrid(
+                  actions: snapshot.data!,
+                  controller: _animationController,
+                ),
+                SizedBox(height: 32.h),
+              ],
             ),
           );
         },

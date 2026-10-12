@@ -767,7 +767,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                     countFontSize: 34.sp,
                     pressedScale: 1.0,
                     enableSound: _isSoundEnabled,
-                    soundAsset: 'assets/audio/tasbeeh/bead_click.wav',
+                    soundAsset: 'assets/audio/tasbeeh/tasbeeh_velvet.wav',
                     soundVolume: 0.05,
                     enableHaptic: _isHapticEnabled,
                     customProgressRing: SizedBox(

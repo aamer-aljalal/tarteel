@@ -50,11 +50,15 @@ class ResponsiveText extends StatelessWidget {
     
     // 2. حساب الحد الأدنى المتجاوب للتصغير وتقريبه لمضاعفات الخطوة لمنع أي استثناءات
     final double rawMinSize = (minFontSize ?? (fontSize * 0.65)).sp;
-    final double scaledMinSize = (rawMinSize / step).roundToDouble() * step;
+    final double calculatedMin = (rawMinSize / step).roundToDouble() * step;
     
     // 3. حساب الحد الأقصى المتجاوب للتكبير وتقريبه لمضاعفات الخطوة لمنع أي استثناءات
     final double rawMaxSize = (maxFontSize ?? (fontSize * 1.5)).sp;
-    final double scaledMaxSize = (rawMaxSize / step).roundToDouble() * step;
+    final double calculatedMax = (rawMaxSize / step).roundToDouble() * step;
+
+    // حماية قاطعة: التأكد من أن الحد الأدنى لا يتجاوز الحد الأقصى أبداً لمنع انهيار AutoSizeText
+    final double scaledMinSize = calculatedMin <= calculatedMax ? calculatedMin : calculatedMax;
+    final double scaledMaxSize = calculatedMax >= calculatedMin ? calculatedMax : calculatedMin;
 
     // 4. دمج التنسيقات المخصصة مع التنسيق الافتراضي
     final TextStyle baseStyle = style ?? TextStyle(
@@ -68,6 +72,28 @@ class ResponsiveText extends StatelessWidget {
       height: height ?? 1.5,
     );
 
+    final TextStyle finalStyle = baseStyle.copyWith(
+      fontSize: scaledBaseSize,
+      color: color ?? baseStyle.color ?? Theme.of(context).colorScheme.onSurface,
+      fontWeight: fontWeight ?? baseStyle.fontWeight,
+      fontFamily: fontFamily != 'Amiri' ? fontFamily : (baseStyle.fontFamily ?? fontFamily),
+      fontStyle: fontStyle ?? baseStyle.fontStyle,
+      decoration: decoration ?? baseStyle.decoration,
+      shadows: shadows ?? baseStyle.shadows,
+      letterSpacing: letterSpacing ?? baseStyle.letterSpacing,
+      height: height ?? baseStyle.height ?? 1.5,
+    );
+
+    // إذا لم يتم تحديد حد أقصى للأسطر، نعرض النص كاملاً بدون أي اقتطاع أو إخفاء للكلام
+    if (maxLines == null) {
+      return Text(
+        content,
+        textAlign: textAlign,
+        softWrap: true,
+        style: finalStyle,
+      );
+    }
+
     return AutoSizeText(
       content,
       textAlign: textAlign,
@@ -76,17 +102,7 @@ class ResponsiveText extends StatelessWidget {
       maxFontSize: scaledMaxSize,
       stepGranularity: step,
       overflow: overflow,
-      style: baseStyle.copyWith(
-        fontSize: scaledBaseSize,
-        color: color ?? baseStyle.color ?? Theme.of(context).colorScheme.onSurface,
-        fontWeight: fontWeight ?? baseStyle.fontWeight,
-        fontFamily: fontFamily != 'Amiri' ? fontFamily : (baseStyle.fontFamily ?? fontFamily),
-        fontStyle: fontStyle ?? baseStyle.fontStyle,
-        decoration: decoration ?? baseStyle.decoration,
-        shadows: shadows ?? baseStyle.shadows,
-        letterSpacing: letterSpacing ?? baseStyle.letterSpacing,
-        height: height ?? baseStyle.height ?? 1.5,
-      ),
+      style: finalStyle,
     );
   }
 }
