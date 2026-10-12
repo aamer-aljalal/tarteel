@@ -296,6 +296,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: _toggleTheme,
                 ),
                 const Divider(height: 1, indent: 50, endIndent: 16),
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) {
+                    return _buildSwitchTile(
+                      title: 'الخلفيات الإسلامية المزخرفة',
+                      subtitle:
+                          'إظهار نقوش إسلامية هادئة في الشاشات الرئيسية (الرئيسية، الأذكار، وحصن المسلم)',
+                      value: themeProvider.isPatternBackgroundEnabled,
+                      icon: Icons.auto_awesome_mosaic_outlined,
+                      onChanged: (val) async {
+                        if (_hapticFeedback) HapticFeedback.lightImpact();
+                        await themeProvider.setPatternBackgroundEnabled(val);
+                      },
+                      iconColor: isDark
+                          ? const Color(0xFFD4AF37)
+                          : const Color(0xFF2E6F58),
+                    );
+                  },
+                ),
+                const Divider(height: 1, indent: 50, endIndent: 16),
                 _buildSwitchTile(
                   title: 'الاهتزاز التفاعلي',
                   subtitle:

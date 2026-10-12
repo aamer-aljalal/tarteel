@@ -4,6 +4,7 @@ import 'package:tarteel/Model/AccessListModel.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/Azkar/services/azkar_service.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
+import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
 
 /// UI ONLY — No navigation, no logic, only visual design.
 /// Displays a grid of azkar categories with animations.
@@ -37,7 +38,7 @@ class _AzkarCategoriesScreenState extends State<AzkarCategoriesScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
 
       appBar: tarteelAppBar(
         titleText: 'الأذكار',
@@ -46,8 +47,9 @@ class _AzkarCategoriesScreenState extends State<AzkarCategoriesScreen>
         // We already listen to the controller in initState, so onSearchChanged is optional
       ),
 
-      body: FutureBuilder<List<AccessListModel>>(
-        future: AzkarService.loadAzkarAsActions(),
+      body: IslamicPatternBackground(
+        child: FutureBuilder<List<AccessListModel>>(
+          future: AzkarService.loadAzkarAsActions(),
 
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -73,6 +75,7 @@ class _AzkarCategoriesScreenState extends State<AzkarCategoriesScreen>
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }

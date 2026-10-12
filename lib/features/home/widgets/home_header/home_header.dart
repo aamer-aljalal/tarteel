@@ -202,65 +202,63 @@ class _HomeHeaderState extends State<HomeHeader> with RouteAware {
         ? _formatDuration(prayerProvider.timeUntilNextPrayer)
         : '--:--';
 
-    return SliverToBoxAdapter(
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: Container(
-          margin: EdgeInsets.only(bottom: 20.h),
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/img/header_bg.png'),
-              fit: BoxFit.cover,
-            ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Container(
+        // margin: EdgeInsets.only(bottom: 5.h),
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/img/header_bg.png'),
+            fit: BoxFit.cover,
           ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 10.w,
-                top: 10.h,
-                right: 10.w,
-                bottom: 16.h,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  HomeMiniHeader(
-                    hijriDate: _getHijriDate(_isNumericFormat),
-                    gregorianDate: _getGregorianDate(_isNumericFormat),
-                    onDateTap: () {
-                      setState(() {
-                        _isNumericFormat = !_isNumericFormat;
-                      });
-                      HapticFeedback.lightImpact();
-                    },
-                  ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 10.w,
+              top: 10.h,
+              right: 10.w,
+              bottom: 16.h,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                HomeMiniHeader(
+                  hijriDate: _getHijriDate(_isNumericFormat),
+                  gregorianDate: _getGregorianDate(_isNumericFormat),
+                  onDateTap: () {
+                    setState(() {
+                      _isNumericFormat = !_isNumericFormat;
+                    });
+                    HapticFeedback.lightImpact();
+                  },
+                ),
 
-                  // بطاقة أوقات الصلاة الأفقية (تحتوي على التوقيت المحلي ومؤشر الباقي للصلاة)
-                  HomePrayerCard(
-                    countdown: countdown,
-                    dynamicNextPrayer: dynamicNextPrayer,
-                    currentPrayerTimes: currentPrayerTimes,
-                    cityName: prayerProvider.cityName,
-                    isLoadingLocation: prayerProvider.isLoading,
-                    onUpdateLocation: () async {
-                      await prayerProvider.updateLocationManually(context);
-                    },
-                  ),
+                // بطاقة أوقات الصلاة الأفقية (تحتوي على التوقيت المحلي ومؤشر الباقي للصلاة)
+                HomePrayerCard(
+                  countdown: countdown,
+                  dynamicNextPrayer: dynamicNextPrayer,
+                  currentPrayerTimes: currentPrayerTimes,
+                  cityName: prayerProvider.cityName,
+                  isLoadingLocation: prayerProvider.isLoading,
+                  onUpdateLocation: () async {
+                    await prayerProvider.updateLocationManually(context);
+                  },
+                ),
 
-                  // حاوية الأيقونات الأربعة في منتصف الترويسة (المفضلة، الإعدادات، القبلة، والتنبيهات)
-                  HomeHeaderQuickActions(
-                    activeNotifications: _activeNotifications,
-                    onNotificationTap: () {
-                      _showNotificationsBottomSheet(context);
-                    },
-                  ),
+                // حاوية الأيقونات الأربعة في منتصف الترويسة (المفضلة، الإعدادات، القبلة، والتنبيهات)
+                HomeHeaderQuickActions(
+                  activeNotifications: _activeNotifications,
+                  onNotificationTap: () {
+                    _showNotificationsBottomSheet(context);
+                  },
+                ),
 
-                  // بطاقة تنبيه الأذكار (لا تحركها أبداً)
-                  const HomeAzkarPromptCard(),
-                ],
-              ),
+                // بطاقة تنبيه الأذكار (لا تحركها أبداً)
+                const HomeAzkarPromptCard(),
+              ],
             ),
           ),
         ),

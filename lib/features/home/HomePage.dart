@@ -9,6 +9,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
 
+import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -74,25 +76,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         }
       },
       child: Scaffold(
-        body: CustomScrollView(
-          slivers: [
-            HomeHeader(),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.0.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const HomeRecentActions(),
-                    AccessListGrid(
-                      actions: HomeActions.quickActionsList,
-                      controller: _gridAnimationController,
-                    ),
-                  ],
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const HomeHeader(),
+            Expanded(
+              child: IslamicPatternBackground(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.0.w,
+                    vertical: 20.0.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const HomeRecentActions(),
+                      AccessListGrid(
+                        actions: HomeActions.quickActionsList,
+                        controller: _gridAnimationController,
+                      ),
+                      SizedBox(height: 10.h),
+                    ],
+                  ),
                 ),
               ),
             ),
-            SliverToBoxAdapter(child: SizedBox(height: 70.h)),
           ],
         ),
       ),
