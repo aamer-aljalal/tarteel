@@ -417,7 +417,6 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
               resetConfirmActionText: 'نعم، تصفير',
               resetColor: Colors.redAccent,
             ),
-            SizedBox(height: 20.h),
           ],
         ),
       ),

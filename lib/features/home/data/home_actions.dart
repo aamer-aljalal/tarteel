@@ -13,7 +13,7 @@ class HomeActions {
       route: AppRoutes.quran,
       title: 'القرآن',
     ),
-   AccessListModel(
+    AccessListModel(
       icon: Icons.record_voice_over_outlined,
       route: AppRoutes.adhanMuezzin,
       title: 'المؤذن',
@@ -25,46 +25,44 @@ class HomeActions {
       title: 'الأذكار',
     ),
     AccessListModel(
-      icon: Icons.format_quote_outlined,
-      route: AppRoutes.hadith,
-      title: 'الأحاديث',
-    ),
-
-   AccessListModel(
-      icon: Icons.explore_outlined,
-      route: AppRoutes.qibla,
-      title: 'البوصلة',
-    ),
-    
-    AccessListModel(
-      icon: Icons.timer_outlined,
-      route: AppRoutes.tasbeeh,
-      title: 'التسبيح',
-    ),
-
- 
-
-  
-       AccessListModel(
       icon: Icons.auto_stories_outlined,
       route: AppRoutes.hisnCategories,
       title: 'حصن المسلم',
     ),
     AccessListModel(
+      icon: Icons.format_quote_outlined,
+      route: AppRoutes.hadith,
+      title: 'الأحاديث',
+    ),
+
+    AccessListModel(
       icon: Icons.auto_awesome_outlined,
       route: AppRoutes.namesOfAllah,
-      title: 'أسماء الله الحسنى',
-    ),
-    AccessListModel(
-      icon: Icons.stars_rounded,
-      route: AppRoutes.namesOfProphet,
-      title: 'أسماء النبي ﷺ',
+      title: 'الأسماء',
     ),
     AccessListModel(
       icon: Icons.import_contacts_outlined,
       route: AppRoutes.prophetsStories,
       title: 'قصص الأنبياء',
     ),
+    AccessListModel(
+      icon: Icons.explore_outlined,
+      route: AppRoutes.qibla,
+      title: 'البوصلة',
+    ),
+
+    AccessListModel(
+      icon: Icons.timer_outlined,
+      route: AppRoutes.tasbeeh,
+      title: 'التسبيح',
+    ),
+
+    // AccessListModel(
+    //   icon: Icons.stars_rounded,
+    //   route: AppRoutes.namesOfProphet,
+    //   title: 'أسماء النبي ﷺ',
+    // ),
+    
     AccessListModel(
       icon: Icons.favorite_border,
       route: AppRoutes.bookmarks,
@@ -76,10 +74,10 @@ class HomeActions {
       title: 'الإحصائيات',
     ),
 
-    // AccessListModel(
-    //   icon: Icons.settings_outlined,
-    //   route: AppRoutes.settings,
-    //   title: 'الإعدادات',
-    // ),
+    AccessListModel(
+      icon: Icons.settings_outlined,
+      route: AppRoutes.settings,
+      title: 'الإعدادات',
+    ),
   ];
 }

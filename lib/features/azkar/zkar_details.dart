@@ -528,7 +528,6 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
                   'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
               resetColor: Colors.redAccent,
             ),
-            SizedBox(height: 20.h),
           ],
         ),
       ),
