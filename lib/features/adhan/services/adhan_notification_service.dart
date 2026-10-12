@@ -364,8 +364,8 @@ class AdhanNotificationService {
         audioFile: muezzin.rawResourceName,
         audioSource: 'RAW_RESOURCE',
         // لتجربة الأذان المجدول بعد 10 ثوانٍ (للصلاة الأولى id == 9000)
-        // scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
-        scheduledTime: scheduledTime,
+        scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
+        // scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,
         volume: volumeLevel,
