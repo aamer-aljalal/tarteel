@@ -19,6 +19,7 @@ class ResponsiveText extends StatelessWidget {
   final List<Shadow>? shadows;
   final double? letterSpacing;
   final TextStyle? style; // لتمرير تنسيق كامل وجاهز وتعديله
+  final TextDirection textDirection;
 
   const ResponsiveText({
     super.key,
@@ -38,6 +39,7 @@ class ResponsiveText extends StatelessWidget {
     this.shadows,
     this.letterSpacing,
     this.style,
+    this.textDirection = TextDirection.rtl,
   });
 
   @override
@@ -89,6 +91,7 @@ class ResponsiveText extends StatelessWidget {
       return Text(
         content,
         textAlign: textAlign,
+        textDirection: textDirection,
         softWrap: true,
         style: finalStyle,
       );
@@ -97,6 +100,7 @@ class ResponsiveText extends StatelessWidget {
     return AutoSizeText(
       content,
       textAlign: textAlign,
+      textDirection: textDirection,
       maxLines: maxLines,
       minFontSize: scaledMinSize,
       maxFontSize: scaledMaxSize,

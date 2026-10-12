@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:tarteel/core/dialogs/exit_confirmation_dialog.dart';
 import 'package:tarteel/features/home/data/home_actions.dart';
 import 'package:tarteel/features/home/widgets/home_header/home_header.dart';
-import 'package:tarteel/features/home/widgets/home_header/home_recent_actions.dart';
+import 'package:tarteel/features/home/widgets/home_recent_actions.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -92,7 +92,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            SliverToBoxAdapter(child: SizedBox(height: 20.h)),
+            SliverToBoxAdapter(child: SizedBox(height: 70.h)),
           ],
         ),
       ),

@@ -12,6 +12,7 @@ import 'package:tarteel/features/adhan/views/adhan_muezzin_screen.dart';
 import 'package:tarteel/features/quran/views/SurahListPage.dart';
 import 'package:tarteel/features/Tasbeeh/TasbeehScreen.dart';
 import 'package:tarteel/features/Dashbord/Stats.dart';
+import 'package:tarteel/features/names_of_allah/models/name_model.dart';
 import 'package:tarteel/features/names_of_allah/views/names_of_allah_screen.dart';
 import 'package:tarteel/features/bookmarks/views/bookmarks_page.dart';
 import 'package:tarteel/features/hisn_almuslim/hisn_categories_screen.dart';
@@ -65,10 +66,21 @@ class RouteGenerator {
       case AppRoutes.hadith:
         return MaterialPageRoute(builder: (_) => const HadithScreen());
 
-      // ========================= أسماء الله الحسنى =========================
+      // ========================= أسماء الله الحسنى وأسماء النبي =========================
 
       case AppRoutes.namesOfAllah:
-        return MaterialPageRoute(builder: (_) => const NamesOfAllahScreen());
+        final category = (settings.arguments is NameCategory)
+            ? settings.arguments as NameCategory
+            : NameCategory.allah;
+        return MaterialPageRoute(
+          builder: (_) => NamesOfAllahScreen(initialCategory: category),
+        );
+
+      case AppRoutes.namesOfProphet:
+        return MaterialPageRoute(
+          builder: (_) =>
+              const NamesOfAllahScreen(initialCategory: NameCategory.prophet),
+        );
 
       // ========================= القبلة =========================
 

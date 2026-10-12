@@ -10,6 +10,9 @@ import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
+import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
+import 'package:tarteel/Routes/AppRoutes.dart';
+import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
 class HisnDetailsScreen extends StatefulWidget {
   final HisnCategory category;
@@ -187,6 +190,60 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
     _saveRecentAction();
   }
 
+  Future<void> _showCategoriesBottomSheet() async {
+    HapticFeedback.lightImpact();
+    final categories = await HisnService.loadHisn();
+    if (!mounted) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    AppModalBottomSheet.show(
+      context: context,
+      title: 'أبواب حصن المسلم',
+      subtitle: 'اختر الباب الذي ترغب بالانتقال إليه مباشرة',
+      heightFraction: 0.72,
+      items: categories.map((cat) {
+        final isCurrent = cat.title == widget.category.title;
+        final icon = HisnService.getHisnIcon(cat.title);
+
+        return BottomSheetItem(
+          title: cat.title,
+          subtitle: '${cat.texts.length} دعاء وذكر',
+          isSelected: isCurrent,
+          leading: Container(
+            width: 40.w,
+            height: 40.h,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isCurrent
+                  ? AppColors.goldAccent.withValues(alpha: 0.2)
+                  : (isDark
+                      ? Colors.white12
+                      : AppColors.primary.withValues(alpha: 0.08)),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 20.sp,
+              color: isCurrent ? AppColors.goldAccent : AppColors.primary,
+            ),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            if (!isCurrent) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => HisnDetailsScreen(category: cat),
+                ),
+              );
+            }
+          },
+        );
+      }).toList(),
+    );
+  }
+
   void _copyText(String text, int index) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -317,6 +374,23 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
               totalRepeat: _totalRepeat,
               progress: _progress,
               onCounterTap: _onCounterTap,
+              cornerAction: CounterSideAction(
+                icon: Icons.format_list_bulleted_rounded,
+                tooltip: 'أبواب حصن المسلم',
+                onTap: _showCategoriesBottomSheet,
+              ),
+              leftCornerAction: CounterSideAction(
+                icon: Icons.home_rounded,
+                tooltip: 'الصفحة الرئيسية',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.homePage,
+                    (route) => false,
+                  );
+                },
+              ),
               onNext: () {
                 if (_pageController.hasClients) {
                   _pageController.nextPage(

@@ -7,7 +7,12 @@ import 'package:tarteel/features/names_of_allah/services/names_of_allah_service.
 import 'package:tarteel/features/names_of_allah/views/names_of_allah_detail_screen.dart';
 
 class NamesOfAllahScreen extends StatefulWidget {
-  const NamesOfAllahScreen({super.key});
+  final NameCategory initialCategory;
+
+  const NamesOfAllahScreen({
+    super.key,
+    this.initialCategory = NameCategory.allah,
+  });
 
   @override
   State<NamesOfAllahScreen> createState() => _NamesOfAllahScreenState();
@@ -15,7 +20,12 @@ class NamesOfAllahScreen extends StatefulWidget {
 
 class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<AllahName> _allNames = [];
+
+  late NameCategory _selectedCategory;
+
+  List<AllahName> _allahNames = [];
+  List<AllahName> _prophetNames = [];
+
   List<AllahName> _filteredNames = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -23,7 +33,8 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNames();
+    _selectedCategory = widget.initialCategory;
+    _loadAllData();
     _searchController.addListener(_filterNames);
   }
 
@@ -33,31 +44,50 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
     super.dispose();
   }
 
-  Future<void> _loadNames() async {
+  Future<void> _loadAllData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
-      final names = await NamesOfAllahService.loadNames();
+      final results = await Future.wait([
+        NamesOfAllahService.loadAllahNames(),
+        NamesOfAllahService.loadProphetNames(),
+      ]);
+
       if (!mounted) return;
+
       setState(() {
-        _allNames = names;
-        _filteredNames = names;
+        _allahNames = results[0];
+        _prophetNames = results[1];
         _isLoading = false;
+        _filterNames();
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'تعذر تحميل أسماء الله الحسنى';
+        _errorMessage = 'تعذر تحميل البيانات، يرجى المحاولة لاحقاً';
         _isLoading = false;
       });
     }
   }
 
+  List<AllahName> get _currentSourceList {
+    return _selectedCategory == NameCategory.prophet
+        ? _prophetNames
+        : _allahNames;
+  }
+
   void _filterNames() {
     final query = _searchController.text.trim().toLowerCase();
+    final sourceList = _currentSourceList;
+
     setState(() {
       if (query.isEmpty) {
-        _filteredNames = _allNames;
+        _filteredNames = sourceList;
       } else {
-        _filteredNames = _allNames.where((item) {
+        _filteredNames = sourceList.where((item) {
           return item.name.contains(query) ||
               item.text.contains(query) ||
               item.id.toString().contains(query);
@@ -66,16 +96,26 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
     });
   }
 
+  void _onCategoryChanged(NameCategory category) {
+    if (_selectedCategory == category) return;
+    setState(() {
+      _selectedCategory = category;
+      _searchController.clear();
+      _filterNames();
+    });
+  }
+
   void _navigateToDetail(AllahName nameItem) {
-    // Find the original index of the selected item in the unfiltered list
-    final originalIndex = _allNames.indexOf(nameItem);
+    final sourceList = _currentSourceList;
+    final originalIndex = sourceList.indexOf(nameItem);
     if (originalIndex != -1) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => NamesOfAllahDetailScreen(
-            names: _allNames,
+            names: sourceList,
             initialIndex: originalIndex,
+            category: _selectedCategory,
           ),
         ),
       );
@@ -85,20 +125,139 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isProphet = _selectedCategory == NameCategory.prophet;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: tarteelAppBar(
-          titleText: 'أسماء الله الحسنى',
+          titleText: isProphet ? 'أسماء النبي ﷺ' : 'أسماء الله الحسنى',
           showSearch: true,
           searchController: _searchController,
-          searchHint: 'ابحث عن اسم من أسماء الله...',
+          searchHint: isProphet
+              ? 'ابحث عن اسم من أسماء النبي...'
+              : 'ابحث عن اسم من أسماء الله...',
           centerTitle: true,
           elevation: 0,
         ),
-        body: _buildBody(),
+        body: Column(
+          children: [
+            _buildCategorySelector(),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Category Selector Tabs (أسماء الله الحسنى / أسماء النبي ﷺ)
+  Widget _buildCategorySelector() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      child: Container(
+        padding: EdgeInsets.all(4.r),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildTabItem(
+                title: 'أسماء الله الحسنى',
+                category: NameCategory.allah,
+                icon: Icons.auto_awesome,
+                activeColor: isDark ? AppColors.goldAccent : AppColors.primary,
+              ),
+            ),
+            SizedBox(width: 6.w),
+            Expanded(
+              child: _buildTabItem(
+                title: 'أسماء النبي ﷺ',
+                category: NameCategory.prophet,
+                icon: Icons.stars_rounded,
+                activeColor: const Color(0xFFD4AF37),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem({
+    required String title,
+    required NameCategory category,
+    required IconData icon,
+    required Color activeColor,
+  }) {
+    final isSelected = _selectedCategory == category;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: () => _onCategoryChanged(category),
+      borderRadius: BorderRadius.circular(12.r),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: EdgeInsets.symmetric(vertical: 10.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18.sp,
+              color: isSelected
+                  ? (category == NameCategory.allah && !isDark
+                      ? Colors.white
+                      : (category == NameCategory.prophet && isDark
+                          ? AppColors.darkBackground
+                          : Colors.white))
+                  : (isDark
+                      ? AppColors.darkSecondaryText
+                      : AppColors.lightSecondaryText),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13.5.sp,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected
+                    ? (category == NameCategory.allah && !isDark
+                        ? Colors.white
+                        : (category == NameCategory.prophet && isDark
+                            ? AppColors.darkBackground
+                            : Colors.white))
+                    : (isDark
+                        ? AppColors.darkSecondaryText
+                        : AppColors.lightSecondaryText),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -108,9 +267,11 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
       return Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(
-            Theme.of(context).brightness == Brightness.dark
-                ? AppColors.goldAccent
-                : AppColors.primary,
+            _selectedCategory == NameCategory.prophet
+                ? const Color(0xFFD4AF37)
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.goldAccent
+                    : AppColors.primary),
           ),
         ),
       );
@@ -143,7 +304,7 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
     }
 
     return GridView.builder(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12.w,
@@ -155,6 +316,7 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
         final item = _filteredNames[index];
         return _NameGridTile(
           nameItem: item,
+          category: _selectedCategory,
           onTap: () => _navigateToDetail(item),
         );
       },
@@ -164,10 +326,12 @@ class _NamesOfAllahScreenState extends State<NamesOfAllahScreen> {
 
 class _NameGridTile extends StatelessWidget {
   final AllahName nameItem;
+  final NameCategory category;
   final VoidCallback onTap;
 
   const _NameGridTile({
     required this.nameItem,
+    required this.category,
     required this.onTap,
   });
 
@@ -175,6 +339,11 @@ class _NameGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isProphet = category == NameCategory.prophet;
+
+    final badgeColor = isProphet
+        ? const Color(0xFFD4AF37)
+        : (isDark ? AppColors.goldAccent : AppColors.primary);
 
     return Material(
       color: isDark ? AppColors.darkSurface : Colors.white,
@@ -186,9 +355,11 @@ class _NameGridTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : AppColors.lightBorder,
+              color: isProphet
+                  ? AppColors.goldAccent.withValues(alpha: 0.25)
+                  : (isDark
+                      ? AppColors.darkBorder
+                      : AppColors.lightBorder),
               width: 1,
             ),
             boxShadow: [
@@ -211,13 +382,9 @@ class _NameGridTile extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isDark
-                        ? AppColors.goldAccent.withValues(alpha: 0.1)
-                        : AppColors.primary.withValues(alpha: 0.05),
+                    color: badgeColor.withValues(alpha: 0.1),
                     border: Border.all(
-                      color: isDark
-                          ? AppColors.goldAccent.withValues(alpha: 0.3)
-                          : AppColors.primary.withValues(alpha: 0.2),
+                      color: badgeColor.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Text(
@@ -225,13 +392,13 @@ class _NameGridTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.goldAccent : AppColors.primary,
+                      color: badgeColor,
                     ),
                   ),
                 ),
               ),
 
-              // Centered name of Allah
+              // Centered name
               Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 16.h),
@@ -243,13 +410,15 @@ class _NameGridTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.goldAccent : AppColors.primary,
+                          color: badgeColor,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 8.h),
                       Text(
-                        nameItem.text,
+                        nameItem.text.isNotEmpty
+                            ? nameItem.text
+                            : 'صَلَّى اللّٰهُ عَلَيْهِ وَسَلَّمَ',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

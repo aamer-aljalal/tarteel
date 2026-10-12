@@ -768,7 +768,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                     pressedScale: 1.0,
                     enableSound: _isSoundEnabled,
                     soundAsset: 'assets/audio/tasbeeh/tasbeeh_velvet.wav',
-                    soundVolume: 0.05,
+                    soundVolume: 0.9,
                     enableHaptic: _isHapticEnabled,
                     customProgressRing: SizedBox(
                       width: 170.w,
@@ -785,14 +785,12 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                       icon: Icons.list_rounded,
                       label: 'قائمة الأذكار',
                       onTap: _showZekrSelector,
-                      color: Colors.blue.shade700,
                     ),
                     // الزر الأيسر: إضافة دعاء / ذكر جديد
                     leftSideAction: CounterSideAction(
                       icon: Icons.add_rounded,
                       label: 'إضافة ذكر',
                       onTap: _showAddZekrDialog,
-                      color: AppColors.primary,
                     ),
                     // زر إعادة التعيين في الأسفل
                     showResetButton: true,

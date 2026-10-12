@@ -8,11 +8,13 @@ import 'package:tarteel/features/names_of_allah/models/name_model.dart';
 class NamesOfAllahDetailScreen extends StatefulWidget {
   final List<AllahName> names;
   final int initialIndex;
+  final NameCategory? category;
 
   const NamesOfAllahDetailScreen({
     super.key,
     required this.names,
     required this.initialIndex,
+    this.category,
   });
 
   @override
@@ -23,6 +25,14 @@ class NamesOfAllahDetailScreen extends StatefulWidget {
 class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
   late PageController _pageController;
   late int _currentIndex;
+
+  NameCategory get _activeCategory =>
+      widget.category ??
+      (widget.names.isNotEmpty
+          ? widget.names.first.category
+          : NameCategory.allah);
+
+  bool get _isProphet => _activeCategory == NameCategory.prophet;
 
   @override
   void initState() {
@@ -38,15 +48,21 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
   }
 
   void _copyToClipboard(AllahName item) {
-    Clipboard.setData(ClipboardData(text: '${item.name}: ${item.text}'));
+    final textToCopy = item.text.isNotEmpty
+        ? '${item.name}: ${item.text}'
+        : '${item.name} ﷺ';
+
+    Clipboard.setData(ClipboardData(text: textToCopy));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text(
-          'تم نسخ الاسم والوصف بنجاح',
-          style: TextStyle(fontFamily: 'Cairo'),
+        content: Text(
+          _isProphet
+              ? 'تم نسخ اسم النبي ﷺ بنجاح'
+              : 'تم نسخ الاسم والوصف بنجاح',
+          style: const TextStyle(fontFamily: 'Cairo'),
           textAlign: TextAlign.center,
         ),
-        backgroundColor: AppColors.primary,
+        backgroundColor: _isProphet ? const Color(0xFFD4AF37) : AppColors.primary,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -57,12 +73,16 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final primaryColor = _isProphet
+        ? AppColors.goldAccent
+        : (isDark ? AppColors.goldAccent : AppColors.primary);
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: tarteelAppBar(
-          titleText: 'أسماء الله الحسنى',
+          titleText: _isProphet ? 'أسماء النبي ﷺ' : 'أسماء الله الحسنى',
           centerTitle: true,
           elevation: 0,
         ),
@@ -83,9 +103,11 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                         : AppColors.lightSurface),
                     borderRadius: BorderRadius.circular(20.r),
                     border: Border.all(
-                      color: isDark
-                          ? AppColors.darkBorder
-                          : AppColors.lightBorder,
+                      color: _isProphet
+                          ? AppColors.goldAccent.withValues(alpha: 0.4)
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder),
                     ),
                   ),
                   child: Text(
@@ -93,7 +115,7 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.goldAccent : AppColors.primary,
+                      color: primaryColor,
                     ),
                   ),
                 ),
@@ -133,9 +155,11 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24.r),
                             side: BorderSide(
-                              color: isDark
-                                  ? AppColors.goldAccent.withValues(alpha: 0.2)
-                                  : AppColors.primary.withValues(alpha: 0.1),
+                              color: _isProphet
+                                  ? AppColors.goldAccent.withValues(alpha: 0.35)
+                                  : (isDark
+                                      ? AppColors.goldAccent.withValues(alpha: 0.2)
+                                      : AppColors.primary.withValues(alpha: 0.1)),
                               width: 1.5,
                             ),
                           ),
@@ -146,32 +170,43 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Circular Badge containing the beautiful Name
+                                // Circular Badge containing the Name
+                                // Gold gradient for Prophet Muhammad's names, Green gradient for Allah's names
                                 Container(
                                   width: 130.w,
                                   height: 130.w,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: isDark
-                                          ? [
-                                              AppColors.secondary,
-                                              AppColors.primary,
-                                            ]
-                                          : [
-                                              AppColors.primary,
-                                              AppColors.primaryLight,
+                                    gradient: _isProphet
+                                        ? const LinearGradient(
+                                            colors: [
+                                              Color(0xFFF3C766),
+                                              Color(0xFFD4AF37),
+                                              Color(0xFFB8860B),
                                             ],
-                                      begin: Alignment.topRight,
-                                      end: Alignment.bottomLeft,
-                                    ),
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                          )
+                                        : LinearGradient(
+                                            colors: isDark
+                                                ? [
+                                                    AppColors.secondary,
+                                                    AppColors.primary,
+                                                  ]
+                                                : [
+                                                    AppColors.primary,
+                                                    AppColors.primaryLight,
+                                                  ],
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                          ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        blurRadius: 10,
+                                        color: _isProphet
+                                            ? const Color(0xFFD4AF37).withValues(alpha: 0.35)
+                                            : AppColors.primary.withValues(alpha: 0.2),
+                                        blurRadius: 12,
                                         offset: const Offset(0, 5),
                                       ),
                                     ],
@@ -179,11 +214,22 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                                   child: Text(
                                     item.name,
                                     style: TextStyle(
-                                      fontSize: 34.sp,
+                                      fontSize: 32.sp,
                                       fontWeight: FontWeight.bold,
-                                      color: isDark
-                                          ? AppColors.goldAccent
-                                          : Colors.white,
+                                      color: _isProphet
+                                          ? Colors.white
+                                          : (isDark
+                                              ? AppColors.goldAccent
+                                              : Colors.white),
+                                      shadows: _isProphet
+                                          ? [
+                                              Shadow(
+                                                color: Colors.black.withValues(alpha: 0.25),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ]
+                                          : null,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -196,29 +242,74 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                                     physics: const BouncingScrollPhysics(),
                                     child: Column(
                                       children: [
-                                        Text(
-                                          'التفسير والمعنى:',
-                                          style: TextStyle(
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark
-                                                ? AppColors.goldAccent
-                                                : AppColors.primary,
+                                        if (item.text.isNotEmpty) ...[
+                                          Text(
+                                            'التفسير والمعنى:',
+                                            style: TextStyle(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.bold,
+                                              color: primaryColor,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(height: 12.h),
-                                        Text(
-                                          item.text,
-                                          style: TextStyle(
-                                            fontSize: 18.sp,
-                                            fontWeight: FontWeight.w500,
-                                            height: 1.7.h,
-                                            color: isDark
-                                                ? Colors.white70
-                                                : AppColors.lightPrimaryText,
+                                          SizedBox(height: 12.h),
+                                          Text(
+                                            item.text,
+                                            style: TextStyle(
+                                              fontSize: 18.sp,
+                                              fontWeight: FontWeight.w500,
+                                              height: 1.7.h,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : AppColors.lightPrimaryText,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        ] else ...[
+                                          // Spiritual tribute for Prophet's names
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 16.w,
+                                              vertical: 10.h,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: (isDark
+                                                      ? AppColors.goldAccent
+                                                      : const Color(0xFFD4AF37))
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(16.r),
+                                              border: Border.all(
+                                                color: AppColors.goldAccent
+                                                    .withValues(alpha: 0.2),
+                                              ),
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'صَلَّىٰ اللّٰهُ عَلَيْهِ وَسَلَّمَ',
+                                                  style: TextStyle(
+                                                    fontSize: 22.sp,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.goldAccent,
+                                                    fontFamily: 'Cairo',
+                                                  ),
+                                                ),
+                                                SizedBox(height: 8.h),
+                                                Text(
+                                                  'من الأسماء والألقاب الشريفة لخاتم الأنبياء والمرسلين نبينا محمد ﷺ',
+                                                  style: TextStyle(
+                                                    fontSize: 14.sp,
+                                                    height: 1.6,
+                                                    color: isDark
+                                                        ? AppColors.darkSecondaryText
+                                                        : AppColors.lightSecondaryText,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -243,11 +334,7 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.arrow_back_ios_rounded,
-                        color: _currentIndex > 0
-                            ? (isDark
-                                  ? AppColors.goldAccent
-                                  : AppColors.primary)
-                            : Colors.grey,
+                        color: _currentIndex > 0 ? primaryColor : Colors.grey,
                       ),
                       onPressed: _currentIndex > 0
                           ? () {
@@ -265,17 +352,21 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                       onPressed: () =>
                           _copyToClipboard(widget.names[_currentIndex]),
                       icon: const Icon(Icons.copy_rounded),
-                      label: const Text(
-                        'نسخ الاسم والوصف',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      label: Text(
+                        _isProphet ? 'نسخ اسم النبي ﷺ' : 'نسخ الاسم والوصف',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: isDark
-                            ? AppColors.darkBackground
+                        foregroundColor: isDark || _isProphet
+                            ? (_isProphet && !isDark
+                                ? Colors.white
+                                : AppColors.darkBackground)
                             : Colors.white,
-                        backgroundColor: isDark
-                            ? AppColors.goldAccent
-                            : AppColors.primary,
+                        backgroundColor: _isProphet
+                            ? const Color(0xFFC88A22)
+                            : (isDark
+                                ? AppColors.goldAccent
+                                : AppColors.primary),
                         padding: EdgeInsets.symmetric(
                           horizontal: 24.w,
                           vertical: 12.h,
@@ -291,9 +382,7 @@ class _NamesOfAllahDetailScreenState extends State<NamesOfAllahDetailScreen> {
                       icon: Icon(
                         Icons.arrow_forward_ios_rounded,
                         color: _currentIndex < widget.names.length - 1
-                            ? (isDark
-                                  ? AppColors.goldAccent
-                                  : AppColors.primary)
+                            ? primaryColor
                             : Colors.grey,
                       ),
                       onPressed: _currentIndex < widget.names.length - 1

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:tarteel/core/services/favorites_service.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
 
@@ -24,14 +25,7 @@ class CardAction {
 /// [InteractiveContentCard]
 /// بطاقة محتوى عامة، مرنة، واحترافية لعرض الأذكار، الأدعية، أسماء الله الحسنى،
 /// الأحاديث، أو أي نصوص إسلامية تفاعلية.
-///
-/// المميزات:
-/// 1. رأس البطاقة: شارة الفهرس/الترتيب، أزرار تكبير وتصغير حجم الخط.
-/// 2. جسم البطاقة: عرض النص بخط أميري أصيل وتمرير ناعم لمنع أي Overflow،
-///    مع دعم صندوق الفضل/الشرح وصندوق المصدر/التخريج.
-/// 3. شريط الإجراءات السفلي: أزرار النسخ والمشاركة والمفضلة وشارة التكرار مع إمكانية إضافة أزرار مخصصة عبر قائمة [customActions].
-/// 4. التحكم الكامل في إظهار أو إخفاء أي عنصر (`showZoomControls`, `showFavorite`, `showCopy`, `showShare`, `showCounterBadge`).
-class InteractiveContentCard extends StatelessWidget {
+class InteractiveContentCard extends StatefulWidget {
   /// النص الرئيسي المراد عرضه
   final String content;
 
@@ -62,11 +56,20 @@ class InteractiveContentCard extends StatelessWidget {
   /// هل تظهر أزرار التكبير والتصغير
   final bool showZoomControls;
 
-  /// حالة المفضلة (هل العنصر في المفضلة)
-  final bool isFavorite;
+  /// حالة المفضلة (اختياري، إن لم تُمرر يفحص المكون المفضلة تلقائياً من الذاكرة)
+  final bool? isFavorite;
 
-  /// حدث التبديل عند الضغط على زر المفضلة
+  /// حدث التبديل عند الضغط على زر المفضلة (اختياري، إن لم يُمرر يحفظ تلقائياً في المفضلة)
   final VoidCallback? onFavoriteToggle;
+
+  /// نوع المفضلة (مثل 'azkar' أو 'hisn' - افتراضياً 'azkar' لربطها بصفحة المحفوظات)
+  final String favoriteType;
+
+  /// المعرف الفريد للذكر في المفضلة (اختياري، إن لم يُمرر يعتمد على النص تلقائياً)
+  final String? favoriteKey;
+
+  /// عنوان القسم في المفضلة
+  final String? favoriteTitle;
 
   /// هل يظهر زر المفضلة
   final bool showFavorite;
@@ -83,7 +86,7 @@ class InteractiveContentCard extends StatelessWidget {
   /// هل يظهر زر النسخ
   final bool showCopy;
 
-  /// حدث المشاركة المخصص
+  /// حدث المشاركة المخصص (إذا كان null، يقوم بالمشاركة تلقائياً)
   final VoidCallback? onShare;
 
   /// هل يظهر زر المشاركة
@@ -116,8 +119,7 @@ class InteractiveContentCard extends StatelessWidget {
   /// ارتفاع محدد للبطاقة (اختياري)
   final double? height;
 
-  /// هل تتمدد البطاقة لملء المساحة المتاحة (افتراضياً true للشاشات التي تستخدم Expanded/PageView)
-  /// اضبطها على false عندما توضع البطاقة داخل SingleChildScrollView لمنع خطأ RenderBox hasSize
+  /// هل تتمدد البطاقة لملء المساحة المتاحة
   final bool? isExpanded;
 
   const InteractiveContentCard({
@@ -132,8 +134,11 @@ class InteractiveContentCard extends StatelessWidget {
     this.onZoomIn,
     this.onZoomOut,
     this.showZoomControls = true,
-    this.isFavorite = false,
+    this.isFavorite,
     this.onFavoriteToggle,
+    this.favoriteType = 'azkar',
+    this.favoriteKey,
+    this.favoriteTitle,
     this.showFavorite = true,
     this.description,
     this.reference,
@@ -154,76 +159,164 @@ class InteractiveContentCard extends StatelessWidget {
   });
 
   @override
+  State<InteractiveContentCard> createState() => _InteractiveContentCardState();
+}
+
+class _InteractiveContentCardState extends State<InteractiveContentCard> {
+  bool _isFavorite = false;
+
+  String get _effectiveKey =>
+      widget.favoriteKey ?? widget.content.trim().hashCode.toString();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavorite();
+  }
+
+  @override
+  void didUpdateWidget(covariant InteractiveContentCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.content != widget.content ||
+        oldWidget.favoriteKey != widget.favoriteKey ||
+        oldWidget.isFavorite != widget.isFavorite) {
+      _checkFavorite();
+    }
+  }
+
+  Future<void> _checkFavorite() async {
+    if (widget.isFavorite != null) {
+      setState(() => _isFavorite = widget.isFavorite!);
+      return;
+    }
+    final fav = await FavoritesService.isFavorite(
+      type: widget.favoriteType,
+      key: _effectiveKey,
+    );
+    if (mounted) {
+      setState(() => _isFavorite = fav);
+    }
+  }
+
+  Future<void> _handleFavoriteToggle() async {
+    HapticFeedback.lightImpact();
+    if (widget.onFavoriteToggle != null) {
+      widget.onFavoriteToggle!();
+      return;
+    }
+
+    final added = await FavoritesService.toggleFavorite(
+      type: widget.favoriteType,
+      key: _effectiveKey,
+      content: widget.content,
+      title: widget.favoriteTitle ?? widget.indexLabel,
+      description: widget.description,
+      reference: widget.reference,
+    );
+
+    if (mounted) {
+      setState(() => _isFavorite = added);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            added
+                ? 'تمت إضافة الذكر إلى المحفوظات ❤️'
+                : 'تمت إزالة الذكر من المحفوظات',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontFamily: 'Cairo'),
+          ),
+          duration: const Duration(milliseconds: 1500),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    Widget contentBody = Scrollbar(
-      thumbVisibility: false,
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            SizedBox(height: 8.h),
-            if (customBody != null) customBody!,
-            if (content.isNotEmpty)
-              ResponsiveText(
-                content: content,
-                fontSize: fontSize,
-                maxFontSize: maxFontSize,
-                minFontSize: minFontSize,
-                fontFamily: 'Amiri',
-                fontWeight: FontWeight.bold,
-                height: 2.2,
-                textAlign: TextAlign.center,
-                maxLines: null,
-                overflow: TextOverflow.visible,
-                color: isDark ? Colors.white : const Color(0xFF2E5C2E),
-              ),
-
-            // فضل الذكر / الشرح (إن وجد)
-            if (description != null && description!.trim().isNotEmpty) ...[
-              SizedBox(height: 12.h),
-              Container(
-                padding: EdgeInsets.all(10.w),
-                decoration: BoxDecoration(
-                  color: AppColors.goldAccent.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(
-                    color: AppColors.goldAccent.withValues(alpha: 0.15),
-                    width: 0.5,
-                  ),
-                ),
-                child: Text(
-                  description!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                    height: 1.6,
-                    fontStyle: FontStyle.italic,
-                    fontFamily: 'Amiri',
-                  ),
-                ),
-              ),
-            ],
-
-            // المصدر / التخريج (إن وجد)
-            if (reference != null && reference!.trim().isNotEmpty) ...[
-              SizedBox(height: 12.h),
-              Text(
-                'المصدر: $reference',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: Colors.grey.shade500,
+    Widget contentBody = Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scrollbar(
+        thumbVisibility: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              SizedBox(height: 8.h),
+              if (widget.customBody != null) widget.customBody!,
+              if (widget.content.isNotEmpty)
+                ResponsiveText(
+                  content: widget.content,
+                  fontSize: widget.fontSize,
+                  maxFontSize: widget.maxFontSize,
+                  minFontSize: widget.minFontSize,
+                  fontFamily: 'Amiri',
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'Cairo',
+                  height: 2.2,
+                  textAlign: TextAlign.center,
+                  maxLines: null,
+                  overflow: TextOverflow.visible,
+                  textDirection: TextDirection.rtl,
+                  color: isDark ? Colors.white : const Color(0xFF2E5C2E),
                 ),
-              ),
+
+              // فضل الذكر / الشرح (إن وجد)
+              if (widget.description != null &&
+                  widget.description!.trim().isNotEmpty) ...[
+                SizedBox(height: 12.h),
+                Container(
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.goldAccent.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: AppColors.goldAccent.withValues(alpha: 0.15),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Text(
+                    widget.description!,
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade700,
+                      height: 1.6,
+                      fontStyle: FontStyle.italic,
+                      fontFamily: 'Amiri',
+                    ),
+                  ),
+                ),
+              ],
+
+              // المصدر / التخريج (إن وجد)
+              if (widget.reference != null &&
+                  widget.reference!.trim().isNotEmpty) ...[
+                SizedBox(height: 12.h),
+                Text(
+                  'المصدر: ${widget.reference!}',
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ],
+              SizedBox(height: 8.h),
             ],
-            SizedBox(height: 8.h),
-          ],
+          ),
         ),
       ),
     );
@@ -232,12 +325,12 @@ class InteractiveContentCard extends StatelessWidget {
       builder: (context, constraints) {
         // إذا كان هناك قيود ارتفاع محددة أو تم طلب isExpanded صراحة
         final bool shouldExpand =
-            isExpanded ??
-            (constraints.maxHeight != double.infinity && height == null);
+            widget.isExpanded ??
+            (constraints.maxHeight != double.infinity && widget.height == null);
 
         return Container(
-          height: height,
-          margin: margin,
+          height: widget.height,
+          margin: widget.margin,
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E2621) : Colors.white,
             borderRadius: BorderRadius.circular(16.r),
@@ -257,7 +350,7 @@ class InteractiveContentCard extends StatelessWidget {
           ),
           child: Padding(
             padding:
-                padding ??
+                widget.padding ??
                 EdgeInsets.only(
                   top: 10.h,
                   bottom: 10.h,
@@ -294,9 +387,9 @@ class InteractiveContentCard extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, bool isDark) {
     final hasHeaderElements =
-        (showIndexLabel && indexLabel != null) ||
-        showZoomControls ||
-        headerTrailing != null;
+        (widget.showIndexLabel && widget.indexLabel != null) ||
+        widget.showZoomControls ||
+        widget.headerTrailing != null;
 
     if (!hasHeaderElements) return const SizedBox.shrink();
 
@@ -304,7 +397,7 @@ class InteractiveContentCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // شارة الفهرس أو الترتيب
-        if (showIndexLabel && indexLabel != null)
+        if (widget.showIndexLabel && widget.indexLabel != null)
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             decoration: BoxDecoration(
@@ -312,7 +405,7 @@ class InteractiveContentCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Text(
-              indexLabel!,
+              widget.indexLabel!,
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.bold,
@@ -328,11 +421,11 @@ class InteractiveContentCard extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (headerTrailing != null) ...[
-              headerTrailing!,
-              if (showZoomControls) SizedBox(width: 8.w),
+            if (widget.headerTrailing != null) ...[
+              widget.headerTrailing!,
+              if (widget.showZoomControls) SizedBox(width: 8.w),
             ],
-            if (showZoomControls)
+            if (widget.showZoomControls)
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey.withValues(alpha: 0.08),
@@ -342,7 +435,7 @@ class InteractiveContentCard extends StatelessWidget {
                   children: [
                     _buildZoomButton(
                       Icons.zoom_in_rounded,
-                      onZoomIn,
+                      widget.onZoomIn,
                       'تكبير الخط',
                     ),
                     Container(
@@ -352,7 +445,7 @@ class InteractiveContentCard extends StatelessWidget {
                     ),
                     _buildZoomButton(
                       Icons.zoom_out_rounded,
-                      onZoomOut,
+                      widget.onZoomOut,
                       'تصغير الخط',
                     ),
                   ],
@@ -385,21 +478,21 @@ class InteractiveContentCard extends StatelessWidget {
 
   Widget _buildFooterActions(BuildContext context, bool isDark) {
     final hasBadge =
-        showCounterBadge &&
-        counterBadgeText != null &&
-        counterBadgeText!.isNotEmpty;
+        widget.showCounterBadge &&
+        widget.counterBadgeText != null &&
+        widget.counterBadgeText!.isNotEmpty;
 
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Row(
         children: [
           // الجانب الأيسر الثابت دائماً: أزرار النسخ والمشاركة والمفضلة والإجراءات المخصصة
-          if (showCopy)
+          if (widget.showCopy)
             _buildActionButton(
               icon: Icons.copy_rounded,
               onTap: () {
-                if (onCopy != null) {
-                  onCopy!();
+                if (widget.onCopy != null) {
+                  widget.onCopy!();
                 } else {
                   _defaultCopy(context);
                 }
@@ -407,17 +500,18 @@ class InteractiveContentCard extends StatelessWidget {
               color: Colors.blue.shade700,
               tooltip: 'نسخ النص',
             ),
-          if (showCopy &&
-              (showShare ||
-                  showFavorite ||
-                  (extraActions != null && extraActions!.isNotEmpty)))
+          if (widget.showCopy &&
+              (widget.showShare ||
+                  widget.showFavorite ||
+                  (widget.extraActions != null &&
+                      widget.extraActions!.isNotEmpty)))
             SizedBox(width: 8.w),
-          if (showShare)
+          if (widget.showShare)
             _buildActionButton(
               icon: Icons.share_rounded,
               onTap: () {
-                if (onShare != null) {
-                  onShare!();
+                if (widget.onShare != null) {
+                  widget.onShare!();
                 } else {
                   _defaultShare(context);
                 }
@@ -425,28 +519,27 @@ class InteractiveContentCard extends StatelessWidget {
               color: AppColors.primary,
               tooltip: 'مشاركة',
             ),
-          if (showShare &&
-              (showFavorite ||
-                  (extraActions != null && extraActions!.isNotEmpty)))
+          if (widget.showShare &&
+              (widget.showFavorite ||
+                  (widget.extraActions != null &&
+                      widget.extraActions!.isNotEmpty)))
             SizedBox(width: 8.w),
-          if (showFavorite)
+          if (widget.showFavorite)
             _buildActionButton(
-              icon: isFavorite
+              icon: _isFavorite
                   ? Icons.favorite_rounded
                   : Icons.favorite_border_rounded,
-              onTap: () {
-                onFavoriteToggle?.call();
-              },
-              color: isFavorite ? Colors.redAccent : Colors.grey.shade600,
-              tooltip: isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
+              onTap: _handleFavoriteToggle,
+              color: _isFavorite ? Colors.redAccent : Colors.grey.shade600,
+              tooltip: _isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
             ),
           // أزرار مخصصة ممررة كمصفوفة بيانات CardAction
-          if (customActions != null)
-            for (final action in customActions!) ...[
-              if (showCopy ||
-                  showShare ||
-                  showFavorite ||
-                  customActions!.indexOf(action) > 0)
+          if (widget.customActions != null)
+            for (final action in widget.customActions!) ...[
+              if (widget.showCopy ||
+                  widget.showShare ||
+                  widget.showFavorite ||
+                  widget.customActions!.indexOf(action) > 0)
                 SizedBox(width: 8.w),
               _buildActionButton(
                 icon: action.icon,
@@ -456,13 +549,14 @@ class InteractiveContentCard extends StatelessWidget {
               ),
             ],
 
-          if (extraActions != null) ...[
-            if (showCopy ||
-                showShare ||
-                showFavorite ||
-                (customActions != null && customActions!.isNotEmpty))
+          if (widget.extraActions != null) ...[
+            if (widget.showCopy ||
+                widget.showShare ||
+                widget.showFavorite ||
+                (widget.customActions != null &&
+                    widget.customActions!.isNotEmpty))
               SizedBox(width: 8.w),
-            ...extraActions!,
+            ...widget.extraActions!,
           ],
 
           const Spacer(),
@@ -481,7 +575,7 @@ class InteractiveContentCard extends StatelessWidget {
               child: Directionality(
                 textDirection: TextDirection.rtl,
                 child: Text(
-                  counterBadgeText!,
+                  widget.counterBadgeText!,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.primary,
@@ -523,12 +617,14 @@ class InteractiveContentCard extends StatelessWidget {
   }
 
   void _defaultCopy(BuildContext context) {
-    final buffer = StringBuffer(content);
-    if (description != null && description!.trim().isNotEmpty) {
-      buffer.write('\n\nفضل الذكر: ${description!.trim()}');
+    final buffer = StringBuffer(widget.content);
+    if (widget.description != null &&
+        widget.description!.trim().isNotEmpty) {
+      buffer.write('\n\nفضل الذكر: ${widget.description!.trim()}');
     }
-    if (reference != null && reference!.trim().isNotEmpty) {
-      buffer.write('\nالمصدر: ${reference!.trim()}');
+    if (widget.reference != null &&
+        widget.reference!.trim().isNotEmpty) {
+      buffer.write('\nالمصدر: ${widget.reference!.trim()}');
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
@@ -542,19 +638,23 @@ class InteractiveContentCard extends StatelessWidget {
         ),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
         backgroundColor: AppColors.primary,
       ),
     );
   }
 
   void _defaultShare(BuildContext context) {
-    final buffer = StringBuffer(content);
-    if (description != null && description!.trim().isNotEmpty) {
-      buffer.write('\n\nفضل الذكر: ${description!.trim()}');
+    final buffer = StringBuffer(widget.content);
+    if (widget.description != null &&
+        widget.description!.trim().isNotEmpty) {
+      buffer.write('\n\nفضل الذكر: ${widget.description!.trim()}');
     }
-    if (reference != null && reference!.trim().isNotEmpty) {
-      buffer.write('\nالمصدر: ${reference!.trim()}');
+    if (widget.reference != null &&
+        widget.reference!.trim().isNotEmpty) {
+      buffer.write('\nالمصدر: ${widget.reference!.trim()}');
     }
     buffer.write('\n\nتمت المشاركة من تطبيق ترتيل');
 

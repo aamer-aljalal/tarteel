@@ -136,6 +136,31 @@ class _BookmarksPageState extends State<BookmarksPage> with SingleTickerProvider
     } catch (_) {}
   }
 
+  Future<void> _deleteZekr(String key, String content) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedList = prefs.getStringList('saved_azkar') ?? [];
+      savedList.removeWhere((item) {
+        try {
+          final decoded = jsonDecode(item) as Map<String, dynamic>;
+          return decoded['key'] == key || decoded['content'] == content;
+        } catch (_) {
+          return false;
+        }
+      });
+      await prefs.setStringList('saved_azkar', savedList);
+      
+      HapticFeedback.mediumImpact();
+      _loadSavedItems();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف الذكر من المفضلة')),
+        );
+      }
+    } catch (_) {}
+  }
+
   Future<void> _goToAyah(int surahNumber, int verseNumber) async {
     showDialog(
       context: context,
@@ -494,7 +519,132 @@ class _BookmarksPageState extends State<BookmarksPage> with SingleTickerProvider
         },
       );
     }
-    return const SizedBox.shrink();
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      itemCount: _savedAzkar.length,
+      itemBuilder: (context, index) {
+        final zekr = _savedAzkar[index];
+        final title = zekr['title'] as String? ?? 'ذكر مأثور';
+        final content = zekr['content'] as String? ?? '';
+        final description = zekr['description'] as String? ?? '';
+        final reference = zekr['reference'] as String? ?? '';
+        final key = zekr['key'] as String? ?? content;
+
+        return Container(
+          margin: EdgeInsets.only(bottom: 16.h),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.copy_rounded, size: 18.sp, color: AppColors.primary),
+                          tooltip: 'نسخ الذكر',
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: '$content\n\n[$title]'));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم نسخ الذكر بنجاح')),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline_rounded, size: 18.sp, color: Colors.red.shade700),
+                          tooltip: 'حذف الذكر',
+                          onPressed: () => _deleteZekr(key, content),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Body
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ResponsiveText(
+                      content: content,
+                      textAlign: TextAlign.justify,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      height: 1.8,
+                      fontFamily: 'Amiri',
+                    ),
+                    if (description.isNotEmpty) ...[
+                      SizedBox(height: 12.h),
+                      Divider(color: Colors.grey.withValues(alpha: 0.15)),
+                      SizedBox(height: 8.h),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                    ],
+                    if (reference.isNotEmpty) ...[
+                      SizedBox(height: 6.h),
+                      Text(
+                        reference,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: AppColors.goldAccent,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildStoriesTab() {

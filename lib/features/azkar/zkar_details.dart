@@ -11,6 +11,10 @@ import 'package:tarteel/core/services/in_app_notification_service.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
+import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
+import 'package:tarteel/Routes/AppRoutes.dart';
+import 'package:tarteel/features/azkar/icons/azkar_icons.dart';
+import 'package:tarteel/features/azkar/services/azkar_service.dart';
 
 class AzkarDetailsScreen extends StatefulWidget {
   final ZekrCategory category;
@@ -212,18 +216,60 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
     _showMessage('تمت إعادة تعيين العدادات بالكامل');
   }
 
-  // Future<void> _showResetCategoryDialog() async {
-  //   final confirmed = await InteractiveCounterControl.showResetConfirmation(
-  //     context,
-  //     title: 'إعادة تعيين الأذكار',
-  //     message:
-  //         'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-  //     confirmColor: Colors.redAccent,
-  //   );
-  //   if (confirmed) {
-  //     _resetCategory();
-  //   }
-  // }
+  Future<void> _showCategoriesBottomSheet() async {
+    HapticFeedback.lightImpact();
+    final categories = await AzkarService.loadAzkar();
+    if (!mounted) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    AppModalBottomSheet.show(
+      context: context,
+      title: 'أقسام الأذكار',
+      subtitle: 'اختر القسم الذي ترغب بالانتقال إليه مباشرة',
+      heightFraction: 0.72,
+      items: categories.map((cat) {
+        final isCurrent =
+            cat.id == widget.category.id || cat.title == widget.category.title;
+        final icon = AzkarIcons.icons[cat.title] ?? Icons.menu_book_rounded;
+
+        return BottomSheetItem(
+          title: cat.title,
+          subtitle: '${cat.azkar.length} ذكر مأثور',
+          isSelected: isCurrent,
+          leading: Container(
+            width: 40.w,
+            height: 40.h,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isCurrent
+                  ? AppColors.goldAccent.withValues(alpha: 0.2)
+                  : (isDark
+                      ? Colors.white12
+                      : AppColors.primary.withValues(alpha: 0.08)),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 20.sp,
+              color: isCurrent ? AppColors.goldAccent : AppColors.primary,
+            ),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            if (!isCurrent) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AzkarDetailsScreen(category: cat),
+                ),
+              );
+            }
+          },
+        );
+      }).toList(),
+    );
+  }
 
   void _showCompletionSheet() {
     // Record completion of the entire Azkar category!
@@ -358,13 +404,6 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
         elevation: 0,
         toolbarHeight: 90,
 
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.restart_alt_rounded, color: Colors.white),
-        //     tooltip: 'إعادة تعيين الأذكار',
-        //     onPressed: _showResetCategoryDialog,
-        //   ),
-        // ],
       ),
       body: SafeArea(
         child: Column(
@@ -447,6 +486,23 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
               totalRepeat: _totalRepeat,
               progress: _progress,
               onCounterTap: _onCounterTap,
+              cornerAction: CounterSideAction(
+                icon: Icons.format_list_bulleted_rounded,
+                tooltip: 'أقسام الأذكار',
+                onTap: _showCategoriesBottomSheet,
+              ),
+              leftCornerAction: CounterSideAction(
+                icon: Icons.home_rounded,
+                tooltip: 'الصفحة الرئيسية',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.homePage,
+                    (route) => false,
+                  );
+                },
+              ),
               onNext: () {
                 if (_pageController.hasClients) {
                   _pageController.nextPage(
@@ -488,6 +544,8 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
       onZoomIn: _onZoomIn,
       onZoomOut: _onZoomOut,
       showFavorite: true,
+      favoriteType: 'azkar',
+      favoriteTitle: widget.category.title,
       description: zekr.description,
       reference: zekr.reference,
       counterBadgeText: 'التكرار  : ${zekr.currentCount} / $_totalRepeat',

@@ -126,6 +126,18 @@ class InteractiveCounterControl extends StatefulWidget {
   /// زر جانبي جاهز التصميم على الجانب الأيسر (مثل: زر إضافة ذكر)
   final CounterSideAction? leftSideAction;
 
+  /// زر إضافي مخصص في الزاوية اليمنى (الركن الأيمن مثل قائمة الانتقال السريع للأقسام)
+  final CounterSideAction? cornerAction;
+
+  /// ويدجت مخصص للزاوية اليمنى
+  final Widget? cornerWidget;
+
+  /// زر إضافي مخصص في الزاوية اليسرى
+  final CounterSideAction? leftCornerAction;
+
+  /// ويدجت مخصص للزاوية اليسرى
+  final Widget? leftCornerWidget;
+
   /// مكون ويدجت مخصص للجانب الأيمن
   final Widget? rightAction;
 
@@ -220,6 +232,10 @@ class InteractiveCounterControl extends StatefulWidget {
     this.previousIcon = Icons.arrow_back_ios_new_rounded,
     this.rightSideAction,
     this.leftSideAction,
+    this.cornerAction,
+    this.cornerWidget,
+    this.leftCornerAction,
+    this.leftCornerWidget,
     this.rightAction,
     this.leftAction,
     this.leadingAction,
@@ -287,7 +303,9 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
         widget.soundAsset != oldWidget.soundAsset) {
       _initAudio();
     } else if (widget.soundVolume != oldWidget.soundVolume) {
-      _audioPlayer?.setVolume(widget.soundVolume.clamp(0.0, 1.0)).catchError((_) {});
+      _audioPlayer
+          ?.setVolume(widget.soundVolume.clamp(0.0, 1.0))
+          .catchError((_) {});
     }
   }
 
@@ -311,7 +329,10 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
     if (!widget.enableSound) return;
     try {
       if (_audioPlayer != null) {
-        _audioPlayer!.seek(Duration.zero).then((_) => _audioPlayer!.play()).catchError((_) {});
+        _audioPlayer!
+            .seek(Duration.zero)
+            .then((_) => _audioPlayer!.play())
+            .catchError((_) {});
       }
     } catch (_) {}
   }
@@ -383,12 +404,22 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
     return 0.0;
   }
 
-  Widget _buildSideActionWidget(CounterSideAction action, bool isDark) {
+  Widget _buildSideActionWidget(
+    CounterSideAction action,
+    bool isDark, {
+    double? width,
+    double? height,
+    double? iconSize,
+  }) {
     final effectiveColor =
         action.color ?? (isDark ? AppColors.goldAccent : AppColors.primary);
     final effectiveBg =
         action.backgroundColor ??
         effectiveColor.withValues(alpha: isDark ? 0.16 : 0.08);
+
+    final w = width ?? 54.w;
+    final h = height ?? 54.h;
+    final icSize = iconSize ?? 26.sp;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -402,27 +433,31 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
             elevation: isDark ? 0 : 2,
             shadowColor: effectiveColor.withValues(alpha: 0.15),
             child: InkWell(
-              onTap: action.onTap,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                action.onTap?.call();
+              },
               borderRadius: BorderRadius.circular(100.r),
               splashColor: effectiveColor.withValues(alpha: 0.2),
               child: Container(
-                width: 54.w,
-                height: 54.h,
+                width: w,
+                height: h,
                 alignment: Alignment.center,
-                child: Icon(action.icon, color: effectiveColor, size: 26.sp),
+                child: Icon(action.icon, color: effectiveColor, size: icSize),
               ),
             ),
           ),
         ),
         if (action.label != null && action.label!.isNotEmpty) ...[
-          SizedBox(height: 6.h),
+          SizedBox(height: 4.h),
           Text(
             action.label!,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 11.5.sp,
+              fontSize: 10.5.sp,
               fontWeight: FontWeight.bold,
               color: effectiveColor,
+              fontFamily: 'Cairo',
             ),
           ),
         ],
@@ -443,8 +478,8 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
         widget.buttonBackgroundColor ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
-    final double effectiveSize = widget.size ?? 140.w;
-    final double effectiveCountFontSize = widget.countFontSize ?? 40.sp;
+    final double effectiveSize = widget.size ?? 120.w;
+    final double effectiveCountFontSize = widget.countFontSize ?? 35.sp;
 
     // المكونات الجانبية:
     // الجانب الأيسر (السابق / رجوع للخلف أو زر الإجراء الأيسر)
@@ -491,141 +526,182 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                         )
                       : null));
 
+    // الإجراءات الإضافية في الزوايا (على نفس خط التلميح: الركن الأيمن والركن الأيسر)
+    final effectiveCornerAction =
+        widget.cornerWidget ??
+        (widget.cornerAction != null
+            ? _buildSideActionWidget(
+                widget.cornerAction!,
+                isDark,
+                width: 42.w,
+                height: 42.h,
+                iconSize: 20.sp,
+              )
+            : null);
+
+    final effectiveLeftCornerAction =
+        widget.leftCornerWidget ??
+        (widget.leftCornerAction != null
+            ? _buildSideActionWidget(
+                widget.leftCornerAction!,
+                isDark,
+                width: 42.w,
+                height: 42.h,
+                iconSize: 20.sp,
+              )
+            : null);
+
+    final hasCornerAction =
+        effectiveCornerAction != null || effectiveLeftCornerAction != null;
+
     // الحفاظ على المحاذاة المتوازنة في الوسط
     final hasAnySideAction =
         effectiveLeftAction != null || effectiveRightAction != null;
+
+    final controlRow = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // الجانب الأيسر
+        if (effectiveLeftAction != null)
+          effectiveLeftAction
+        else if (hasAnySideAction)
+          SizedBox(width: 54.w),
+
+        if (hasAnySideAction) SizedBox(width: 16.w),
+
+        // زر التفاعل الدائري المركزي
+        GestureDetector(
+          onTap: _handleTap,
+          child: AnimatedScale(
+            scale: _buttonScale,
+            duration: widget.scaleDuration,
+            curve: Curves.easeOutBack,
+            child: SizedBox(
+              width: effectiveSize,
+              height: effectiveSize,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  // خلفية وظلال الزر
+                  Container(
+                    width: effectiveSize,
+                    height: effectiveSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: effectiveButtonBg,
+                      boxShadow: [
+                        BoxShadow(
+                          color: effectivePrimaryColor.withValues(
+                            alpha: isDark ? 0.25 : 0.18,
+                          ),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // مؤشر التقدم الدائري أو المكون المخصص (مثل أنميشن المسبحة)
+                  if (widget.customProgressRing != null)
+                    IgnorePointer(
+                      child: OverflowBox(
+                        maxWidth: double.infinity,
+                        maxHeight: double.infinity,
+                        child: widget.customProgressRing!,
+                      ),
+                    )
+                  else if (widget.showProgressRing)
+                    CustomPaint(
+                      size: Size(effectiveSize, effectiveSize),
+                      painter: CircularCounterProgressPainter(
+                        progress: _calculatedProgress,
+                        strokeWidth: widget.strokeWidth,
+                        backgroundColor: effectiveProgressBg,
+                        progressColor: effectivePrimaryColor,
+                      ),
+                    ),
+
+                  // محتوى الزر الداخلي
+                  widget.centerChild ??
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.showCenterIcon) ...[
+                            Icon(
+                              widget.centerIcon,
+                              size: 22.sp,
+                              color: effectivePrimaryColor,
+                            ),
+                            SizedBox(height: 6.h),
+                          ],
+                          Text(
+                            '${widget.count}',
+                            style:
+                                widget.countTextStyle ??
+                                TextStyle(
+                                  fontSize: effectiveCountFontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: effectivePrimaryColor,
+                                  fontFamily: 'Cairo',
+                                ),
+                          ),
+                        ],
+                      ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        if (hasAnySideAction) SizedBox(width: 16.w),
+
+        // الجانب الأيمن
+        if (effectiveRightAction != null)
+          effectiveRightAction
+        else if (hasAnySideAction)
+          SizedBox(width: 54.w),
+      ],
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // صف أزرار التفاعل (اليسار -> المنتصف -> اليمين)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // الجانب الأيسر
-            if (effectiveLeftAction != null)
-              effectiveLeftAction
-            else if (hasAnySideAction)
-              SizedBox(width: 54.w),
+        // صف أزرار التفاعل المركزي
+        controlRow,
 
-            if (hasAnySideAction) SizedBox(width: 16.w),
-
-            // زر التفاعل الدائري المركزي
-            GestureDetector(
-              onTap: _handleTap,
-              child: AnimatedScale(
-                scale: _buttonScale,
-                duration: widget.scaleDuration,
-                curve: Curves.easeOutBack,
-                child: SizedBox(
-                  width: effectiveSize,
-                  height: effectiveSize,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // خلفية وظلال الزر
-                      Container(
-                        width: effectiveSize,
-                        height: effectiveSize,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: effectiveButtonBg,
-                          boxShadow: [
-                            BoxShadow(
-                              color: effectivePrimaryColor.withValues(
-                                alpha: isDark ? 0.25 : 0.18,
-                              ),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // مؤشر التقدم الدائري أو المكون المخصص (مثل أنميشن المسبحة)
-                      if (widget.customProgressRing != null)
-                        IgnorePointer(
-                          child: OverflowBox(
-                            maxWidth: double.infinity,
-                            maxHeight: double.infinity,
-                            child: widget.customProgressRing!,
-                          ),
-                        )
-                      else if (widget.showProgressRing)
-                        CustomPaint(
-                          size: Size(effectiveSize, effectiveSize),
-                          painter: CircularCounterProgressPainter(
-                            progress: _calculatedProgress,
-                            strokeWidth: widget.strokeWidth,
-                            backgroundColor: effectiveProgressBg,
-                            progressColor: effectivePrimaryColor,
-                          ),
-                        ),
-
-                      // محتوى الزر الداخلي
-                      widget.centerChild ??
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (widget.showCenterIcon) ...[
-                                Icon(
-                                  widget.centerIcon,
-                                  size: 22.sp,
-                                  color: effectivePrimaryColor,
-                                ),
-                                SizedBox(height: 6.h),
-                              ],
-                              Text(
-                                '${widget.count}',
-                                style:
-                                    widget.countTextStyle ??
-                                    TextStyle(
-                                      fontSize: effectiveCountFontSize,
-                                      fontWeight: FontWeight.bold,
-                                      color: effectivePrimaryColor,
-                                      fontFamily: 'Cairo',
-                                    ),
-                              ),
-                            ],
-                          ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            if (hasAnySideAction) SizedBox(width: 16.w),
-
-            // الجانب الأيمن
-            if (effectiveRightAction != null)
-              effectiveRightAction
-            else if (hasAnySideAction)
-              SizedBox(width: 54.w),
-          ],
-        ),
-
-        // المنطقة السفلية (التلميح وزر إعادة التعيين)
+        // المنطقة السفلية (صف التلميح التوجيهي مع أزرار الزوايا على نفس المستوى)
         if (widget.bottomAction != null) ...[
-          SizedBox(height: 12.h),
+          // SizedBox(height: 50.h),
           widget.bottomAction!,
         ] else ...[
-          if (widget.showHint && widget.hintText.isNotEmpty) ...[
-            SizedBox(height: 14.h),
-            Text(
-              widget.hintText,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-                fontWeight: FontWeight.w500,
+          if (hasCornerAction ||
+              (widget.showHint && widget.hintText.isNotEmpty)) ...[
+            // SizedBox(height: 12.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // الجانب الأيمن (في RTL يظهر كأول عنصر على اليمين)
+                  Directionality.of(context) == TextDirection.rtl
+                      ? (effectiveCornerAction ?? SizedBox(width: 42.w))
+                      : (effectiveLeftCornerAction ?? SizedBox(width: 42.w)),
+
+
+                  // الجانب الأيسر (في RTL يظهر كآخر عنصر على اليسار)
+                  Directionality.of(context) == TextDirection.rtl
+                      ? (effectiveLeftCornerAction ?? SizedBox(width: 42.w))
+                      : (effectiveCornerAction ?? SizedBox(width: 42.w)),
+                ],
               ),
             ),
           ],
           if (widget.showResetButton && widget.onReset != null) ...[
-            SizedBox(height: 4.h),
+            // SizedBox(height: 4.h),
             TextButton.icon(
               onPressed: _handleReset,
               icon: Icon(
