@@ -15,6 +15,7 @@ import '../widgets/muezzin_selection_sheet.dart';
 import '../widgets/prayers_selection_sheet.dart';
 import '../widgets/advance_time_selector.dart';
 import '../widgets/volume_control_slider.dart';
+import 'package:tarteel/core/widgets/backgrounds/animated_adhan_background.dart';
 
 class AdhanMuezzinScreen extends StatefulWidget {
   const AdhanMuezzinScreen({super.key});
@@ -361,175 +362,175 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
           titleText: 'إعدادات المؤذن والأذان',
           elevation: 0,
         ),
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 4.w,
-                    height: 16.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(2.r),
+        body: AnimatedAdhanBackground(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 4.w,
+                      height: 16.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'إعدادات الأذان الرئيسية',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+
+                _buildSwitchTile(
+                  title: 'تفعيل الأذان التلقائي',
+                  subtitle: 'تنبيه بصوت المؤذن عند دخول وقت الصلاة',
+                  value: _soundEnabled,
+                  icon: Icons.notifications_active_outlined,
+                  onChanged: (value) => _updateSoundEnabled(value),
+                  iconColor: Colors.teal,
+                ),
+
+                // زر اختبار الأذان (مؤقت للمطورين)
+                // Padding(
+                //   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                //   child: ElevatedButton.icon(
+                //     onPressed: () async {
+                //       ScaffoldMessenger.of(context).showSnackBar(
+                //         const SnackBar(
+                //           content: Text('سيتم تشغيل الأذان بعد 10 ثوانٍ.. يمكنك الخروج من التطبيق للتحقق!'),
+                //           duration: Duration(seconds: 4),
+                //         ),
+                //       );
+                //       await AdhanNotificationService.testScheduleAdhanInSeconds(10, prayerName: 'الاختبار');
+                //     },
+                //     icon: const Icon(Icons.timer_outlined, color: Colors.white),
+                //     label: Text('اختبار الأذان (10 ثوانٍ)', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: Colors.redAccent.shade400,
+                //       foregroundColor: Colors.white,
+                //       padding: EdgeInsets.symmetric(vertical: 12.h),
+                //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                //       elevation: 0,
+                //     ),
+                //   ),
+                // ),
+                if (_soundEnabled) ...[
+                  _buildSwitchTile(
+                    title: 'الاهتزاز مع الأذان',
+                    subtitle: 'تفعيل الاهتزاز أثناء رفع الأذان',
+                    value: _vibrationEnabled,
+                    icon: Icons.vibration_rounded,
+                    onChanged: (value) => _updateVibrationEnabled(value),
+                    iconColor: Colors.blueGrey,
+                  ),
+                  SizedBox(height: 12.h),
+                  // صف الأزرار الجديدة (صوت المؤذن + تخصيص الصلوات)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionCard(
+                            title: 'صوت المؤذن',
+                            subtitle: _selectedMuezzin.name,
+                            icon: Icons.record_voice_over_outlined,
+                            color: Colors.teal,
+                            onTap: _showMuezzinSelectionSheet,
+                            isDark: isDark,
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: _buildActionCard(
+                            title: 'تخصيص الصلوات',
+                            subtitle: 'تفعيل أو إيقاف',
+                            icon: Icons.mosque_outlined,
+                            color: Colors.indigo,
+                            onTap: _showPrayersSelectionSheet,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'إعدادات الأذان الرئيسية',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : AppColors.primary,
+
+                  SizedBox(height: 12.h),
+
+                  // اختيار وقت التنبيه المسبق (مفصول في ملف)
+                  AdvanceTimeSelector(
+                    selectedMinutes: _advanceMinutes,
+                    onChanged: (val) => _updateAdvanceMinutes(val),
+                  ),
+
+                  SizedBox(height: 12.h),
+
+                  // مستوى الصوت وزر التجربة (مفصول في ملف)
+                  VolumeControlSlider(
+                    volume: _adhanVolume,
+                    isTestingAdhan: _isTestingAdhan,
+                    onVolumeChanged: (val) {
+                      setState(() {
+                        _adhanVolume = val;
+                      });
+                      if (_isTestingAdhan) {
+                        NativeAlarmService.updateTestVolume(val);
+                      } else {
+                        _startTestAdhanWithVolume(val);
+                      }
+                    },
+                    onVolumeChangeEnd: (val) => _updateAdhanVolume(val),
+                    onToggleTest: _toggleTestAdhan,
+                  ),
+
+                  SizedBox(height: 24.h),
+
+                  // صندوق معلومات
+                  Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      borderRadius: BorderRadius.circular(15.r),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.primary,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(
+                            'يتم تشغيل صوت الأذان كاملاً تلقائياً عند حلول وقت الصلاة وفقاً لموقع مكة المكرمة المبرمج محلياً في التطبيق.',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: isDark
+                                  ? Colors.white70
+                                  : Colors.grey.shade700,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-              SizedBox(height: 12.h),
-
-              _buildSwitchTile(
-                title: 'تشغيل الأذان التلقائي',
-                subtitle: 'تنبيه بصوت المؤذن عند دخول وقت الصلاة',
-                value: _soundEnabled,
-                icon: Icons.notifications_active_outlined,
-                onChanged: (value) => _updateSoundEnabled(value),
-                iconColor: Colors.teal,
-              ),
-
-              _buildSwitchTile(
-                title: 'الاهتزاز مع الأذان',
-                subtitle: 'تفعيل الاهتزاز أثناء رفع الأذان',
-                value: _vibrationEnabled,
-                icon: Icons.vibration_rounded,
-                onChanged: (value) => _updateVibrationEnabled(value),
-                iconColor: Colors.blueGrey,
-              ),
-
-              // زر اختبار الأذان (مؤقت للمطورين)
-              // Padding(
-              //   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              //   child: ElevatedButton.icon(
-              //     onPressed: () async {
-              //       ScaffoldMessenger.of(context).showSnackBar(
-              //         const SnackBar(
-              //           content: Text('سيتم تشغيل الأذان بعد 10 ثوانٍ.. يمكنك الخروج من التطبيق للتحقق!'),
-              //           duration: Duration(seconds: 4),
-              //         ),
-              //       );
-              //       await AdhanNotificationService.testScheduleAdhanInSeconds(10, prayerName: 'الاختبار');
-              //     },
-              //     icon: const Icon(Icons.timer_outlined, color: Colors.white),
-              //     label: Text('اختبار الأذان (10 ثوانٍ)', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
-              //     style: ElevatedButton.styleFrom(
-              //       backgroundColor: Colors.redAccent.shade400,
-              //       foregroundColor: Colors.white,
-              //       padding: EdgeInsets.symmetric(vertical: 12.h),
-              //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-              //       elevation: 0,
-              //     ),
-              //   ),
-              // ),
-
-              if (_soundEnabled) ...[
-                SizedBox(height: 12.h),
-                // صف الأزرار الجديدة (صوت المؤذن + تخصيص الصلوات)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildActionCard(
-                          title: 'صوت المؤذن',
-                          subtitle: _selectedMuezzin.name,
-                          icon: Icons.record_voice_over_outlined,
-                          color: Colors.teal,
-                          onTap: _showMuezzinSelectionSheet,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildActionCard(
-                          title: 'تخصيص الصلوات',
-                          subtitle: 'تفعيل أو إيقاف',
-                          icon: Icons.mosque_outlined,
-                          color: Colors.indigo,
-                          onTap: _showPrayersSelectionSheet,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 12.h),
-
-                // اختيار وقت التنبيه المسبق (مفصول في ملف)
-                AdvanceTimeSelector(
-                  selectedMinutes: _advanceMinutes,
-                  onChanged: (val) => _updateAdvanceMinutes(val),
-                ),
-
-                SizedBox(height: 12.h),
-
-                // مستوى الصوت وزر التجربة (مفصول في ملف)
-                VolumeControlSlider(
-                  volume: _adhanVolume,
-                  isTestingAdhan: _isTestingAdhan,
-                  onVolumeChanged: (val) {
-                    setState(() {
-                      _adhanVolume = val;
-                    });
-                    if (_isTestingAdhan) {
-                      NativeAlarmService.updateTestVolume(val);
-                    } else {
-                      _startTestAdhanWithVolume(val);
-                    }
-                  },
-                  onVolumeChangeEnd: (val) => _updateAdhanVolume(val),
-                  onToggleTest: _toggleTestAdhan,
-                ),
-
-                SizedBox(height: 24.h),
-
-                // صندوق معلومات
-                Container(
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                    borderRadius: BorderRadius.circular(15.r),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: AppColors.primary,
-                        size: 24.sp,
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Text(
-                          'يتم تشغيل صوت الأذان كاملاً تلقائياً عند حلول وقت الصلاة وفقاً لموقع مكة المكرمة المبرمج محلياً في التطبيق.',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            color: isDark
-                                ? Colors.white70
-                                : Colors.grey.shade700,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
-            ],
+            ),
           ),
         ),
       ),

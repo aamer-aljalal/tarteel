@@ -754,7 +754,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                       ],
                     ),
                   ),
-                  SizedBox(height: 32.h),
+                  SizedBox(height: 150.h),
 
                   // العداد التفاعلي مع أزرار الإجراءات الجانبية وإعادة التعيين
                   InteractiveCounterControl(

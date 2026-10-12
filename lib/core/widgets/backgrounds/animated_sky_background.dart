@@ -173,7 +173,7 @@ class _SkyPainter extends CustomPainter {
         _drawCrescent(canvas, size);
       }
     } else {
-      _drawMorningSunGlow(canvas, size);
+      _drawCalmDaySun(canvas, size);
       _drawMorningClouds(canvas, size);
     }
 
@@ -201,17 +201,17 @@ class _SkyPainter extends CustomPainter {
         stops: [0.0, 0.4, 0.75, 1.0],
       ).createShader(rect);
     } else {
-      // سماء صباحية نقية ودافئة مع شروق ذهبي هادئ
+      // سماء صباحية نقية ودافئة: زرقة سماوية صافية في الأعلى تتدفق إلى شروق دافئ مشرق
       paint.shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xFFE9F1EF), // سماوي ضبابي ناعم
-          Color(0xFFF3F7F5),
-          Color(0xFFFBF7EE), // وهج الفجر المشرق
-          Color(0xFFF3ECE0),
+          Color(0xFFB9DBEB), // زرقة سماوية صافية ومنعشة
+          Color(0xFFD4E9F2),
+          Color(0xFFF3ECE0), // أفق دافئ مشرق بنور الصباح
+          Color(0xFFF8F4EC),
         ],
-        stops: [0.0, 0.35, 0.7, 1.0],
+        stops: [0.0, 0.35, 0.72, 1.0],
       ).createShader(rect);
     }
 
@@ -353,69 +353,118 @@ class _SkyPainter extends CustomPainter {
     canvas.drawPath(crescent, moonPaint);
   }
 
-  /// رسم وهج الشروق الصباحي
-  void _drawMorningSunGlow(Canvas canvas, Size size) {
+  /// رسم شمس نهارية هادئة ودافئة مع قرص مشرق وهالة نور تتنفس
+  void _drawCalmDaySun(Canvas canvas, Size size) {
     final double sunX = size.width * 0.82;
     final double sunY = size.height * 0.12;
+    final double sunRadius = 22.w;
 
     // نبض بطيء جداً للأشعة
     final double breathe = math.sin(progress * 2 * math.pi) * 0.08;
 
-    final glowPaint = Paint()
+    // 1. الهالة الخارجية الكبيرة المتوهجة
+    final haloPaint = Paint()
       ..style = PaintingStyle.fill
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFFF9DC96).withValues(alpha: 0.35 + breathe),
-          const Color(0xFFF3C474).withValues(alpha: 0.16),
+          const Color(0xFFFCE198).withValues(alpha: 0.45 + breathe),
+          const Color(0xFFF7CF76).withValues(alpha: 0.18),
           Colors.transparent,
         ],
       ).createShader(
         Rect.fromCircle(
           center: Offset(sunX, sunY),
-          radius: size.width * (0.42 + breathe),
+          radius: size.width * (0.38 + breathe),
         ),
       );
+    canvas.drawCircle(Offset(sunX, sunY), size.width * (0.38 + breathe), haloPaint);
 
-    canvas.drawCircle(
-      Offset(sunX, sunY),
-      size.width * (0.42 + breathe),
-      glowPaint,
-    );
+    // 2. الهالة الوسطى المشرقة
+    final innerHaloPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFFFFF0B8).withValues(alpha: 0.7),
+          const Color(0xFFFDD475).withValues(alpha: 0.25),
+          Colors.transparent,
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(sunX, sunY),
+          radius: sunRadius * 2.2,
+        ),
+      );
+    canvas.drawCircle(Offset(sunX, sunY), sunRadius * 2.2, innerHaloPaint);
+
+    // 3. قرص الشمس الذهبي الدافئ
+    final sunDiscPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFFFBE8),
+          Color(0xFFF9D874),
+        ],
+      ).createShader(
+        Rect.fromCircle(center: Offset(sunX, sunY), radius: sunRadius),
+      );
+    canvas.drawCircle(Offset(sunX, sunY), sunRadius, sunDiscPaint);
   }
 
-  /// رسم غيوم صباحية خفيفة تتحرك ببطء شديد
+  /// رسم غيوم صباحية خفيفة متعددة الطبقات تتحرك ببطء
   void _drawMorningClouds(Canvas canvas, Size size) {
     final cloudPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = Colors.white.withValues(alpha: 0.35);
+      ..color = Colors.white.withValues(alpha: 0.42);
 
-    final double move1 = (progress * size.width * 0.3) % (size.width + 120.w);
+    final double move1 = (progress * size.width * 0.25) % (size.width + 140.w);
 
-    // سحابة علوية أولى
-    final double c1X = move1 - 60.w;
-    final double c1Y = size.height * 0.18;
+    // سحابة أولى بطبقات ناعمة
+    final double c1X = move1 - 70.w;
+    final double c1Y = size.height * 0.16;
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(c1X, c1Y),
-        width: 130.w,
-        height: 24.h,
+        width: 140.w,
+        height: 26.h,
+      ),
+      cloudPaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(c1X + 22.w, c1Y - 7.h),
+        width: 70.w,
+        height: 22.h,
       ),
       cloudPaint,
     );
 
-    // سحابة ثانية
+    // سحابة ثانية في أفق أوسع
     final double move2 =
-        ((progress * size.width * 0.2) + size.width * 0.5) %
-        (size.width + 150.w);
-    final double c2X = move2 - 70.w;
-    final double c2Y = size.height * 0.28;
+        ((progress * size.width * 0.16) + size.width * 0.52) %
+        (size.width + 170.w);
+    final double c2X = move2 - 85.w;
+    final double c2Y = size.height * 0.26;
+    final cloudPaint2 = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.white.withValues(alpha: 0.30);
+
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(c2X, c2Y),
         width: 160.w,
         height: 28.h,
       ),
-      cloudPaint..color = Colors.white.withValues(alpha: 0.22),
+      cloudPaint2,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(c2X - 25.w, c2Y - 7.h),
+        width: 80.w,
+        height: 24.h,
+      ),
+      cloudPaint2,
     );
   }
 
@@ -424,9 +473,10 @@ class _SkyPainter extends CustomPainter {
     final double horizonY = size.height;
     final double w = size.width;
 
+    // لون الظلال: في الليل كحلي عميق، وفي النهار أخضر زمردي إسلامي وقور وواضح
     final Color silhouetteColor = isNight
         ? const Color(0xFF03070A).withValues(alpha: 0.42)
-        : const Color(0xFF2C3E35).withValues(alpha: 0.08);
+        : const Color(0xFF1B3D32).withValues(alpha: 0.28);
 
     final Paint paint = Paint()
       ..style = PaintingStyle.fill
@@ -488,6 +538,19 @@ class _SkyPainter extends CustomPainter {
     path.close();
 
     canvas.drawPath(path, paint);
+
+    // لمسة إسلامية جمالية: هلال ذهبي خفيف فوق قمة القبة المركزية
+    final double finialX = w * 0.54;
+    final double finialY = horizonY - 73.h;
+    final finialPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = (isNight
+              ? const Color(0xFFD4AF37)
+              : const Color(0xFFC59B27))
+          .withValues(alpha: isNight ? 0.65 : 0.45);
+    canvas.drawCircle(Offset(finialX, finialY), 3.r, finialPaint);
+    canvas.drawCircle(Offset(w * 0.395, horizonY - 122.h), 2.2.r, finialPaint);
+    canvas.drawCircle(Offset(w * 0.875, horizonY - 110.h), 2.2.r, finialPaint);
   }
 
   @override
