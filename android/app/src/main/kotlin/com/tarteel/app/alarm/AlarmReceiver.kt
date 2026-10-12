@@ -37,14 +37,17 @@ class AlarmReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "بدء تشغيل منبه بمعرف: $alarmId")
 
-        // إيقاظ المعالج عبر WakeLock لضمان بقاء الهاتف مستيقظاً لإظهار الشاشة والصوت
+        // إيقاظ المعالج وشاشة الهاتف فوراً (لتضيء الشاشة في الظلام والقفل)
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        @Suppress("DEPRECATION")
         val wakeLock = powerManager?.newWakeLock(
-            android.os.PowerManager.PARTIAL_WAKE_LOCK or android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
-            "Tarteel:AlarmReceiverWakeLock"
+            android.os.PowerManager.FULL_WAKE_LOCK or
+                    android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                    android.os.PowerManager.ON_AFTER_RELEASE,
+            "Tarteel:AlarmScreenWakeLock"
         )
         try {
-            wakeLock?.acquire(30 * 1000L) // 30 ثانية
+            wakeLock?.acquire(20 * 1000L) // إبقاء الشاشة مضاءة 20 ثانية لتظهر الواجهة
         } catch (e: Exception) {
             Log.w(TAG, "تعذر حجز WakeLock: ${e.message}")
         }

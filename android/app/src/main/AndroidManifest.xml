@@ -92,6 +92,8 @@
             android:name=".alarm.AlarmActivity"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
+            android:inheritShowWhenLocked="true"
+            android:showOnLockScreen="true"
             android:launchMode="singleInstance"
             android:excludeFromRecents="true"
             android:theme="@style/NormalTheme"

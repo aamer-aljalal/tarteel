@@ -34,7 +34,25 @@ class AlarmActivity : Activity() {
     private var alarmId: String? = null
     private var alarmStoppedReceiver: android.content.BroadcastReceiver? = null
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        setupLockScreenFlags()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        setupLockScreenFlags()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        alarmId = intent?.getStringExtra("alarm_id")
+        setupLockScreenFlags()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        setupLockScreenFlags()
         super.onCreate(savedInstanceState)
         
         // 0. تسجيل مراقب توقف المنبه لإغلاق الشاشة تلقائياً
@@ -43,9 +61,6 @@ class AlarmActivity : Activity() {
         // 2. استخراج معرف المنبه القادم مع النية
         alarmId = intent.getStringExtra("alarm_id")
         Log.d("AlarmActivity", "تم بدء onCreate لمعرف منبه: $alarmId")
-
-        // 1. إعداد شاشة الهاتف لإيقاظها وتخطي قفل الهاتف الأمني
-        setupLockScreenFlags()
 
         // 3. جلب بيانات التنبيه من الذاكرة المشتركة SharedPreferences
         var alarmTitle = "حان الآن موعد الصلاة"

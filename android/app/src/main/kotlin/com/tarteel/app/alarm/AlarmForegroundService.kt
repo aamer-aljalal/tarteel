@@ -47,7 +47,7 @@ class AlarmForegroundService : Service() {
     companion object {
         private const val TAG = "AlarmService"
         private const val NOTIFICATION_ID = 9999
-        private const val CHANNEL_ID = "adhan_alarm_channel_v1"
+        private const val CHANNEL_ID = "adhan_alarm_channel_v5"
 
         // مفاتيح الأوامر الخاصة بالتحكم بالخدمة
         const val ACTION_START = "com.tarteel.app.alarm.ACTION_START"
