@@ -154,8 +154,9 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
     // 6. القناديل الإسلامية المعلقة على جانبي القوس
     _drawSideHangingLanterns(canvas, size, cx, apexY);
 
-    // 7. المصحف الشريف المفتوح على الحامل الخشبي مع نور الآيات
-    _drawOpenHolyQuran(canvas, Offset(cx, apexY + 54.h));
+    // 7. المصحف الشريف المفتوح على الحامل الخشبي في وسط المحراب تماماً
+    final double quranCenterY = size.height * 0.42;
+    _drawOpenHolyQuran(canvas, Offset(cx, quranCenterY));
 
     // 8. ذرات النور العائمة
     _drawFloatingSparks(canvas, size);
@@ -577,199 +578,418 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
     );
   }
 
-  /// 7. المصحف الشريف المفتوح على الحامل الخشبي (الرحلة) مع إشعاع النور 📖
+  /// 7. المصحف الشريف المفتوح على الحامل الخشبي (الرحلة) في قلب المحراب 📖
   void _drawOpenHolyQuran(Canvas canvas, Offset center) {
     final double breathe = math.sin(progress * 2 * math.pi) * 0.15;
-    final double quranWidth = 72.w;
+    final double quranWidth = 98.w;
+    final double halfW = quranWidth * 0.5;
 
-    // أ. أشعة النور المنبثقة للأعلى من صفحات المصحف (نور على نور)
+    // -------------------------------------------------------------
+    // أ. أشعة النور الإلهي المنبثقة من صفحات المصحف للأعلى ("نور على نور")
+    // -------------------------------------------------------------
     final quranGlowPaint = Paint()
       ..style = PaintingStyle.fill
       ..shader = RadialGradient(
         colors: [
-          (isDark ? const Color(0xFFFFF2BD) : const Color(0xFFFFFDE8))
-              .withValues(alpha: 0.55 + breathe),
-          (isDark ? const Color(0xFFF7CF6D) : const Color(0xFF86D8AB))
-              .withValues(alpha: 0.20),
+          (isDark ? const Color(0xFFFFF4C2) : const Color(0xFFFFFDE0))
+              .withValues(alpha: 0.65 + breathe),
+          (isDark ? const Color(0xFFF8D168) : const Color(0xFF90DCB1))
+              .withValues(alpha: 0.22),
           Colors.transparent,
         ],
-        stops: const [0.0, 0.45, 1.0],
-      ).createShader(Rect.fromCircle(center: center, radius: quranWidth * 1.3));
+        stops: const [0.0, 0.42, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: quranWidth * 1.4));
 
-    canvas.drawCircle(center, quranWidth * 1.3, quranGlowPaint);
+    canvas.drawCircle(center, quranWidth * 1.4, quranGlowPaint);
 
-    // ب. الحامل الخشبي التقليدي (الرَّحْل - Wooden Rahl X-Stand)
-    final double rahlY = center.dy + 8.h;
-    final Paint woodPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = (isDark ? const Color(0xFF78451D) : const Color(0xFF5A3414))
-          .withValues(alpha: 0.75);
-
-    final Path rahlStand = Path();
-    // الساق اليسرى
-    rahlStand.moveTo(center.dx - quranWidth * 0.46, rahlY - 6.h);
-    rahlStand.lineTo(center.dx + quranWidth * 0.38, rahlY + 22.h);
-    rahlStand.lineTo(center.dx + quranWidth * 0.30, rahlY + 22.h);
-    rahlStand.lineTo(center.dx - quranWidth * 0.42, rahlY - 6.h);
-    rahlStand.close();
-
-    // الساق اليمنى المتقاطعة
-    rahlStand.moveTo(center.dx + quranWidth * 0.46, rahlY - 6.h);
-    rahlStand.lineTo(center.dx - quranWidth * 0.38, rahlY + 22.h);
-    rahlStand.lineTo(center.dx - quranWidth * 0.30, rahlY + 22.h);
-    rahlStand.lineTo(center.dx + quranWidth * 0.42, rahlY - 6.h);
-    rahlStand.close();
-
-    canvas.drawPath(rahlStand, woodPaint);
-
-    // ج. غلاف وتجليد المصحف الخارجي (جلد زمردي مذهب)
-    final Path coverPath = Path();
-    coverPath.moveTo(center.dx, center.dy + 7.h); // كعب المصحف
-    // الصفحة اليسرى المقوسة
-    coverPath.cubicTo(
-      center.dx - quranWidth * 0.25,
-      center.dy + 9.h,
-      center.dx - quranWidth * 0.50,
-      center.dy + 3.h,
-      center.dx - quranWidth * 0.54,
-      center.dy - 12.h,
-    );
-    // قمة الصفحة اليسرى نزولاً للكعب
-    coverPath.lineTo(center.dx - quranWidth * 0.54, center.dy - 16.h);
-    coverPath.cubicTo(
-      center.dx - quranWidth * 0.50,
-      center.dy - 1.h,
-      center.dx - quranWidth * 0.25,
-      center.dy + 5.h,
-      center.dx,
-      center.dy + 3.h,
-    );
-    // الصفحة اليمنى المقوسة
-    coverPath.cubicTo(
-      center.dx + quranWidth * 0.25,
-      center.dy + 5.h,
-      center.dx + quranWidth * 0.50,
-      center.dy - 1.h,
-      center.dx + quranWidth * 0.54,
-      center.dy - 16.h,
-    );
-    coverPath.lineTo(center.dx + quranWidth * 0.54, center.dy - 12.h);
-    coverPath.cubicTo(
-      center.dx + quranWidth * 0.50,
-      center.dy + 3.h,
-      center.dx + quranWidth * 0.25,
-      center.dy + 9.h,
-      center.dx,
-      center.dy + 7.h,
-    );
-    coverPath.close();
-
-    // رسم تجليد الغلاف باللون الزمردي الإسلامي
-    final coverPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = const Color(0xFF14532D).withValues(alpha: 0.85);
-    canvas.drawPath(coverPath, coverPaint);
-
-    // د. صفحات المصحف الورقية البيضاء العاجية (المفتوحة بانسيابية)
-    final Path leftPage = Path();
-    leftPage.moveTo(center.dx, center.dy + 2.h);
-    leftPage.cubicTo(
-      center.dx - quranWidth * 0.22,
-      center.dy + 3.h,
-      center.dx - quranWidth * 0.46,
-      center.dy - 4.h,
-      center.dx - quranWidth * 0.50,
-      center.dy - 16.h,
-    );
-    leftPage.lineTo(center.dx - quranWidth * 0.50, center.dy - 18.h);
-    leftPage.cubicTo(
-      center.dx - quranWidth * 0.46,
-      center.dy - 6.h,
-      center.dx - quranWidth * 0.22,
-      center.dy + 1.h,
-      center.dx,
-      center.dy,
-    );
-    leftPage.close();
-
-    final Path rightPage = Path();
-    rightPage.moveTo(center.dx, center.dy + 2.h);
-    rightPage.cubicTo(
-      center.dx + quranWidth * 0.22,
-      center.dy + 3.h,
-      center.dx + quranWidth * 0.46,
-      center.dy - 4.h,
-      center.dx + quranWidth * 0.50,
-      center.dy - 16.h,
-    );
-    rightPage.lineTo(center.dx + quranWidth * 0.50, center.dy - 18.h);
-    rightPage.cubicTo(
-      center.dx + quranWidth * 0.46,
-      center.dy - 6.h,
-      center.dx + quranWidth * 0.22,
-      center.dy + 1.h,
-      center.dx,
-      center.dy,
-    );
-    rightPage.close();
-
-    final Paint pagePaint = Paint()
-      ..style = PaintingStyle.fill
-      ..color = const Color(0xFFFFFDF5);
-
-    canvas.drawPath(leftPage, pagePaint);
-    canvas.drawPath(rightPage, pagePaint);
-
-    // إطار تذهيب وحواف الصفحات
-    final Paint gildingPaint = Paint()
+    // حزمة أشعة نورانية صاعدة
+    final rayPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..color = const Color(0xFFC59B27).withValues(alpha: 0.85);
-
-    canvas.drawPath(leftPage, gildingPaint);
-    canvas.drawPath(rightPage, gildingPaint);
-
-    // هـ. أسطر الآيات المحفورة برقة (Quranic Text Lines)
-    final textLinePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8
-      ..color = (isDark ? const Color(0xFF33291B) : const Color(0xFF6B5838))
-          .withValues(alpha: 0.45);
-
-    for (int i = 0; i < 4; i++) {
-      final double lineY = center.dy - 13.h + (i * 3.4.h);
-      // أسطر الصفحة اليسرى
-      canvas.drawLine(
-        Offset(center.dx - quranWidth * 0.42, lineY),
-        Offset(center.dx - quranWidth * 0.08, lineY + 1.2.h),
-        textLinePaint,
+      ..strokeCap = StrokeCap.round
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [
+          (isDark ? const Color(0xFFFDE494) : const Color(0xFFB4EAC9))
+              .withValues(alpha: 0.50 + breathe * 0.5),
+          Colors.transparent,
+        ],
+      ).createShader(
+        Rect.fromPoints(
+          Offset(center.dx, center.dy),
+          Offset(center.dx, center.dy - 65.h),
+        ),
       );
-      // أسطر الصفحة اليمنى
+
+    for (int i = -3; i <= 3; i++) {
+      final double rayAngle = -math.pi / 2 + (i * 0.18);
+      final double rayLen = 48.h + (i.abs() == 0 ? 16.h : 0);
+      rayPaint.strokeWidth = (i == 0) ? 2.0 : 1.2;
       canvas.drawLine(
-        Offset(center.dx + quranWidth * 0.08, lineY + 1.2.h),
-        Offset(center.dx + quranWidth * 0.42, lineY),
-        textLinePaint,
+        Offset(center.dx + (i * 6.w), center.dy - 6.h),
+        Offset(
+          center.dx + rayLen * math.cos(rayAngle),
+          center.dy + rayLen * math.sin(rayAngle),
+        ),
+        rayPaint,
       );
     }
 
-    // و. شريط علامة المصحف الذهبي المنسدل من المنتصف (Golden Bookmark Ribbon)
-    final Path ribbon = Path();
-    ribbon.moveTo(center.dx, center.dy);
-    ribbon.cubicTo(
-      center.dx + 4.w,
-      center.dy + 8.h,
-      center.dx - 3.w,
-      center.dy + 16.h,
-      center.dx + 1.w,
-      center.dy + 22.h,
+    // -------------------------------------------------------------
+    // ب. الحامل الخشبي الإسلامي التقليدي (الرَّحْل - Carved Wooden Rahl)
+    // -------------------------------------------------------------
+    final double rahlY = center.dy + 8.h;
+
+    // ظل خفيف تحت الحامل على الأرضية الرخامية
+    final shadowPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withValues(alpha: isDark ? 0.40 : 0.18)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx, rahlY + 30.h),
+        width: quranWidth * 0.95,
+        height: 12.h,
+      ),
+      shadowPaint,
     );
+
+    // لون خشب الجوز المذهب
+    final Paint woodBack = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? [const Color(0xFF42220F), const Color(0xFF2E170A)]
+            : [const Color(0xFF6B3E1E), const Color(0xFF4A2A14)],
+      ).createShader(Rect.fromLTWH(center.dx - halfW, rahlY, quranWidth, 36.h));
+
+    final Paint woodFront = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+        colors: isDark
+            ? [const Color(0xFF63361A), const Color(0xFF3F210F)]
+            : [const Color(0xFF8B5128), const Color(0xFF5D3519)],
+      ).createShader(Rect.fromLTWH(center.dx - halfW, rahlY, quranWidth, 36.h));
+
+    // الساق الخلفية (مائلة من اليسار للأعلى إلى اليمين للأسفل)
+    final Path backLeg = Path();
+    backLeg.moveTo(center.dx - halfW * 0.62, rahlY - 10.h);
+    backLeg.lineTo(center.dx + halfW * 0.58, rahlY + 28.h);
+    backLeg.lineTo(center.dx + halfW * 0.44, rahlY + 28.h);
+    backLeg.lineTo(center.dx - halfW * 0.76, rahlY - 10.h);
+    backLeg.close();
+    canvas.drawPath(backLeg, woodBack);
+
+    // الساق الأمامية (مائلة من اليمين للأعلى إلى اليسار للأسفل - تتقاطع مع الخلفية)
+    final Path frontLeg = Path();
+    frontLeg.moveTo(center.dx + halfW * 0.62, rahlY - 10.h);
+    frontLeg.lineTo(center.dx - halfW * 0.58, rahlY + 28.h);
+    frontLeg.lineTo(center.dx - halfW * 0.44, rahlY + 28.h);
+    frontLeg.lineTo(center.dx + halfW * 0.76, rahlY - 10.h);
+    frontLeg.close();
+    canvas.drawPath(frontLeg, woodFront);
+
+    // فتحة محرابية مقوسة محفورة في خشب الرَّحْل (أرابيسك إسلامي في الحامل)
+    final Path archCutout = Path();
+    archCutout.moveTo(center.dx - 8.w, rahlY + 28.h);
+    archCutout.lineTo(center.dx - 8.w, rahlY + 21.h);
+    archCutout.quadraticBezierTo(
+      center.dx,
+      rahlY + 14.h,
+      center.dx + 8.w,
+      rahlY + 21.h,
+    );
+    archCutout.lineTo(center.dx + 8.w, rahlY + 28.h);
+    archCutout.close();
+
+    final cutoutPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = isDark ? const Color(0xFF040E12) : const Color(0xFFE2F3EC);
+    canvas.drawPath(archCutout, cutoutPaint);
+
+    // حواف خشبية محفورة ومحددة بخط ذهبي خافت
+    final woodEdgePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.35);
+    canvas.drawPath(frontLeg, woodEdgePaint);
+
+    // -------------------------------------------------------------
+    // ج. غلاف وتجليد المصحف الخارجي (جلد ملكي زمردي مذهب)
+    // -------------------------------------------------------------
+    final double bookTopY = center.dy - 22.h;
+    final double bookGutterY = center.dy + 8.h;
+
+    final Path outerCover = Path();
+    // الكعب السفلي
+    outerCover.moveTo(center.dx, bookGutterY + 5.h);
+    // الحافة السفلية اليسرى للغلاف
+    outerCover.cubicTo(
+      center.dx - halfW * 0.35,
+      bookGutterY + 8.h,
+      center.dx - halfW * 0.78,
+      center.dy + 2.h,
+      center.dx - halfW * 0.95,
+      bookTopY + 12.h,
+    );
+    // الحافة الخارجية اليسرى
+    outerCover.lineTo(center.dx - halfW * 0.95, bookTopY - 4.h);
+    // الحافة العلوية اليسرى
+    outerCover.cubicTo(
+      center.dx - halfW * 0.78,
+      bookTopY - 14.h,
+      center.dx - halfW * 0.35,
+      bookTopY - 4.h,
+      center.dx,
+      bookTopY + 2.h,
+    );
+    // الحافة العلوية اليمنى
+    outerCover.cubicTo(
+      center.dx + halfW * 0.35,
+      bookTopY - 4.h,
+      center.dx + halfW * 0.78,
+      bookTopY - 14.h,
+      center.dx + halfW * 0.95,
+      bookTopY - 4.h,
+    );
+    // الحافة الخارجية اليمنى
+    outerCover.lineTo(center.dx + halfW * 0.95, bookTopY + 12.h);
+    // الحافة السفلية اليمنى
+    outerCover.cubicTo(
+      center.dx + halfW * 0.78,
+      center.dy + 2.h,
+      center.dx + halfW * 0.35,
+      bookGutterY + 8.h,
+      center.dx,
+      bookGutterY + 5.h,
+    );
+    outerCover.close();
+
+    final coverPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF0F4727), Color(0xFF1B6A3B), Color(0xFF0A3A1E)],
+      ).createShader(outerCover.getBounds());
+    canvas.drawPath(outerCover, coverPaint);
+
+    // زوايا تذهيب نحاسية محفورة في أطراف الغلاف
+    final goldCornerPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.85);
+
+    canvas.drawCircle(Offset(center.dx - halfW * 0.93, bookTopY - 2.h), 2.2.r, goldCornerPaint);
+    canvas.drawCircle(Offset(center.dx + halfW * 0.93, bookTopY - 2.h), 2.2.r, goldCornerPaint);
+    canvas.drawCircle(Offset(center.dx - halfW * 0.93, bookTopY + 10.h), 2.2.r, goldCornerPaint);
+    canvas.drawCircle(Offset(center.dx + halfW * 0.93, bookTopY + 10.h), 2.2.r, goldCornerPaint);
+
+    // -------------------------------------------------------------
+    // د. كُتلة الأوراق المذهبة ثلاثية الأبعاد (Page Block Depth)
+    // -------------------------------------------------------------
+    final Paint pageEdgePaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFFCE69B), Color(0xFFC7982B), Color(0xFF9E7318)],
+      ).createShader(Rect.fromLTWH(center.dx - halfW, bookTopY, quranWidth, 30.h));
+
+    // حواف الصفحات المذهبة الجانبية لليسار
+    final Path leftEdgeBlock = Path();
+    leftEdgeBlock.moveTo(center.dx - halfW * 0.93, bookTopY - 2.h);
+    leftEdgeBlock.lineTo(center.dx - halfW * 0.93, bookTopY + 10.h);
+    leftEdgeBlock.lineTo(center.dx - halfW * 0.85, bookTopY + 9.h);
+    leftEdgeBlock.lineTo(center.dx - halfW * 0.85, bookTopY - 3.h);
+    leftEdgeBlock.close();
+    canvas.drawPath(leftEdgeBlock, pageEdgePaint);
+
+    // حواف الصفحات المذهبة الجانبية لليمين
+    final Path rightEdgeBlock = Path();
+    rightEdgeBlock.moveTo(center.dx + halfW * 0.93, bookTopY - 2.h);
+    rightEdgeBlock.lineTo(center.dx + halfW * 0.93, bookTopY + 10.h);
+    rightEdgeBlock.lineTo(center.dx + halfW * 0.85, bookTopY + 9.h);
+    rightEdgeBlock.lineTo(center.dx + halfW * 0.85, bookTopY - 3.h);
+    rightEdgeBlock.close();
+    canvas.drawPath(rightEdgeBlock, pageEdgePaint);
+
+    // -------------------------------------------------------------
+    // هـ. الصفحتان المفتوحتان بانسيابية ثلاثية الأبعاد (Open Curved Pages)
+    // -------------------------------------------------------------
+    // الصفحة اليسرى
+    final Path leftPage = Path();
+    leftPage.moveTo(center.dx, bookGutterY);
+    leftPage.cubicTo(
+      center.dx - halfW * 0.32,
+      bookGutterY + 4.h,
+      center.dx - halfW * 0.70,
+      center.dy - 1.h,
+      center.dx - halfW * 0.88,
+      bookTopY + 8.h,
+    );
+    leftPage.lineTo(center.dx - halfW * 0.88, bookTopY - 6.h);
+    leftPage.cubicTo(
+      center.dx - halfW * 0.70,
+      bookTopY - 16.h,
+      center.dx - halfW * 0.32,
+      bookTopY - 6.h,
+      center.dx,
+      bookTopY,
+    );
+    leftPage.close();
+
+    // الصفحة اليمنى
+    final Path rightPage = Path();
+    rightPage.moveTo(center.dx, bookGutterY);
+    rightPage.cubicTo(
+      center.dx + halfW * 0.32,
+      bookGutterY + 4.h,
+      center.dx + halfW * 0.70,
+      center.dy - 1.h,
+      center.dx + halfW * 0.88,
+      bookTopY + 8.h,
+    );
+    rightPage.lineTo(center.dx + halfW * 0.88, bookTopY - 6.h);
+    rightPage.cubicTo(
+      center.dx + halfW * 0.70,
+      bookTopY - 16.h,
+      center.dx + halfW * 0.32,
+      bookTopY - 6.h,
+      center.dx,
+      bookTopY,
+    );
+    rightPage.close();
+
+    // تدرج ورقي عاجي فاخر مع ظل ناعم في المنتصف
+    final leftPageShader = LinearGradient(
+      begin: Alignment.centerRight,
+      end: Alignment.centerLeft,
+      colors: const [Color(0xFFF3ECE0), Color(0xFFFFFDF8), Color(0xFFFCFAF4)],
+      stops: const [0.0, 0.25, 1.0],
+    ).createShader(leftPage.getBounds());
+
+    final rightPageShader = LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: const [Color(0xFFF3ECE0), Color(0xFFFFFDF8), Color(0xFFFCFAF4)],
+      stops: const [0.0, 0.25, 1.0],
+    ).createShader(rightPage.getBounds());
+
+    canvas.drawPath(leftPage, Paint()..style = PaintingStyle.fill..shader = leftPageShader);
+    canvas.drawPath(rightPage, Paint()..style = PaintingStyle.fill..shader = rightPageShader);
+
+    // إطار تذهيب أنيق حول الصفحتين
+    final goldBorderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = const Color(0xFFC99824);
+
+    canvas.drawPath(leftPage, goldBorderPaint);
+    canvas.drawPath(rightPage, goldBorderPaint);
+
+    // -------------------------------------------------------------
+    // و. تذهيب براويز المصحف الشريف النقية (صفحات بيضاء نقية بلا كتابة)
+    // -------------------------------------------------------------
+    final innerGoldLine = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.75);
+
+    // إطار تذهيب نقي للصفحة اليسرى
+    final Path leftInnerBox = Path();
+    leftInnerBox.moveTo(center.dx - 4.w, bookGutterY - 3.h);
+    leftInnerBox.cubicTo(
+      center.dx - halfW * 0.30,
+      bookGutterY + 1.h,
+      center.dx - halfW * 0.65,
+      center.dy - 3.h,
+      center.dx - halfW * 0.80,
+      bookTopY + 5.h,
+    );
+    leftInnerBox.lineTo(center.dx - halfW * 0.80, bookTopY - 2.h);
+    leftInnerBox.cubicTo(
+      center.dx - halfW * 0.65,
+      bookTopY - 11.h,
+      center.dx - halfW * 0.30,
+      bookTopY - 3.h,
+      center.dx - 4.w,
+      bookTopY + 3.h,
+    );
+    leftInnerBox.close();
+    canvas.drawPath(leftInnerBox, innerGoldLine);
+
+    // إطار تذهيب نقي للصفحة اليمنى
+    final Path rightInnerBox = Path();
+    rightInnerBox.moveTo(center.dx + 4.w, bookGutterY - 3.h);
+    rightInnerBox.cubicTo(
+      center.dx + halfW * 0.30,
+      bookGutterY + 1.h,
+      center.dx + halfW * 0.65,
+      center.dy - 3.h,
+      center.dx + halfW * 0.80,
+      bookTopY + 5.h,
+    );
+    rightInnerBox.lineTo(center.dx + halfW * 0.80, bookTopY - 2.h);
+    rightInnerBox.cubicTo(
+      center.dx + halfW * 0.65,
+      bookTopY - 11.h,
+      center.dx + halfW * 0.30,
+      bookTopY - 3.h,
+      center.dx + 4.w,
+      bookTopY + 3.h,
+    );
+    rightInnerBox.close();
+    canvas.drawPath(rightInnerBox, innerGoldLine);
+
+    // نقاط زخرفية رقيقة في زوايا براويز الصفحات
+    final cornerDotPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFFC59828).withValues(alpha: 0.85);
+    canvas.drawCircle(Offset(center.dx - halfW * 0.78, bookTopY - 2.h), 1.5.r, cornerDotPaint);
+    canvas.drawCircle(Offset(center.dx + halfW * 0.78, bookTopY - 2.h), 1.5.r, cornerDotPaint);
+
+    // -------------------------------------------------------------
+    // ز. شريط علامة المصحف الحريري المنسدل مع الشرابة (Bookmark Ribbon & Tassel)
+    // -------------------------------------------------------------
+    final Path silkRibbon = Path();
+    silkRibbon.moveTo(center.dx, bookTopY - 1.h);
+    silkRibbon.cubicTo(
+      center.dx + 5.w,
+      center.dy,
+      center.dx - 4.w,
+      bookGutterY + 8.h,
+      center.dx + 2.w,
+      rahlY + 16.h,
+    );
+
     canvas.drawPath(
-      ribbon,
+      silkRibbon,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
+        ..strokeWidth = 2.2
         ..strokeCap = StrokeCap.round
         ..color = const Color(0xFFD4AF37),
+    );
+
+    // الشرابة الذهبية في نهاية شريط المصحف
+    final Offset tasselTip = Offset(center.dx + 2.w, rahlY + 17.h);
+    canvas.drawCircle(tasselTip, 1.8.r, Paint()..style = PaintingStyle.fill..color = const Color(0xFFF9D874));
+    canvas.drawLine(
+      tasselTip,
+      Offset(tasselTip.dx - 2.w, tasselTip.dy + 6.h),
+      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFFC59828),
+    );
+    canvas.drawLine(
+      tasselTip,
+      Offset(tasselTip.dx, tasselTip.dy + 7.h),
+      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFFC59828),
+    );
+    canvas.drawLine(
+      tasselTip,
+      Offset(tasselTip.dx + 2.w, tasselTip.dy + 6.h),
+      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFFC59828),
     );
   }
 

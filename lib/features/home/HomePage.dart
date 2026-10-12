@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:tarteel/core/dialogs/exit_confirmation_dialog.dart';
 import 'package:tarteel/features/home/data/home_actions.dart';
 import 'package:tarteel/features/home/widgets/home_header/home_header.dart';
-import 'package:tarteel/features/home/widgets/home_recent_actions.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -83,22 +82,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             const HomeHeader(),
             Expanded(
               child: IslamicPatternBackground(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.0.w,
-                    vertical: 20.0.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const HomeRecentActions(),
-                      AccessListGrid(
-                        actions: HomeActions.quickActionsList,
-                        controller: _gridAnimationController,
-                      ),
-                      SizedBox(height: 10.h),
-                    ],
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.0.w,
+                      vertical: 20.0.h,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AccessListGrid(
+                          actions: HomeActions.quickActionsList,
+                          controller: _gridAnimationController,
+                        ),
+                        SizedBox(height: 20.h),
+                      ],
+                    ),
                   ),
                 ),
               ),

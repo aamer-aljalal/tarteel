@@ -5,6 +5,9 @@ import 'package:tarteel/features/azkar/services/azkar_service.dart';
 import 'package:tarteel/routes/AppRoutes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:tarteel/features/home/widgets/home_recent_actions.dart';
+import 'package:tarteel/main.dart';
+
 class HomeAzkarPromptCard extends StatefulWidget {
   const HomeAzkarPromptCard({super.key});
 
@@ -12,7 +15,8 @@ class HomeAzkarPromptCard extends StatefulWidget {
   State<HomeAzkarPromptCard> createState() => _HomeAzkarPromptCardState();
 }
 
-class _HomeAzkarPromptCardState extends State<HomeAzkarPromptCard> {
+class _HomeAzkarPromptCardState extends State<HomeAzkarPromptCard>
+    with RouteAware {
   ZekrCategory? _category;
   _AzkarPrompt? _prompt;
   bool _isLoading = true;
@@ -21,6 +25,26 @@ class _HomeAzkarPromptCardState extends State<HomeAzkarPromptCard> {
   @override
   void initState() {
     super.initState();
+    _loadPrompt();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      tarteel.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    tarteel.routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
     _loadPrompt();
   }
 
@@ -88,11 +112,19 @@ class _HomeAzkarPromptCardState extends State<HomeAzkarPromptCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || _isHidden || _prompt == null || _category == null) {
+    if (_isLoading) {
       return const SizedBox.shrink();
     }
 
-    return _PromptCard(prompt: _prompt!, onTap: _openAzkar);
+    final hasAzkarNotification =
+        !_isHidden && _prompt != null && _category != null;
+
+    if (hasAzkarNotification) {
+      return _PromptCard(prompt: _prompt!, onTap: _openAzkar);
+    }
+
+    // إذا لم يعد هناك إشعارات (تم فتحها أو لا يوجد إشعار لهذا الوقت)، يتم عرض شريط آخر مكان دخلت له
+    return const HomeRecentActions();
   }
 }
 

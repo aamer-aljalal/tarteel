@@ -236,7 +236,7 @@ class AppModalBottomSheet extends StatelessWidget {
     // حساب الارتفاع الثابت أو المتجاوب
     final double? fixedHeight = heightFraction != null
         ? (mediaQuery.size.height * heightFraction!) +
-            (keyboardHeight > 0 ? keyboardHeight * 0.5 : 0)
+              (keyboardHeight > 0 ? keyboardHeight * 0.5 : 0)
         : null;
 
     return AnimatedPadding(
@@ -245,9 +245,7 @@ class AppModalBottomSheet extends StatelessWidget {
       curve: Curves.easeOut,
       child: Container(
         height: fixedHeight,
-        constraints: BoxConstraints(
-          maxHeight: mediaQuery.size.height * 0.92,
-        ),
+        constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.92),
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -262,8 +260,9 @@ class AppModalBottomSheet extends StatelessWidget {
         child: Directionality(
           textDirection: TextDirection.rtl,
           child: Column(
-            mainAxisSize:
-                heightFraction == null ? MainAxisSize.min : MainAxisSize.max,
+            mainAxisSize: heightFraction == null
+                ? MainAxisSize.min
+                : MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. مقبض السحب (Drag Handle)
@@ -326,14 +325,19 @@ class AppModalBottomSheet extends StatelessWidget {
               // 3. التنبيه أو الوصف الفرعي (اختياري)
               if (subtitle != null && subtitle!.isNotEmpty)
                 Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 4.h,
+                  ),
                   child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary
-                          .withValues(alpha: isDark ? 0.12 : 0.06),
+                      color: AppColors.primary.withValues(
+                        alpha: isDark ? 0.12 : 0.06,
+                      ),
                       borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(
                         color: AppColors.primary.withValues(alpha: 0.12),
@@ -343,8 +347,9 @@ class AppModalBottomSheet extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.info_outline_rounded,
-                          color:
-                              isDark ? AppColors.goldAccent : AppColors.primary,
+                          color: isDark
+                              ? AppColors.goldAccent
+                              : AppColors.primary,
                           size: 18.sp,
                         ),
                         SizedBox(width: 8.w),
@@ -379,8 +384,8 @@ class AppModalBottomSheet extends StatelessWidget {
               Expanded(
                 flex: heightFraction != null ? 1 : 0,
                 child: Padding(
-                  padding: contentPadding ??
-                      EdgeInsets.symmetric(horizontal: 16.w),
+                  padding:
+                      contentPadding ?? EdgeInsets.symmetric(horizontal: 16.w),
                   child: _buildBody(context, isDark),
                 ),
               ),
@@ -398,8 +403,9 @@ class AppModalBottomSheet extends StatelessWidget {
                     color: theme.scaffoldBackgroundColor,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black
-                            .withValues(alpha: isDark ? 0.2 : 0.04),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.2 : 0.04,
+                        ),
                         blurRadius: 8,
                         offset: const Offset(0, -3),
                       ),
@@ -493,7 +499,10 @@ class AppModalBottomSheet extends StatelessWidget {
   }
 
   Widget _buildItemCard(
-      BuildContext context, BottomSheetItem item, bool isDark) {
+    BuildContext context,
+    BottomSheetItem item,
+    bool isDark,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: item.isSelected
@@ -521,7 +530,8 @@ class AppModalBottomSheet extends StatelessWidget {
           ),
           textAlign: TextAlign.right,
         ),
-        subtitle: item.subtitleWidget ??
+        subtitle:
+            item.subtitleWidget ??
             (item.subtitle != null
                 ? Text(
                     item.subtitle!,
@@ -532,7 +542,8 @@ class AppModalBottomSheet extends StatelessWidget {
                     textAlign: TextAlign.right,
                   )
                 : null),
-        leading: item.leading ??
+        leading:
+            item.leading ??
             (item.actions.isNotEmpty
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
@@ -547,7 +558,9 @@ class AppModalBottomSheet extends StatelessWidget {
   }
 
   Widget _buildActionButton(
-      BuildContext context, BottomSheetItemAction action) {
+    BuildContext context,
+    BottomSheetItemAction action,
+  ) {
     return IconButton(
       icon: Icon(action.icon, size: 20.sp, color: action.color),
       tooltip: action.tooltip,

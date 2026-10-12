@@ -63,9 +63,9 @@ class RecentActionsManager {
         extraData: extraData,
       ));
 
-      // Limit to max 4 items
-      if (actions.length > 4) {
-        actions.removeRange(4, actions.length);
+      // Limit to max 5 items
+      if (actions.length > 5) {
+        actions.removeRange(5, actions.length);
       }
 
       final jsonList = actions.map((e) => json.encode(e.toJson())).toList();
