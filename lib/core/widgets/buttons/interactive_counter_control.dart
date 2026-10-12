@@ -412,7 +412,8 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
     double? iconSize,
   }) {
     final effectiveColor =
-        action.color ?? (isDark ? AppColors.goldAccent : AppColors.primary);
+        action.color ?? (isDark ? AppColors.goldAccent : AppColors.black);
+    // action.color ?? AppColors.goldAccent;
     final effectiveBg =
         action.backgroundColor ??
         effectiveColor.withValues(alpha: isDark ? 0.16 : 0.08);
@@ -526,15 +527,15 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                         )
                       : null));
 
-    // الإجراءات الإضافية في الزوايا (على نفس خط التلميح: الركن الأيمن والركن الأيسر)
+    // الإجراءات الإضافية (زر الأقسام وزر الرئيسية جوار أزرار التنقل)
     final effectiveCornerAction =
         widget.cornerWidget ??
         (widget.cornerAction != null
             ? _buildSideActionWidget(
                 widget.cornerAction!,
                 isDark,
-                width: 42.w,
-                height: 42.h,
+                width: 40.w,
+                height: 40.h,
                 iconSize: 20.sp,
               )
             : null);
@@ -545,30 +546,70 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
             ? _buildSideActionWidget(
                 widget.leftCornerAction!,
                 isDark,
-                width: 42.w,
-                height: 42.h,
+                width: 40.w,
+                height: 40.h,
                 iconSize: 20.sp,
               )
             : null);
 
-    final hasCornerAction =
-        effectiveCornerAction != null || effectiveLeftCornerAction != null;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
 
-    // الحفاظ على المحاذاة المتوازنة في الوسط
-    final hasAnySideAction =
-        effectiveLeftAction != null || effectiveRightAction != null;
+    // المجموعة الأولى (اليمين في RTL: زر الأقسام ثم زر التالي)
+    final firstGroup = isRtl
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (effectiveCornerAction != null) effectiveCornerAction,
+              if (effectiveCornerAction != null && effectiveRightAction != null)
+                SizedBox(width: 6.w),
+              if (effectiveRightAction != null) effectiveRightAction,
+            ],
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (effectiveLeftCornerAction != null) effectiveLeftCornerAction,
+              if (effectiveLeftCornerAction != null &&
+                  effectiveLeftAction != null)
+                SizedBox(width: 6.w),
+              if (effectiveLeftAction != null) effectiveLeftAction,
+            ],
+          );
+
+    // المجموعة الثانية (اليسار في RTL: زر السابق ثم زر الرئيسية)
+    final secondGroup = isRtl
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (effectiveLeftAction != null) effectiveLeftAction,
+              if (effectiveLeftAction != null &&
+                  effectiveLeftCornerAction != null)
+                SizedBox(width: 6.w),
+              if (effectiveLeftCornerAction != null) effectiveLeftCornerAction,
+            ],
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (effectiveRightAction != null) effectiveRightAction,
+              if (effectiveRightAction != null && effectiveCornerAction != null)
+                SizedBox(width: 6.w),
+              if (effectiveCornerAction != null) effectiveCornerAction,
+            ],
+          );
 
     final controlRow = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // الجانب الأيسر
-        if (effectiveLeftAction != null)
-          effectiveLeftAction
-        else if (hasAnySideAction)
-          SizedBox(width: 54.w),
+        // المجموعة الجانبية الأولى
+        firstGroup,
 
-        if (hasAnySideAction) SizedBox(width: 16.w),
+        SizedBox(width: 10.w),
 
         // زر التفاعل الدائري المركزي
         GestureDetector(
@@ -655,13 +696,10 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
           ),
         ),
 
-        if (hasAnySideAction) SizedBox(width: 16.w),
+        SizedBox(width: 15.w),
 
-        // الجانب الأيمن
-        if (effectiveRightAction != null)
-          effectiveRightAction
-        else if (hasAnySideAction)
-          SizedBox(width: 54.w),
+        // المجموعة الجانبية الثانية
+        secondGroup,
       ],
     );
 
@@ -669,50 +707,28 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // صف أزرار التفاعل المركزي
+        // صف أزرار التفاعل الموحد بالكامل
         controlRow,
 
-        // المنطقة السفلية (صف التلميح التوجيهي مع أزرار الزوايا على نفس المستوى)
+        // المنطقة السفلية (التلميح وزر إعادة التعيين إن وُجدا)
         if (widget.bottomAction != null) ...[
-          // SizedBox(height: 50.h),
+          SizedBox(height: 8.h),
           widget.bottomAction!,
         ] else ...[
-          if (hasCornerAction ||
-              (widget.showHint && widget.hintText.isNotEmpty)) ...[
-            // SizedBox(height: 12.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // الجانب الأيمن (في RTL يظهر كأول عنصر على اليمين)
-                  Directionality.of(context) == TextDirection.rtl
-                      ? (effectiveCornerAction ?? SizedBox(width: 42.w))
-                      : (effectiveLeftCornerAction ?? SizedBox(width: 42.w)),
-
-
-                  // الجانب الأيسر (في RTL يظهر كآخر عنصر على اليسار)
-                  Directionality.of(context) == TextDirection.rtl
-                      ? (effectiveLeftCornerAction ?? SizedBox(width: 42.w))
-                      : (effectiveCornerAction ?? SizedBox(width: 42.w)),
-                ],
-              ),
-            ),
-          ],
+          if (widget.showHint && widget.hintText.isNotEmpty) ...[],
           if (widget.showResetButton && widget.onReset != null) ...[
-            // SizedBox(height: 4.h),
+            SizedBox(height: 4.h),
             TextButton.icon(
               onPressed: _handleReset,
               icon: Icon(
                 widget.resetIcon,
                 color: widget.resetColor,
-                size: 18.sp,
+                size: 12.sp,
               ),
               label: Text(
                 widget.resetLabel,
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: 8.sp,
                   color: widget.resetColor,
                   fontWeight: FontWeight.bold,
                 ),

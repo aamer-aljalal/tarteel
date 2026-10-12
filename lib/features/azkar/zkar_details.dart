@@ -245,8 +245,8 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
               color: isCurrent
                   ? AppColors.goldAccent.withValues(alpha: 0.2)
                   : (isDark
-                      ? Colors.white12
-                      : AppColors.primary.withValues(alpha: 0.08)),
+                        ? Colors.white12
+                        : AppColors.primary.withValues(alpha: 0.08)),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -403,7 +403,6 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
         titleText: widget.category.title,
         elevation: 0,
         toolbarHeight: 90,
-
       ),
       body: SafeArea(
         child: Column(
@@ -453,7 +452,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 16.h),
+            // SizedBox(height: 16.h),
 
             // Page View Container
             Expanded(
@@ -480,7 +479,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
               ),
             ),
 
-            SizedBox(height: 20.h),
+            // SizedBox(height: 20.h),
             InteractiveCounterControl(
               count: currentZekr.currentCount,
               totalRepeat: _totalRepeat,
