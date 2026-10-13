@@ -1,0 +1,86 @@
+[
+  {
+    "id": "quran",
+    "title": "القرآن",
+    "route": "/quran",
+    "icon": "quran",
+    "isEnabled": true
+  },
+  {
+    "id": "azkar",
+    "title": "الأذكار",
+    "route": "/azkar-categories",
+    "icon": "azkar",
+    "isEnabled": true
+  },
+  {
+    "id": "hisn",
+    "title": "حصن المسلم",
+    "route": "/hisn-categories",
+    "icon": "hisn",
+    "isEnabled": true
+  },
+  {
+    "id": "hadith",
+    "title": "الأحاديث",
+    "route": "/hadith",
+    "icon": "hadith",
+    "isEnabled": true
+  },
+  {
+    "id": "tasbeeh",
+    "title": "التسبيح",
+    "route": "/tasbeeh",
+    "icon": "tasbeeh",
+    "isEnabled": true
+  },
+  {
+    "id": "names_of_allah",
+    "title": "الأسماء",
+    "route": "/names-of-allah",
+    "icon": "names_of_allah",
+    "isEnabled": true
+  },
+  {
+    "id": "prophets",
+    "title": "قصص الأنبياء",
+    "route": "/prophets-stories",
+    "icon": "prophets",
+    "isEnabled": true
+  },
+  {
+    "id": "adhan",
+    "title": "المؤذن",
+    "route": "/adhan-muezzin",
+    "icon": "adhan",
+    "isEnabled": true
+  },
+  {
+    "id": "qibla",
+    "title": "البوصلة",
+    "route": "/qibla",
+    "icon": "qibla",
+    "isEnabled": true
+  },
+  {
+    "id": "bookmarks",
+    "title": "المفضلة",
+    "route": "/bookmarks",
+    "icon": "bookmarks",
+    "isEnabled": true
+  },
+  {
+    "id": "stats",
+    "title": "الإحصائيات",
+    "route": "/stats",
+    "icon": "stats",
+    "isEnabled": true
+  },
+  {
+    "id": "settings",
+    "title": "الإعدادات",
+    "route": "/settings",
+    "icon": "settings",
+    "isEnabled": true
+  }
+]

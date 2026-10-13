@@ -34,4 +34,7 @@ class AppRoutes {
   // ========================= حصن المسلم =========================
   static const hisnCategories = '/hisn-categories';
   static const hisnDetails = '/hisn-details';
+
+  // ========================= التحديات والمسابقات =========================
+  static const islamicQuiz = '/islamic-quiz';
 }

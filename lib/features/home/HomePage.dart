@@ -1,73 +1,40 @@
+/// ==============================================================================
+///  وصف الملف: HomePage.dart
+/// ==============================================================================
+/// الصفحة الرئيسية لتطبيق ترتيل.
+///
+///  التصميم المعماري:
+/// - StatelessWidget نقية تماماً بنمط BLoC / Cubit.
+/// - تستخدم `BlocBuilder<HomeCubit, HomeState>` للاستماع لحالة الأزرار وإعادة رسمها فوراً
+///   دون الحاجة لأي Stateful Lifecycle أو متغيرات تحكم يدوية.
+/// ==============================================================================
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tarteel/core/dialogs/exit_confirmation_dialog.dart';
-import 'package:tarteel/features/home/data/home_actions.dart';
-import 'package:tarteel/features/home/widgets/home_header/home_header.dart';
-import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
+import 'package:tarteel/core/dialogs/exit_confirmation_dialog.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
-
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
+import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
+import 'package:tarteel/features/home/cubit/home_cubit.dart';
+import 'package:tarteel/features/home/cubit/home_state.dart';
+import 'package:tarteel/features/home/widgets/home_header/home_header.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  int adhkarCount = 120;
-  int adhkarTarget = 300;
-  int pagesRead = 5;
-  int pagesTarget = 20;
-
-  double get adhkarProgress => adhkarCount / adhkarTarget;
-  double get readingProgress => pagesRead / pagesTarget;
-
-  late AnimationController _progressController;
-  late AnimationController _gridAnimationController;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _progressController.forward();
-
-    _gridAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _gridAnimationController.forward();
-
-    // تشغيل التحقق من صلاحيات الموقع وجلب الإحداثيات بطريقة متجاوبة وأنيقة
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Provider.of<PrayerProvider>(
-          context,
-          listen: false,
-        ).checkAndPromptLocation(context);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _progressController.dispose();
-    _gridAnimationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // التحقق من صلاحيات الموقع لجلب مواقيت الصلاة في أول ظهور
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PrayerProvider>().checkAndPromptLocation(context);
+    });
+
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldExit = await ExitConfirmationDialog(context);
         if (shouldExit) {
@@ -93,9 +60,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        AccessListGrid(
-                          actions: HomeActions.quickActionsList,
-                          controller: _gridAnimationController,
+                        BlocBuilder<HomeCubit, HomeState>(
+                          builder: (context, state) {
+                            if (state.isLoading && state.actions.isEmpty) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            return AccessListGrid(actions: state.actions);
+                          },
                         ),
                         SizedBox(height: 20.h),
                       ],

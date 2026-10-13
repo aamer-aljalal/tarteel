@@ -15,6 +15,8 @@ import 'package:provider/provider.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
 import 'package:tarteel/features/adhan/services/adhan_player_service.dart';
 import 'package:tarteel/core/providers/theme_provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tarteel/features/home/cubit/home_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +41,9 @@ void main() async {
       providers: [
         ChangeNotifierProvider(
           create: (_) => PrayerProvider()..initializeData(),
+        ),
+        BlocProvider(
+          create: (_) => HomeCubit(),
         ),
         ChangeNotifierProvider.value(value: themeProvider),
       ],

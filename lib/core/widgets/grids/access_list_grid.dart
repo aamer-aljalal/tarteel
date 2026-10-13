@@ -18,12 +18,12 @@ import 'package:tarteel/core/theme/app_radius.dart';
 
 class AccessListGrid extends StatelessWidget {
   final List<AccessListModel> actions;
-  final AnimationController controller;
+  final AnimationController? controller;
 
   const AccessListGrid({
     super.key,
     required this.actions,
-    required this.controller,
+    this.controller,
   });
 
   @override
@@ -45,36 +45,43 @@ class AccessListGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = actions[index];
 
-        // حل مشكلة توقف التطبيق (Crash):
-        // نقوم بضرب مؤشر العنصر (index) في قيمة تأخير صغيرة، ونحد من قيمتها القصوى باستخدام clamp لتكون أقل من 1.0 دائماً (الحد الأقصى المسموح به في Interval هو 1.0).
-        // هذا يضمن تشغيل التدرج الحركي بشكل رائع للعناصر الأولى، ويمنع التطبيق من الانهيار مع القوائم الطويلة مثل فصول حصن المسلم.
-        final animationDelay = (index * 0.04).clamp(0.0, 0.95);
+        final itemWidget = GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              item.route,
+              arguments: item.arguments,
+            );
+          },
+          child: _buildItemCard(context, item, brightness),
+        );
 
+        if (controller == null) {
+          return itemWidget;
+        }
+
+        final animationDelay = (index * 0.04).clamp(0.0, 0.95);
         final animation = CurvedAnimation(
-          parent: controller,
+          parent: controller!,
           curve: Interval(animationDelay, 1.0, curve: Curves.easeOutCubic),
         );
 
         return FadeTransition(
           opacity: animation,
-
           child: SlideTransition(
             position: Tween<Offset>(
               begin: const Offset(0, 0.6),
               end: Offset.zero,
             ).animate(animation),
+            child: itemWidget,
+          ),
+        );
+      },
+    );
+  }
 
-            child: GestureDetector(
-              onTap: () {
-                // Navigator.pushNamed(context, item.route);
-                Navigator.pushNamed(
-                  context,
-                  item.route,
-                  arguments: item.arguments,
-                );
-              },
-
-              child: Container(
+  Widget _buildItemCard(BuildContext context, AccessListModel item, Brightness brightness) {
+    return Container(
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: brightness == Theme.of(context).brightness
@@ -152,11 +159,6 @@ class AccessListGrid extends StatelessWidget {
                     SizedBox(height: 5.h),
                   ],
                 ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+              );
   }
 }
