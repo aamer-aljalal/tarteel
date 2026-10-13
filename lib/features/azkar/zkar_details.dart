@@ -1,14 +1,10 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/azkar/model/zekr_category.dart';
-
-import 'package:tarteel/core/services/in_app_notification_service.dart';
-import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
@@ -17,211 +13,86 @@ import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
 import 'package:tarteel/features/azkar/icons/azkar_icons.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
+import 'package:tarteel/features/azkar/cubit/details/azkar_details_cubit.dart';
+import 'package:tarteel/features/azkar/cubit/details/azkar_details_state.dart';
 
-class AzkarDetailsScreen extends StatefulWidget {
-  final ZekrCategory category;
-  const AzkarDetailsScreen({super.key, required this.category});
+class AzkarDetailsScreen extends StatelessWidget {
+  final ZekrCategory? category;
+  final String? categoryTitle;
+
+  const AzkarDetailsScreen({super.key, this.category, this.categoryTitle})
+    : assert(category != null || categoryTitle != null);
 
   @override
-  State<AzkarDetailsScreen> createState() => _AzkarDetailsScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AzkarDetailsCubit(
+        initialCategory: category,
+        initialCategoryTitle: categoryTitle ?? category?.title,
+      ),
+      child: const _AzkarDetailsView(),
+    );
+  }
 }
 
-class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
-  int currentZekrIndex = 0;
-  bool _hapticEnabled = true;
-  double _activeMaxFontSize = 16.0;
+class _AzkarDetailsView extends StatefulWidget {
+  const _AzkarDetailsView();
 
-  dynamic get currentZekr => widget.category.azkar[currentZekrIndex];
-  int get _totalRepeat => int.tryParse(currentZekr.count) ?? 1;
-  double get _progress => currentZekr.currentCount / _totalRepeat;
+  @override
+  State<_AzkarDetailsView> createState() => _AzkarDetailsViewState();
+}
 
-  bool get _isAllAzkarCompleted => widget.category.azkar.every((zekr) {
-    final repeat = int.tryParse(zekr.count) ?? 1;
-    return zekr.currentCount >= repeat;
-  });
-
-  // bool get _hasStartedReciting =>
-  //     widget.category.azkar.any((zekr) => zekr.currentCount > 0);
-
+class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
   late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _loadSavedIndex();
-
-    if (widget.category.title == 'أذكار الصباح') {
-      InAppNotificationService.markCompleted('morning_azkar');
-    } else if (widget.category.title == 'أذكار المساء') {
-      InAppNotificationService.markCompleted('evening_azkar');
-    } else if (widget.category.title == 'أذكار النوم') {
-      InAppNotificationService.markCompleted('sleep_azkar');
-    }
   }
 
-  Future<void> _loadSavedIndex() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _hapticEnabled = prefs.getBool('haptic_feedback') ?? true;
-
-      // Load daily counts for each Zekr in this category
-      final now = DateTime.now();
-      final todayStr = '${now.year}-${now.month}-${now.day}';
-      final savedDate = prefs.getString('azkar_date_${widget.category.title}');
-
-      if (savedDate == todayStr) {
-        for (int i = 0; i < widget.category.azkar.length; i++) {
-          final countVal =
-              prefs.getInt('azkar_count_${widget.category.title}_$i') ?? 0;
-          widget.category.azkar[i].currentCount = countVal;
-        }
-      } else {
-        await prefs.setString('azkar_date_${widget.category.title}', todayStr);
-        for (int i = 0; i < widget.category.azkar.length; i++) {
-          widget.category.azkar[i].currentCount = 0;
-          await prefs.remove('azkar_count_${widget.category.title}_$i');
-        }
-      }
-
-      final savedIndex =
-          prefs.getInt('zekr_index_${widget.category.title}') ?? 0;
-
-      if (mounted) {
-        setState(() {
-          if (savedIndex > 0 && savedIndex < widget.category.azkar.length) {
-            currentZekrIndex = savedIndex;
-          }
-        });
-      }
-
-      if (savedIndex > 0 && savedIndex < widget.category.azkar.length) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_pageController.hasClients) {
-            _pageController.jumpToPage(savedIndex);
-          }
-        });
-      }
-    } catch (_) {}
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _saveRecentAzkarAction();
-    });
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
-  Future<void> _saveRecentAzkarAction() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        'zekr_index_${widget.category.title}',
-        currentZekrIndex,
-      );
-      await RecentActionsManager.addAction(
-        category: 'azkar',
-        title: widget.category.title,
-        subtitle: 'ذكر ${currentZekrIndex + 1}/${widget.category.azkar.length}',
-        extraData: {'category_title': widget.category.title},
-      );
-    } catch (_) {}
-  }
-
-  void _onCounterTap() {
-    // Record stats
-    StatsService.recordAction('azkar');
-
-    setState(() {
-      if (currentZekr.currentCount < _totalRepeat) {
-        currentZekr.currentCount++;
-
-        // Save today's progress to SharedPreferences for this specific Zekr
-        final targetIndex = currentZekrIndex;
-        final categoryTitle = widget.category.title;
-        final newCount = currentZekr.currentCount;
-        SharedPreferences.getInstance()
-            .then((prefs) {
-              prefs.setInt(
-                'azkar_count_${categoryTitle}_$targetIndex',
-                newCount,
+  void _onCounterTap(BuildContext context) {
+    final cubit = context.read<AzkarDetailsCubit>();
+    cubit.incrementCounter(
+      onSingleCompleted: () {
+        final state = cubit.state;
+        if (state.category != null &&
+            state.currentIndex < state.category!.azkar.length - 1) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted && _pageController.hasClients) {
+              final nextIndex = state.currentIndex + 1;
+              _pageController.animateToPage(
+                nextIndex,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
               );
-            })
-            .catchError((_) {});
-
-        // When the single zekr count is fully completed!
-        if (currentZekr.currentCount == _totalRepeat) {
-          StatsService.recordAction('completed_azkar_single');
-
-          if (_isAllAzkarCompleted) {
-            Future.delayed(const Duration(milliseconds: 250), () {
-              if (mounted) {
-                _showCompletionSheet();
-              }
-            });
-          } else if (currentZekrIndex < widget.category.azkar.length - 1) {
-            Future.delayed(const Duration(milliseconds: 300), () {
-              if (mounted) {
-                setState(() {
-                  currentZekrIndex++;
-                });
-                _pageController.animateToPage(
-                  currentZekrIndex,
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                );
-              }
-            });
-          }
+            }
+          });
         }
-      }
-    });
-
-    if (_hapticEnabled) HapticFeedback.mediumImpact();
-  }
-
-  void _onZoomIn() {
-    if (_activeMaxFontSize < 34.0) {
-      setState(() {
-        _activeMaxFontSize += 2.0;
-      });
-      if (_hapticEnabled) HapticFeedback.mediumImpact();
-    }
-  }
-
-  void _onZoomOut() {
-    if (_activeMaxFontSize > 14.0) {
-      setState(() {
-        _activeMaxFontSize -= 2.0;
-      });
-      if (_hapticEnabled) HapticFeedback.mediumImpact();
-    }
-  }
-
-  void _resetCategory() {
-    setState(() {
-      for (var zekr in widget.category.azkar) {
-        zekr.currentCount = 0;
-      }
-      currentZekrIndex = 0;
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(0);
-      }
-    });
-
-    SharedPreferences.getInstance()
-        .then((prefs) async {
-          for (int i = 0; i < widget.category.azkar.length; i++) {
-            await prefs.remove('azkar_count_${widget.category.title}_$i');
+      },
+      onAllCompleted: () {
+        Future.delayed(const Duration(milliseconds: 250), () {
+          if (mounted && context.mounted) {
+            _showCompletionSheet(context);
           }
-        })
-        .catchError((_) {});
-
-    _saveRecentAzkarAction();
-    _showMessage('تمت إعادة تعيين العدادات بالكامل');
+        });
+      },
+    );
   }
 
-  Future<void> _showCategoriesBottomSheet() async {
+  Future<void> _showCategoriesBottomSheet(BuildContext context) async {
     HapticFeedback.lightImpact();
-    final categories = await AzkarService.loadAzkar();
-    if (!mounted) return;
+    final cubit = context.read<AzkarDetailsCubit>();
+    final currentTitle = cubit.state.categoryTitle;
+
+    final actions = await AzkarService.loadAzkarAsActions();
+    if (!context.mounted) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -230,14 +101,13 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
       title: 'أقسام الأذكار',
       subtitle: 'اختر القسم الذي ترغب بالانتقال إليه مباشرة',
       heightFraction: 0.72,
-      items: categories.map((cat) {
-        final isCurrent =
-            cat.id == widget.category.id || cat.title == widget.category.title;
-        final icon = AzkarIcons.icons[cat.title] ?? Icons.menu_book_rounded;
+      items: actions.map((item) {
+        final isCurrent = item.title == currentTitle;
+        final icon = AzkarIcons.icons[item.title] ?? Icons.menu_book_rounded;
 
         return BottomSheetItem(
-          title: cat.title,
-          subtitle: '${cat.azkar.length} ذكر مأثور',
+          title: item.title,
+          subtitle: 'قسم مأثور',
           isSelected: isCurrent,
           leading: Container(
             width: 40.w,
@@ -263,7 +133,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => AzkarDetailsScreen(category: cat),
+                  builder: (_) => AzkarDetailsScreen(categoryTitle: item.title),
                 ),
               );
             }
@@ -273,19 +143,15 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
     );
   }
 
-  void _showCompletionSheet() {
-    // Record completion of the entire Azkar category!
-    StatsService.recordAction('completed_azkar_category');
-
-    if (_hapticEnabled) HapticFeedback.vibrate();
-
+  void _showCompletionSheet(BuildContext context) {
+    final cubit = context.read<AzkarDetailsCubit>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (context) => Container(
+      builder: (_) => Container(
         padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -307,7 +173,7 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
             ),
             SizedBox(height: 10.h),
             Text(
-              'لقد أتممت قراءة كافة أذكار ${widget.category.title} بنجاح.',
+              'لقد أتممت قراءة كافة أذكار ${cubit.state.categoryTitle} بنجاح.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14.sp,
@@ -322,7 +188,10 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _resetCategory();
+                      cubit.resetCategory();
+                      if (_pageController.hasClients) {
+                        _pageController.jumpToPage(0);
+                      }
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
@@ -370,152 +239,150 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
     );
   }
 
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          msg,
-          textAlign: TextAlign.right,
-          style: TextStyle(fontFamily: 'Cairo'),
-        ),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        backgroundColor: AppColors.primary,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: tarteelAppBar(
-        titleText: widget.category.title,
-        elevation: 0,
-        toolbarHeight: 90,
-      ),
-      body: AnimatedSkyBackground(
-        categoryTitle: widget.category.title,
-        child: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(height: 16.h),
-              // Dynamic Section Progress Bar using reusable component & Cubit
-              SectionProgressBar(
-                currentIndex: currentZekrIndex,
-                totalCount: widget.category.azkar.length,
-                isZeroBasedIndex: true,
-              ),
-              // SizedBox(height: 16.h),
+    return BlocConsumer<AzkarDetailsCubit, AzkarDetailsState>(
+      listener: (context, state) {
+        if (_pageController.hasClients &&
+            _pageController.page?.round() != state.currentIndex) {
+          _pageController.jumpToPage(state.currentIndex);
+        }
+      },
+      builder: (context, state) {
+        if (state.isLoading || state.category == null) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.categoryTitle,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
 
-              // Page View Container
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: widget.category.azkar.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      currentZekrIndex = index;
-                    });
-                    _saveRecentAzkarAction();
-                  },
-                  itemBuilder: (context, index) {
-                    final zekr = widget.category.azkar[index];
-                    return AnimatedPadding(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.only(
-                        left: 20.w,
-                        right: 20.w,
-                        top: 20.h,
-                        // bottom: 10.h,
-                      ),
-                      child: _buildZekrCard(zekr),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 60.h),
+        final category = state.category!;
+        final currentZekr = state.currentZekr;
 
-              // SizedBox(height: 20.h),
-              InteractiveCounterControl(
-                count: currentZekr.currentCount,
-                totalRepeat: _totalRepeat,
-                progress: _progress,
-                onCounterTap: _onCounterTap,
-                cornerAction: CounterSideAction(
-                  icon: Icons.format_list_bulleted_rounded,
-                  tooltip: 'أقسام الأذكار',
-                  onTap: _showCategoriesBottomSheet,
-                ),
-                leftCornerAction: CounterSideAction(
-                  icon: Icons.home_rounded,
-                  tooltip: 'الصفحة الرئيسية',
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.homePage,
-                      (route) => false,
-                    );
-                  },
-                ),
-                onNext: () {
-                  if (_pageController.hasClients) {
-                    _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                },
-                onPrevious: () {
-                  if (_pageController.hasClients) {
-                    _pageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                },
-                hasNext: currentZekrIndex < widget.category.azkar.length - 1,
-                hasPrevious: currentZekrIndex > 0,
-                // showResetButton: _hasStartedReciting,
-                onReset: _resetCategory,
-                showResetButton: true,
-                resetConfirmTitle: 'إعادة تعيين الأذكار',
-                resetConfirmMessage:
-                    'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-                resetColor: Colors.redAccent,
-              ),
-            ],
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: tarteelAppBar(
+            titleText: state.categoryTitle,
+            elevation: 0,
+            toolbarHeight: 90,
           ),
-        ),
-      ),
-    );
-  }
+          body: AnimatedSkyBackground(
+            categoryTitle: state.categoryTitle,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  SizedBox(height: 16.h),
+                  // Dynamic Section Progress Bar using reusable component & Cubit
+                  SectionProgressBar(
+                    currentIndex: state.currentIndex,
+                    totalCount: category.azkar.length,
+                    isZeroBasedIndex: true,
+                  ),
 
-  Widget _buildZekrCard(dynamic zekr) {
-    return InteractiveContentCard(
-      content: zekr.content,
-      indexLabel: 'الذكر ${currentZekrIndex + 1}',
-      fontSize: _activeMaxFontSize,
-      onZoomIn: _onZoomIn,
-      onZoomOut: _onZoomOut,
-      showFavorite: true,
-      favoriteType: 'azkar',
-      favoriteTitle: widget.category.title,
-      description: zekr.description,
-      reference: zekr.reference,
-      counterBadgeText: 'التكرار  : ${zekr.currentCount} / $_totalRepeat',
+                  // Page View Container
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: category.azkar.length,
+                      onPageChanged: (index) {
+                        context.read<AzkarDetailsCubit>().changePage(index);
+                      },
+                      itemBuilder: (context, index) {
+                        final zekr = category.azkar[index];
+                        return AnimatedPadding(
+                          duration: const Duration(milliseconds: 200),
+                          padding: EdgeInsets.only(
+                            left: 20.w,
+                            right: 20.w,
+                            top: 20.h,
+                          ),
+                          child: InteractiveContentCard(
+                            content: zekr.content,
+                            indexLabel: 'الذكر ${state.currentIndex + 1}',
+                            fontSize: state.fontSize,
+                            onZoomIn: () =>
+                                context.read<AzkarDetailsCubit>().zoomIn(),
+                            onZoomOut: () =>
+                                context.read<AzkarDetailsCubit>().zoomOut(),
+                            showFavorite: true,
+                            favoriteType: 'azkar',
+                            favoriteTitle: state.categoryTitle,
+                            description: zekr.description,
+                            reference: zekr.reference,
+                            counterBadgeText:
+                                'التكرار  : ${zekr.currentCount} / ${state.totalRepeat}',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 60.h),
+
+                  InteractiveCounterControl(
+                    count: currentZekr?.currentCount ?? 0,
+                    totalRepeat: state.totalRepeat,
+                    progress: state.currentProgress,
+                    onCounterTap: () => _onCounterTap(context),
+                    cornerAction: CounterSideAction(
+                      icon: Icons.format_list_bulleted_rounded,
+                      tooltip: 'أقسام الأذكار',
+                      onTap: () => _showCategoriesBottomSheet(context),
+                    ),
+                    leftCornerAction: CounterSideAction(
+                      icon: Icons.home_rounded,
+                      tooltip: 'الصفحة الرئيسية',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          AppRoutes.homePage,
+                          (route) => false,
+                        );
+                      },
+                    ),
+                    onNext: () {
+                      if (_pageController.hasClients) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    onPrevious: () {
+                      if (_pageController.hasClients) {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    hasNext: state.currentIndex < category.azkar.length - 1,
+                    hasPrevious: state.currentIndex > 0,
+                    onReset: () async {
+                      await context.read<AzkarDetailsCubit>().resetCategory();
+                      if (_pageController.hasClients) {
+                        _pageController.jumpToPage(0);
+                      }
+                    },
+                    showResetButton: true,
+                    resetConfirmTitle: 'إعادة تعيين الأذكار',
+                    resetConfirmMessage:
+                        'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
+                    resetColor: Colors.redAccent,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -51,9 +51,19 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (_) => const AzkarCategoriesScreen());
 
       case AppRoutes.zkarDetails:
-        final category = settings.arguments as ZekrCategory;
+        if (settings.arguments is ZekrCategory) {
+          return MaterialPageRoute(
+            builder: (_) =>
+                AzkarDetailsScreen(category: settings.arguments as ZekrCategory),
+          );
+        } else if (settings.arguments is String) {
+          return MaterialPageRoute(
+            builder: (_) =>
+                AzkarDetailsScreen(categoryTitle: settings.arguments as String),
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => AzkarDetailsScreen(category: category),
+          builder: (_) => const AzkarCategoriesScreen(),
         );
 
       // ========================= التسبيح =========================
@@ -120,9 +130,19 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (_) => const HisnCategoriesScreen());
 
       case AppRoutes.hisnDetails:
-        final category = settings.arguments as HisnCategory;
+        if (settings.arguments is HisnCategory) {
+          return MaterialPageRoute(
+            builder: (_) =>
+                HisnDetailsScreen(category: settings.arguments as HisnCategory),
+          );
+        } else if (settings.arguments is String) {
+          return MaterialPageRoute(
+            builder: (_) =>
+                HisnDetailsScreen(categoryTitle: settings.arguments as String),
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => HisnDetailsScreen(category: category),
+          builder: (_) => const HisnCategoriesScreen(),
         );
 
       // ========================= التحديات والمسابقات =========================

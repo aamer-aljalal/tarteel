@@ -1,0 +1,81 @@
+/// ==============================================================================
+///  وصف الملف: generic_catalog_cubit.dart
+/// ==============================================================================
+/// كيوبت عام لإدارة أي قائمة كتالوج سريع (أذكار، حصن، أحاديث، سور، إلخ).
+/// يدعم التحميل الفوري، الكاش الذكي، والبحث التلقائي باللغة العربية.
+/// ==============================================================================
+library;
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tarteel/core/helpers/arabic_search_helper.dart';
+import '../lazy_data_loader.dart';
+import 'generic_catalog_state.dart';
+
+class GenericCatalogCubit<THeader, TDetail>
+    extends Cubit<GenericCatalogState<THeader>> {
+  final LazyDataLoader<THeader, TDetail> loader;
+  final String Function(THeader item) titleExtractor;
+
+  GenericCatalogCubit({
+    required this.loader,
+    required this.titleExtractor,
+    bool autoLoad = true,
+  }) : super(const GenericCatalogState(isLoading: true)) {
+    if (autoLoad) {
+      loadCatalog();
+    }
+  }
+
+  /// تحميل العناوين خفيفة الوزن بسرعة البرق
+  Future<void> loadCatalog() async {
+    try {
+      emit(state.copyWith(isLoading: true, errorMessage: null));
+      final items = await loader.loadHeaders();
+      emit(state.copyWith(
+        allItems: items,
+        filteredItems: items,
+        isLoading: false,
+        searchQuery: '',
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'تعذر تحميل القائمة: $e',
+      ));
+    }
+  }
+
+  /// تصفية وبحث ذكي يدعم الكلمات العربية وتجريد التشكيل
+  void search(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      emit(state.copyWith(
+        filteredItems: state.allItems,
+        searchQuery: '',
+      ));
+      return;
+    }
+
+    final normalizedQuery = ArabicSearchHelper.normalize(trimmed).toLowerCase();
+
+    final results = state.allItems.where((item) {
+      final title = titleExtractor(item);
+      final normalizedTitle =
+          ArabicSearchHelper.normalize(title).toLowerCase();
+      return normalizedTitle.contains(normalizedQuery);
+    }).toList();
+
+    emit(state.copyWith(
+      filteredItems: results,
+      searchQuery: query,
+    ));
+  }
+
+  /// مسح البحث
+  void clearSearch() {
+    emit(state.copyWith(
+      filteredItems: state.allItems,
+      searchQuery: '',
+    ));
+  }
+}

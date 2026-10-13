@@ -1,151 +1,64 @@
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
-import 'package:tarteel/core/services/recent_actions_service.dart';
-import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
-import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
-import 'package:tarteel/core/services/stats_service.dart';
-import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
-import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
-import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
+import 'package:tarteel/core/theme/app_colors.dart';
+import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
+import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
+import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
+import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
+import 'package:tarteel/features/hisn_almuslim/cubit/details/hisn_details_cubit.dart';
+import 'package:tarteel/features/hisn_almuslim/cubit/details/hisn_details_state.dart';
+import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
+import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
-class HisnDetailsScreen extends StatefulWidget {
-  final HisnCategory category;
-  const HisnDetailsScreen({super.key, required this.category});
+class HisnDetailsScreen extends StatelessWidget {
+  final HisnCategory? category;
+  final String? categoryTitle;
+
+  const HisnDetailsScreen({super.key, this.category, this.categoryTitle})
+      : assert(category != null || categoryTitle != null);
 
   @override
-  State<HisnDetailsScreen> createState() => _HisnDetailsScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => HisnDetailsCubit(
+        initialCategory: category,
+        initialCategoryTitle: categoryTitle ?? category?.title,
+      ),
+      child: const _HisnDetailsView(),
+    );
+  }
 }
 
-class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
-  int currentHisnIndex = 0;
-  bool _hapticEnabled = true;
-  double _activeMaxFontSize = 18.0;
+class _HisnDetailsView extends StatefulWidget {
+  const _HisnDetailsView();
 
-  // Since Hisn has no built-in target counts, we default to 1, or let it increment infinitely.
-  // We'll maintain a list of current counts here:
-  late List<int> _counters;
+  @override
+  State<_HisnDetailsView> createState() => _HisnDetailsViewState();
+}
 
-  String get currentText => widget.category.texts[currentHisnIndex];
-
-  // We can assume a target of 1 for the progress ring to look full after 1 tap.
-  int get _totalRepeat => 1;
-  double get _progress =>
-      (_counters[currentHisnIndex] / _totalRepeat).clamp(0.0, 1.0);
-
-  bool get _isAllCompleted => _counters.every((count) => count >= _totalRepeat);
-
+class _HisnDetailsViewState extends State<_HisnDetailsView> {
   late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _counters = List.filled(widget.category.texts.length, 0);
     _pageController = PageController();
-    _loadSavedIndex();
   }
 
-  Future<void> _loadSavedIndex() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _hapticEnabled = prefs.getBool('haptic_feedback') ?? true;
-
-      // Load daily counts for each Hisn in this category
-      final now = DateTime.now();
-      final todayStr = '${now.year}-${now.month}-${now.day}';
-      final savedDate = prefs.getString('hisn_date_${widget.category.title}');
-
-      if (savedDate == todayStr) {
-        for (int i = 0; i < widget.category.texts.length; i++) {
-          final countVal =
-              prefs.getInt('hisn_count_${widget.category.title}_$i') ?? 0;
-          _counters[i] = countVal;
-        }
-      } else {
-        await prefs.setString('hisn_date_${widget.category.title}', todayStr);
-        for (int i = 0; i < widget.category.texts.length; i++) {
-          _counters[i] = 0;
-          await prefs.remove('hisn_count_${widget.category.title}_$i');
-        }
-      }
-
-      final savedIndex =
-          prefs.getInt('hisn_index_${widget.category.title}') ?? 0;
-
-      if (mounted) {
-        setState(() {
-          if (savedIndex > 0 && savedIndex < widget.category.texts.length) {
-            currentHisnIndex = savedIndex;
-          }
-        });
-      }
-
-      if (savedIndex > 0 && savedIndex < widget.category.texts.length) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_pageController.hasClients) {
-            _pageController.jumpToPage(savedIndex);
-          }
-        });
-      }
-    } catch (_) {}
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _saveRecentAction();
-    });
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
-  Future<void> _saveRecentAction() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        'hisn_index_${widget.category.title}',
-        currentHisnIndex,
-      );
-      await RecentActionsManager.addAction(
-        category: 'hisn',
-        title: widget.category.title,
-        subtitle: 'الدعاء ${currentHisnIndex + 1}',
-        extraData: {
-          'category_title': widget.category.title,
-          'current_index': currentHisnIndex,
-        },
-      );
-    } catch (_) {}
-  }
-
-  void _onCounterTap() async {
-    if (_hapticEnabled) {
-      HapticFeedback.mediumImpact();
-    }
-
-    setState(() {
-      _counters[currentHisnIndex]++;
-    });
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
-      'hisn_count_${widget.category.title}_$currentHisnIndex',
-      _counters[currentHisnIndex],
-    );
-
-    // Update global stats
-    StatsService.recordAction('hisn', amount: 1);
-
-    // Auto navigate if they reached 1 (or more)
-    if (_counters[currentHisnIndex] == _totalRepeat) {
-      if (_hapticEnabled) {
-        Future.delayed(const Duration(milliseconds: 150), () {
-          HapticFeedback.heavyImpact();
-        });
-      }
-
-      if (currentHisnIndex < widget.category.texts.length - 1) {
+  void _onCounterTap(BuildContext context) {
+    context.read<HisnDetailsCubit>().incrementCounter(
+      onNextRequested: () {
         Future.delayed(const Duration(milliseconds: 400), () {
           if (mounted && _pageController.hasClients) {
             _pageController.nextPage(
@@ -154,68 +67,17 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
             );
           }
         });
-      } else if (_isAllCompleted) {
-        // Complete!
-      }
-    }
-  }
-
-  void _onZoomIn() {
-    if (_activeMaxFontSize < 34.0) {
-      setState(() {
-        _activeMaxFontSize += 2.0;
-      });
-      if (_hapticEnabled) HapticFeedback.mediumImpact();
-    }
-  }
-
-  void _onZoomOut() {
-    if (_activeMaxFontSize > 14.0) {
-      setState(() {
-        _activeMaxFontSize -= 2.0;
-      });
-      if (_hapticEnabled) HapticFeedback.mediumImpact();
-    }
-  }
-
-  Future<void> _resetCategory() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      for (int i = 0; i < widget.category.texts.length; i++) {
-        _counters[i] = 0;
-        prefs.remove('hisn_count_${widget.category.title}_$i');
-      }
-      currentHisnIndex = 0;
-    });
-    if (_pageController.hasClients) {
-      _pageController.jumpToPage(0);
-    }
-    _saveRecentAction();
-    _showMessage('تمت إعادة تعيين العدادات بالكامل');
-  }
-
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          msg,
-          textAlign: TextAlign.right,
-          style: const TextStyle(fontFamily: 'Cairo'),
-        ),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        backgroundColor: AppColors.primary,
-      ),
+      },
     );
   }
 
-  Future<void> _showCategoriesBottomSheet() async {
+  Future<void> _showCategoriesBottomSheet(BuildContext context) async {
     HapticFeedback.lightImpact();
-    final categories = await HisnService.loadHisn();
-    if (!mounted) return;
+    final cubit = context.read<HisnDetailsCubit>();
+    final currentTitle = cubit.state.categoryTitle;
+
+    final actions = await HisnService.loadHisnAsActions();
+    if (!context.mounted) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -224,13 +86,12 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
       title: 'أبواب حصن المسلم',
       subtitle: 'اختر الباب الذي ترغب بالانتقال إليه مباشرة',
       heightFraction: 0.72,
-      items: categories.map((cat) {
-        final isCurrent = cat.title == widget.category.title;
-        final icon = HisnService.getHisnIcon(cat.title);
+      items: actions.map((item) {
+        final isCurrent = item.title == currentTitle;
 
         return BottomSheetItem(
-          title: cat.title,
-          subtitle: '${cat.texts.length} دعاء وذكر',
+          title: item.title,
+          subtitle: 'باب مأثور',
           isSelected: isCurrent,
           leading: Container(
             width: 40.w,
@@ -245,7 +106,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              icon,
+              item.icon,
               size: 20.sp,
               color: isCurrent ? AppColors.goldAccent : AppColors.primary,
             ),
@@ -256,7 +117,7 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => HisnDetailsScreen(category: cat),
+                  builder: (_) => HisnDetailsScreen(categoryTitle: item.title),
                 ),
               );
             }
@@ -267,134 +128,152 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
   }
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: tarteelAppBar(
-        titleText: widget.category.title,
-        elevation: 0,
-        toolbarHeight: 90,
-      ),
-      body: AnimatedSkyBackground(
-        categoryTitle: widget.category.title,
-        child: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(height: 16.h),
-              // Dynamic Section Progress Bar using reusable component & Cubit
-              SectionProgressBar(
-                currentIndex: currentHisnIndex,
-                totalCount: widget.category.texts.length,
-                isZeroBasedIndex: true,
-              ),
-              // Page View Container
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: widget.category.texts.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      currentHisnIndex = index;
-                    });
-                    _saveRecentAction();
-                  },
-                  itemBuilder: (context, index) {
-                    final text = widget.category.texts[index];
-                    // Extract footnote if available
-                    String? footnote;
-                    if (widget.category.footnotes.length > index) {
-                      footnote = widget.category.footnotes[index];
-                    }
+    return BlocConsumer<HisnDetailsCubit, HisnDetailsState>(
+      listener: (context, state) {
+        if (_pageController.hasClients &&
+            _pageController.page?.round() != state.currentIndex) {
+          _pageController.jumpToPage(state.currentIndex);
+        }
+      },
+      builder: (context, state) {
+        if (state.isLoading || state.category == null) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.categoryTitle,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
 
-                    return AnimatedPadding(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.only(
-                        left: 20.w,
-                        right: 20.w,
-                        top: 20.h,
-                      ),
-                      child: _buildHisnCard(text, footnote, index),
-                    );
-                  },
-                ),
-              ),
+        final category = state.category!;
 
-              SizedBox(height: 60.h),
-              InteractiveCounterControl(
-                count: _counters[currentHisnIndex],
-                totalRepeat: _totalRepeat,
-                progress: _progress,
-                onCounterTap: _onCounterTap,
-                cornerAction: CounterSideAction(
-                  icon: Icons.format_list_bulleted_rounded,
-                  tooltip: 'أبواب حصن المسلم',
-                  onTap: _showCategoriesBottomSheet,
-                ),
-                leftCornerAction: CounterSideAction(
-                  icon: Icons.home_rounded,
-                  tooltip: 'الصفحة الرئيسية',
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.homePage,
-                      (route) => false,
-                    );
-                  },
-                ),
-                onNext: () {
-                  if (_pageController.hasClients) {
-                    _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                },
-                onPrevious: () {
-                  if (_pageController.hasClients) {
-                    _pageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                },
-                hasNext: currentHisnIndex < widget.category.texts.length - 1,
-                hasPrevious: currentHisnIndex > 0,
-                showResetButton: true,
-                onReset: _resetCategory,
-                resetConfirmTitle: 'إعادة تعيين الأدعية',
-                resetConfirmMessage:
-                    'هل تريد إعادة تعيين عداد القراءة لكافة الأدعية في هذا القسم والبدء من جديد؟',
-                resetConfirmActionText: 'نعم، تصفير',
-                resetColor: Colors.redAccent,
-              ),
-            ],
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: tarteelAppBar(
+            titleText: state.categoryTitle,
+            elevation: 0,
+            toolbarHeight: 90,
           ),
-        ),
-      ),
-    );
-  }
+          body: AnimatedSkyBackground(
+            categoryTitle: state.categoryTitle,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  SizedBox(height: 16.h),
+                  // Dynamic Section Progress Bar using reusable component & Cubit
+                  SectionProgressBar(
+                    currentIndex: state.currentIndex,
+                    totalCount: category.texts.length,
+                    isZeroBasedIndex: true,
+                  ),
 
-  Widget _buildHisnCard(String text, String? footnote, int index) {
-    return InteractiveContentCard(
-      content: text,
-      indexLabel: 'الدعاء ${index + 1}',
-      fontSize: _activeMaxFontSize,
-      onZoomIn: _onZoomIn,
-      onZoomOut: _onZoomOut,
-      showFavorite: true,
-      favoriteType: 'hisn',
-      favoriteTitle: widget.category.title,
-      description: footnote,
-      showCounterBadge: false,
+                  // Page View Container
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: category.texts.length,
+                      onPageChanged: (index) {
+                        context.read<HisnDetailsCubit>().changePage(index);
+                      },
+                      itemBuilder: (context, index) {
+                        final text = category.texts[index];
+                        String? footnote;
+                        if (category.footnotes.length > index) {
+                          footnote = category.footnotes[index];
+                        }
+
+                        return AnimatedPadding(
+                          duration: const Duration(milliseconds: 200),
+                          padding: EdgeInsets.only(
+                            left: 20.w,
+                            right: 20.w,
+                            top: 20.h,
+                          ),
+                          child: InteractiveContentCard(
+                            content: text,
+                            indexLabel: 'الدعاء ${index + 1}',
+                            fontSize: state.fontSize,
+                            onZoomIn: () =>
+                                context.read<HisnDetailsCubit>().zoomIn(),
+                            onZoomOut: () =>
+                                context.read<HisnDetailsCubit>().zoomOut(),
+                            showFavorite: true,
+                            favoriteType: 'hisn',
+                            favoriteTitle: state.categoryTitle,
+                            description: footnote,
+                            showCounterBadge: false,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  SizedBox(height: 60.h),
+                  InteractiveCounterControl(
+                    count: state.currentCount,
+                    totalRepeat: state.totalRepeat,
+                    progress: state.currentProgress,
+                    onCounterTap: () => _onCounterTap(context),
+                    cornerAction: CounterSideAction(
+                      icon: Icons.format_list_bulleted_rounded,
+                      tooltip: 'أبواب حصن المسلم',
+                      onTap: () => _showCategoriesBottomSheet(context),
+                    ),
+                    leftCornerAction: CounterSideAction(
+                      icon: Icons.home_rounded,
+                      tooltip: 'الصفحة الرئيسية',
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          AppRoutes.homePage,
+                          (route) => false,
+                        );
+                      },
+                    ),
+                    onNext: () {
+                      if (_pageController.hasClients) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    onPrevious: () {
+                      if (_pageController.hasClients) {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    hasNext: state.currentIndex < category.texts.length - 1,
+                    hasPrevious: state.currentIndex > 0,
+                    showResetButton: true,
+                    onReset: () async {
+                      await context.read<HisnDetailsCubit>().resetCategory();
+                      if (_pageController.hasClients) {
+                        _pageController.jumpToPage(0);
+                      }
+                    },
+                    resetConfirmTitle: 'إعادة تعيين الأدعية',
+                    resetConfirmMessage:
+                        'هل تريد إعادة تعيين عداد القراءة لكافة الأدعية في هذا القسم والبدء من جديد؟',
+                    resetConfirmActionText: 'نعم، تصفير',
+                    resetColor: Colors.redAccent,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

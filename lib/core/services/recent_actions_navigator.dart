@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
-import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 import 'package:tarteel/features/prophets_stories/services/prophets_stories_service.dart';
 import 'package:tarteel/features/prophets_stories/views/prophet_story_details_screen.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
@@ -168,32 +167,11 @@ class RecentActionNavigator {
     BuildContext context,
     String categoryTitle,
   ) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+    await Navigator.pushNamed(
+      context,
+      AppRoutes.hisnDetails,
+      arguments: categoryTitle,
     );
-
-    try {
-      final categories = await HisnService.loadHisn();
-      final category = categories.firstWhere((c) => c.title == categoryTitle);
-
-      if (context.mounted) {
-        Navigator.pop(context); // Close dialog
-        await Navigator.pushNamed(
-          context,
-          AppRoutes.hisnDetails,
-          arguments: category,
-        );
-      }
-    } catch (_) {
-      if (context.mounted) {
-        Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('تعذر فتح حصن المسلم')));
-      }
-    }
   }
 
   static Future<void> _resumeHadith(
