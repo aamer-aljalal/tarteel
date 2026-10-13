@@ -16,31 +16,37 @@ import 'package:tarteel/features/home/cubit/home_state.dart';
 import 'package:tarteel/features/home/services/home_actions_service.dart';
 
 class HomeCubit extends Cubit<HomeState> {
+  /// الرابط السحابي المباشر لملف أزرار ترتيل على GitHub
+  static const String githubActionsUrl =
+      'https://raw.githubusercontent.com/aamer-aljalal/tarteel-config/main/actions.json';
+
   HomeCubit() : super(const HomeState(isLoading: true)) {
     loadHomeData();
   }
 
   // ============================================================================
-  //  جلب بيانات الصفحة الرئيسية (الأزرار من الخدمة والتخزين المحلي)
+  // 📥 جلب بيانات الصفحة الرئيسية (الأزرار المحلية أولاً ثم المزامنة من GitHub)
   // ============================================================================
   Future<void> loadHomeData() async {
     try {
       emit(state.copyWith(isLoading: true));
 
-      // جلب الأزرار مباشرة من الخدمة الذكية (SharedPreferences أو JSON)
-      final actions = await HomeActionsService.loadActions();
+      // 1. جلب الأزرار المحلية فوراً لتعمل الشاشة بسرعة 0 ثانية بدون انتظار الإنترنت
+      final localActions = await HomeActionsService.loadActions();
 
       emit(
         state.copyWith(
-          actions: actions,
+          actions: localActions,
           isLoading: false,
-          // يمكن ربطها لاحقاً بقيم حقيقية من StatsService
           adhkarCount: 120,
           adhkarTarget: 300,
           pagesRead: 5,
           pagesTarget: 20,
         ),
       );
+
+      // 2. المزامنة في الخلفية من GitHub إذا توفر إنترنت
+      _syncInBackground();
     } catch (e) {
       emit(
         state.copyWith(
@@ -49,6 +55,17 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     }
+  }
+
+  // ============================================================================
+  // 🔄 مزامنة هادئة في الخلفية من GitHub دون تعطيل المستخدم
+  // ============================================================================
+  Future<void> _syncInBackground() async {
+    try {
+      final updatedActions =
+          await HomeActionsService.syncFromGithub(githubActionsUrl);
+      emit(state.copyWith(actions: updatedActions));
+    } catch (_) {}
   }
 
   // ============================================================================

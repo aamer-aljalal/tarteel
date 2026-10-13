@@ -48,26 +48,51 @@ class HomeActionsService {
         );
       }
 
-      // 3. دمج الأزرار المحلية مع الإضافية (مع الحفاظ على ترتيب ملف JSON)
+      // 3. دمج ذكي: إذا وفّر جيت هب قائمة أزرار، يكون ترتيب جيت هب هو الحاكم أولاً
       final List<AccessListModel> result = [];
 
-      for (final local in localActions) {
-        if (!local.isEnabled) continue;
-        // إذا وجد تحديث من جيت هب لنفس الزر بالمعرّف id، نأخذ التحديث
-        final remoteOverrideIndex =
-            remoteActions.indexWhere((r) => r.id == local.id);
-        if (remoteOverrideIndex != -1) {
-          result.add(remoteActions[remoteOverrideIndex]);
-        } else {
-          result.add(local);
-        }
-      }
+      if (remoteActions.isNotEmpty) {
+        // نتبع ترتيب جيت هب بالملي خطوة بخطوة
+        for (final remote in remoteActions) {
+          if (!remote.isEnabled) continue;
 
-      // إضافة أي أزرار جديدة تماماً أتت من جيت هب وليست في ملف الأصول المحلي
-      for (final remote in remoteActions) {
-        final existsLocally = localActions.any((l) => l.id == remote.id);
-        if (!existsLocally && remote.isEnabled) {
-          result.add(remote);
+          // نبحث عن بيانات الزر المحلي إن وجدت لاستكمال أي نواقص
+          final localMatchIndex =
+              localActions.indexWhere((l) => l.id == remote.id);
+
+          if (localMatchIndex != -1) {
+            final local = localActions[localMatchIndex];
+            // دمج ذكي: نأخذ عنوان وأيقونة وترتيب جيت هب، ونأخذ مسار فلاتر إن لم يُحدد
+            result.add(
+              AccessListModel(
+                id: remote.id ?? local.id,
+                title: remote.title.isNotEmpty ? remote.title : local.title,
+                route: remote.route.isNotEmpty ? remote.route : local.route,
+                icon: remote.icon,
+                iconName: remote.iconName ?? local.iconName,
+                isEnabled: remote.isEnabled,
+                badge: remote.badge ?? local.badge,
+                arguments: remote.arguments ?? local.arguments,
+              ),
+            );
+          } else {
+            // زر جديد تماماً من جيت هب نضعه في مكانه المحدد في الترتيب
+            result.add(remote);
+          }
+        }
+
+        // إضافة أي أزرار محلية متبقية لم يذكرها جيت هب في نهاية القائمة
+        for (final local in localActions) {
+          final isHandledByRemote =
+              remoteActions.any((r) => r.id == local.id);
+          if (!isHandledByRemote && local.isEnabled) {
+            result.add(local);
+          }
+        }
+      } else {
+        // إذا لم توجد أزرار من جيت هب، نعتمد الترتيب المحلي الافتراضي
+        for (final local in localActions) {
+          if (local.isEnabled) result.add(local);
         }
       }
 
@@ -127,10 +152,12 @@ class HomeActionsService {
     final jsonList = await GithubSyncService.fetchJsonList(rawUrl);
 
     if (jsonList != null && jsonList.isNotEmpty) {
-      for (final item in jsonList) {
-        final action = AccessListModel.fromJson(item);
-        await addOrUpdateAction(action);
-      }
+      final remoteActions = jsonList
+          .map((item) => AccessListModel.fromJson(item))
+          .toList();
+
+      // حفظ القائمة بالكامل بنفس الترتيب الذي رتبه المستخدم في GitHub
+      await saveDynamicActions(remoteActions);
     }
 
     return await loadActions();

@@ -82,5 +82,15 @@
     "route": "/settings",
     "icon": "settings",
     "isEnabled": true
+  },
+     {
+    "id": "islamic_quiz",
+    "title": "المسابقات",
+    "route": "/dynamic-page",
+    "arguments": {
+      "url": "https://raw.githubusercontent.com/aamer-aljalal/tarteel-config/main/quiz_sample.json"
+    },
+    "icon": "quiz",
+    "isEnabled": true
   }
 ]

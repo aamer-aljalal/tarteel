@@ -21,6 +21,7 @@ import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 import 'package:tarteel/features/quran/views/khatma_planner_screen.dart';
 import 'package:tarteel/features/prophets_stories/views/prophets_list_screen.dart';
 import 'package:tarteel/features/quiz/views/islamic_quiz_screen.dart';
+import 'package:tarteel/core/widgets/dynamic/dynamic_page_screen.dart';
 import 'package:tarteel/features/splash/splash_screen.dart';
 
 class RouteGenerator {
@@ -129,6 +130,30 @@ class RouteGenerator {
       case AppRoutes.islamicQuiz:
         return MaterialPageRoute(
           builder: (_) => const IslamicQuizScreen(),
+        );
+
+      // ========================= الصفحات والقوالب الديناميكية =========================
+
+      case AppRoutes.dynamicPage:
+        String? url;
+        Map<String, dynamic>? initialData;
+        String? title;
+
+        if (settings.arguments is Map) {
+          final args = settings.arguments as Map;
+          url = args['url'] as String?;
+          initialData = args['data'] as Map<String, dynamic>?;
+          title = args['title'] as String?;
+        } else if (settings.arguments is String) {
+          url = settings.arguments as String;
+        }
+
+        return MaterialPageRoute(
+          builder: (_) => DynamicPageScreen(
+            url: url,
+            initialData: initialData,
+            title: title,
+          ),
         );
 
       // ========================= صفحة غير موجودة =========================

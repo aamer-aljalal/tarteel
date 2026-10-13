@@ -37,4 +37,7 @@ class AppRoutes {
 
   // ========================= التحديات والمسابقات =========================
   static const islamicQuiz = '/islamic-quiz';
+
+  // ========================= الصفحات والقوالب الديناميكية =========================
+  static const dynamicPage = '/dynamic-page';
 }

@@ -4,9 +4,9 @@
 /// الصفحة الرئيسية لتطبيق ترتيل.
 ///
 ///  التصميم المعماري:
-/// - StatelessWidget نقية تماماً بنمط BLoC / Cubit.
-/// - تستخدم `BlocBuilder<HomeCubit, HomeState>` للاستماع لحالة الأزرار وإعادة رسمها فوراً
-///   دون الحاجة لأي Stateful Lifecycle أو متغيرات تحكم يدوية.
+/// - تستخدم `BlocBuilder<HomeCubit, HomeState>` للاستماع لحالة الأزرار وإعادة رسمها فوراً.
+/// - تدعم `reassemble()` الذكية: لإعادة قراءة ملف الأزرار JSON فوراً بمجرد الضغط
+///   على Ctrl + S (Hot Reload ) دون الحاجة لعمل Restart أخضر!
 /// ==============================================================================
 library;
 
@@ -22,14 +22,28 @@ import 'package:tarteel/features/home/cubit/home_cubit.dart';
 import 'package:tarteel/features/home/cubit/home_state.dart';
 import 'package:tarteel/features/home/widgets/home_header/home_header.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void reassemble() {
+    super.reassemble();
+    //  إعادة تحميل ملف الأزرار فوراً عند كل Hot Reload / Ctrl+S
+    context.read<HomeCubit>().loadHomeData();
+  }
 
   @override
   Widget build(BuildContext context) {
     // التحقق من صلاحيات الموقع لجلب مواقيت الصلاة في أول ظهور
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PrayerProvider>().checkAndPromptLocation(context);
+      if (mounted) {
+        context.read<PrayerProvider>().checkAndPromptLocation(context);
+      }
     });
 
     return PopScope(
