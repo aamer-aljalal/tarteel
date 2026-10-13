@@ -13,6 +13,7 @@ import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
 import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
+import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
 
 class HisnDetailsScreen extends StatefulWidget {
   final HisnCategory category;
@@ -274,7 +275,6 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -289,50 +289,11 @@ class _HisnDetailsScreenState extends State<HisnDetailsScreen> {
           child: Column(
             children: [
               SizedBox(height: 16.h),
-              // Dynamic Progress Indicator
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'التقدم في القسم',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.goldAccent,
-                          ),
-                        ),
-                        Text(
-                          '${currentHisnIndex + 1} / ${widget.category.texts.length}',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.goldAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 6.h),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10.r),
-                      child: LinearProgressIndicator(
-                        value:
-                            (currentHisnIndex + 1) /
-                            widget.category.texts.length,
-                        minHeight: 6.h,
-                        backgroundColor: isDark
-                            ? Colors.grey.shade900
-                            : AppColors.primary.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.goldAccent,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Dynamic Section Progress Bar using reusable component & Cubit
+              SectionProgressBar(
+                currentIndex: currentHisnIndex,
+                totalCount: widget.category.texts.length,
+                isZeroBasedIndex: true,
               ),
               // Page View Container
               Expanded(

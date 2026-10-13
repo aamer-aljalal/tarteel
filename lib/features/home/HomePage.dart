@@ -33,8 +33,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void reassemble() {
     super.reassemble();
-    //  إعادة تحميل ملف الأزرار فوراً عند كل Hot Reload / Ctrl+S
-    context.read<HomeCubit>().loadHomeData();
+    // إعادة تحميل ومزامنة ملف الأزرار فوراً عند كل Hot Reload / Ctrl+S
+    context.read<HomeCubit>().syncFromGithub(HomeCubit.githubActionsUrl);
   }
 
   @override

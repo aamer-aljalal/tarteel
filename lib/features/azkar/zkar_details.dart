@@ -16,6 +16,7 @@ import 'package:tarteel/Routes/AppRoutes.dart';
 import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
 import 'package:tarteel/features/azkar/icons/azkar_icons.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
+import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
 
 class AzkarDetailsScreen extends StatefulWidget {
   final ZekrCategory category;
@@ -396,7 +397,6 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -411,50 +411,11 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
           child: Column(
             children: [
               SizedBox(height: 16.h),
-              // Dynamic Progress Indicator at the top of page
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'التقدم في القسم',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.goldAccent,
-                          ),
-                        ),
-                        Text(
-                          '${currentZekrIndex + 1} / ${widget.category.azkar.length}',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.goldAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 6.h),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10.r),
-                      child: LinearProgressIndicator(
-                        value:
-                            (currentZekrIndex + 1) /
-                            widget.category.azkar.length,
-                        minHeight: 6.h,
-                        backgroundColor: isDark
-                            ? Colors.grey.shade900
-                            : AppColors.primary.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.goldAccent,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Dynamic Section Progress Bar using reusable component & Cubit
+              SectionProgressBar(
+                currentIndex: currentZekrIndex,
+                totalCount: widget.category.azkar.length,
+                isZeroBasedIndex: true,
               ),
               // SizedBox(height: 16.h),
 

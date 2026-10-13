@@ -20,11 +20,7 @@ class AccessListGrid extends StatelessWidget {
   final List<AccessListModel> actions;
   final AnimationController? controller;
 
-  const AccessListGrid({
-    super.key,
-    required this.actions,
-    this.controller,
-  });
+  const AccessListGrid({super.key, required this.actions, this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -47,11 +43,7 @@ class AccessListGrid extends StatelessWidget {
 
         final itemWidget = GestureDetector(
           onTap: () {
-            Navigator.pushNamed(
-              context,
-              item.route,
-              arguments: item.arguments,
-            );
+            Navigator.pushNamed(context, item.route, arguments: item.arguments);
           },
           child: _buildItemCard(context, item, brightness),
         );
@@ -80,85 +72,85 @@ class AccessListGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildItemCard(BuildContext context, AccessListModel item, Brightness brightness) {
+  Widget _buildItemCard(
+    BuildContext context,
+    AccessListModel item,
+    Brightness brightness,
+  ) {
     return Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: brightness == Theme.of(context).brightness
-                        ? AppColors.primary
-                        : AppColors.lightSecondaryText,
-                    width: 2.w,
-                  ),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: brightness == Theme.of(context).brightness
+              ? AppColors.primary
+              : AppColors.lightSecondaryText,
+          width: 2.w,
+        ),
 
-                  // color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        // color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        color: brightness == Theme.of(context).brightness
+            ? Colors.black.withOpacity(0.55) // في الليل: زجاج أسود فخم
+            : Colors.white.withOpacity(0.80), // في النهار: زجاج أبيض صافٍ
+        borderRadius: BorderRadius.circular(AppRadius.small),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.lightSecondaryText.withOpacity(0.2),
+            blurRadius: 5,
+            offset: const Offset(2, 3),
+          ),
+        ],
+      ),
+
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+
+        children: [
+          SizedBox(height: 12.h),
+
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.goldAccent),
+              color: brightness == Theme.of(context).brightness
+                  ? AppColors.primary.withOpacity(0.25)
+                  : AppColors.primary.withOpacity(0.22),
+              shape: BoxShape.circle,
+            ),
+
+            child: Icon(
+              item.icon,
+              size: 20.sp,
+              color: AppColors.greenBorder,
+              // color: AppColors.goldAccent,
+            ),
+          ),
+
+          SizedBox(height: 10.h),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 7.w),
+              child: AutoSizeText(
+                item.title,
+                maxLines: 2,
+                minFontSize: 9,
+                maxFontSize: 15,
+                stepGranularity: 0.5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 14.sp,
+                  // color: Theme.of(context).colorScheme.onSurface,
                   color: brightness == Theme.of(context).brightness
-                      ? Colors.black.withOpacity(
-                          0.55,
-                        ) // في الليل: زجاج أسود فخم
-                      : Colors.white.withOpacity(
-                          0.80,
-                        ), // في النهار: زجاج أبيض صافٍ
-                  borderRadius: BorderRadius.circular(AppRadius.small),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.lightSecondaryText.withOpacity(0.2),
-                      blurRadius: 5,
-                      offset: const Offset(2, 3),
-                    ),
-                  ],
+                      ? AppColors.goldAccent
+                      : AppColors.black,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Amiri',
                 ),
-
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-
-                  children: [
-                    SizedBox(height: 12.h),
-
-                    Container(
-                      padding: EdgeInsets.all(10.w),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.goldAccent),
-                        color: brightness == Theme.of(context).brightness
-                            ? AppColors.primary.withOpacity(0.25)
-                            : AppColors.primary.withOpacity(0.22),
-                        shape: BoxShape.circle,
-                      ),
-
-                      child: Icon(
-                        item.icon,
-                        size: 20.sp,
-                        color: AppColors.greenBorder,
-                        // color: AppColors.goldAccent,
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 7.w),
-                        child: AutoSizeText(
-                          item.title,
-                          maxLines: 2,
-                          minFontSize: 9,
-                          maxFontSize: 15,
-                          stepGranularity: 0.5,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontSize: 14.sp,
-                            // color: Theme.of(context).colorScheme.onSurface,
-                            color: brightness == Theme.of(context).brightness
-                                ? AppColors.goldAccent
-                                : AppColors.black,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Amiri',
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-                  ],
-                ),
-              );
+              ),
+            ),
+          ),
+          SizedBox(height: 5.h),
+        ],
+      ),
+    );
   }
 }

@@ -82,7 +82,7 @@ class HomeActionsService {
         }
 
         // إضافة أي أزرار محلية متبقية لم يذكرها جيت هب في نهاية القائمة
-        for (final local in localActions) {
+             for (final local in localActions) {
           final isHandledByRemote =
               remoteActions.any((r) => r.id == local.id);
           if (!isHandledByRemote && local.isEnabled) {

@@ -27,13 +27,21 @@ class GithubSyncService {
     try {
       if (rawUrl.trim().isEmpty) return null;
 
-      final uri = Uri.parse(rawUrl.trim());
+      // منع الكاش الخاص بـ GitHub CDN عبر إضافة توقيت زمني وترويسات no-cache
+      final cacheBuster = DateTime.now().millisecondsSinceEpoch;
+      final uriString = rawUrl.trim().contains('?')
+          ? '${rawUrl.trim()}&_t=$cacheBuster'
+          : '${rawUrl.trim()}?_t=$cacheBuster';
+
+      final uri = Uri.parse(uriString);
       client = HttpClient();
       client.connectionTimeout = _timeoutDuration;
 
       final request = await client.getUrl(uri).timeout(_timeoutDuration);
-      // إضافة ترويسة قبول JSON والترميز العربي UTF-8
+      // إضافة ترويسة قبول JSON والترميز العربي UTF-8 ومنع الكاش نهائياً
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.headers.set(HttpHeaders.cacheControlHeader, 'no-cache, no-store, must-revalidate');
+      request.headers.set(HttpHeaders.pragmaHeader, 'no-cache');
 
       final response = await request.close().timeout(_timeoutDuration);
 
