@@ -220,7 +220,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
         SnackBar(
           content: Text(
             added
-                ? 'تمت إضافة الذكر إلى المحفوظات ❤️'
+                ? 'تمت إضافة الذكر إلى المحفوظات'
                 : 'تمت إزالة الذكر من المحفوظات',
             textAlign: TextAlign.right,
             style: const TextStyle(fontFamily: 'Cairo'),
@@ -249,7 +249,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              SizedBox(height: 8.h),
+              // SizedBox(height: 5.h),
               if (widget.customBody != null) widget.customBody!,
               if (widget.content.isNotEmpty)
                 ResponsiveText(
@@ -310,7 +310,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
                     fontSize: 11.sp,
                     color: Colors.grey.shade500,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'Cairo',
+                    // fontFamily: 'Cairo',
                   ),
                 ),
               ],
@@ -618,12 +618,10 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
 
   void _defaultCopy(BuildContext context) {
     final buffer = StringBuffer(widget.content);
-    if (widget.description != null &&
-        widget.description!.trim().isNotEmpty) {
+    if (widget.description != null && widget.description!.trim().isNotEmpty) {
       buffer.write('\n\nفضل الذكر: ${widget.description!.trim()}');
     }
-    if (widget.reference != null &&
-        widget.reference!.trim().isNotEmpty) {
+    if (widget.reference != null && widget.reference!.trim().isNotEmpty) {
       buffer.write('\nالمصدر: ${widget.reference!.trim()}');
     }
 
@@ -638,9 +636,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
         ),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         backgroundColor: AppColors.primary,
       ),
     );
@@ -648,12 +644,10 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
 
   void _defaultShare(BuildContext context) {
     final buffer = StringBuffer(widget.content);
-    if (widget.description != null &&
-        widget.description!.trim().isNotEmpty) {
+    if (widget.description != null && widget.description!.trim().isNotEmpty) {
       buffer.write('\n\nفضل الذكر: ${widget.description!.trim()}');
     }
-    if (widget.reference != null &&
-        widget.reference!.trim().isNotEmpty) {
+    if (widget.reference != null && widget.reference!.trim().isNotEmpty) {
       buffer.write('\nالمصدر: ${widget.reference!.trim()}');
     }
     buffer.write('\n\nتمت المشاركة من تطبيق ترتيل');

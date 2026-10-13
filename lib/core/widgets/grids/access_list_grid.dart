@@ -77,13 +77,20 @@ class AccessListGrid extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: brightness == Brightness.dark
-                        ? AppColors.greenBorder.withOpacity(0.50)
-                        : AppColors.disabled,
+                    color: brightness == Theme.of(context).brightness
+                        ? AppColors.primary
+                        : AppColors.lightSecondaryText,
                     width: 2.w,
                   ),
 
-                  color: Theme.of(context).colorScheme.surface,
+                  // color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                  color: brightness == Theme.of(context).brightness
+                      ? Colors.black.withOpacity(
+                          0.55,
+                        ) // في الليل: زجاج أسود فخم
+                      : Colors.white.withOpacity(
+                          0.80,
+                        ), // في النهار: زجاج أبيض صافٍ
                   borderRadius: BorderRadius.circular(AppRadius.small),
                   boxShadow: [
                     BoxShadow(
@@ -104,7 +111,7 @@ class AccessListGrid extends StatelessWidget {
                       padding: EdgeInsets.all(10.w),
                       decoration: BoxDecoration(
                         border: Border.all(color: AppColors.goldAccent),
-                        color: brightness == Brightness.dark
+                        color: brightness == Theme.of(context).brightness
                             ? AppColors.primary.withOpacity(0.25)
                             : AppColors.primary.withOpacity(0.22),
                         shape: BoxShape.circle,
@@ -126,17 +133,19 @@ class AccessListGrid extends StatelessWidget {
                           item.title,
                           maxLines: 2,
                           minFontSize: 9,
-                          maxFontSize: 13,
+                          maxFontSize: 15,
                           stepGranularity: 0.5,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontSize: 13.sp,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'Cairo',
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 14.sp,
+                            // color: Theme.of(context).colorScheme.onSurface,
+                            color: brightness == Theme.of(context).brightness
+                                ? AppColors.goldAccent
+                                : AppColors.black,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Amiri',
+                          ),
                         ),
                       ),
                     ),

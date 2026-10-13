@@ -301,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     return _buildSwitchTile(
                       title: 'الخلفيات الإسلامية المزخرفة',
                       subtitle:
-                          'إظهار نقوش إسلامية هادئة في الشاشات الرئيسية (الرئيسية، الأذكار، وحصن المسلم)',
+                          'إظهار نقوش إسلامية هادئة في الشاشات الرئيسية (الرئيسية، الأذكار، حصن المسلم، والتسبيح)',
                       value: themeProvider.isPatternBackgroundEnabled,
                       icon: Icons.auto_awesome_mosaic_outlined,
                       onChanged: (val) async {

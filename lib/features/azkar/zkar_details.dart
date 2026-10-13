@@ -28,7 +28,7 @@ class AzkarDetailsScreen extends StatefulWidget {
 class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
   int currentZekrIndex = 0;
   bool _hapticEnabled = true;
-  double _activeMaxFontSize = 20.0;
+  double _activeMaxFontSize = 16.0;
 
   dynamic get currentZekr => widget.category.azkar[currentZekrIndex];
   int get _totalRepeat => int.tryParse(currentZekr.count) ?? 1;
@@ -473,15 +473,18 @@ class _AzkarDetailsScreenState extends State<AzkarDetailsScreen> {
                     final zekr = widget.category.azkar[index];
                     return AnimatedPadding(
                       duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 8.h,
+                      padding: EdgeInsets.only(
+                        left: 20.w,
+                        right: 20.w,
+                        top: 20.h,
+                        // bottom: 10.h,
                       ),
                       child: _buildZekrCard(zekr),
                     );
                   },
                 ),
               ),
+              SizedBox(height: 60.h),
 
               // SizedBox(height: 20.h),
               InteractiveCounterControl(

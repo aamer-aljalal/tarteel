@@ -14,6 +14,7 @@ import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
+import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
 
 class TasbeehScreen extends StatefulWidget {
   const TasbeehScreen({super.key});
@@ -593,218 +594,227 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bool isEmpty = dhikrBox.isEmpty || _currentZekr.isEmpty;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: tarteelAppBar(titleText: 'التسبيح', toolbarHeight: 90),
-      body: isEmpty
-          ? Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 40.h),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(24.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
+      body: IslamicPatternBackground(
+        child: isEmpty
+            ? Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 32.w,
+                    vertical: 40.h,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(24.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.spa_outlined,
+                          size: 80.sp,
+                          color: AppColors.primary,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.spa_outlined,
-                        size: 80.sp,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    SizedBox(height: 24.h),
-                    Text(
-                      'لا توجد أذكار أو أدعية حالياً',
-                      style: TextStyle(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 12.h),
-                    Text(
-                      'قم بإنشاء دعائك أو تسبيحك الخاص للبدء بالذكر وتلقي التذكيرات اليومية الفخمة.',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: Colors.grey.shade600,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 32.h),
-                    ElevatedButton.icon(
-                      onPressed: _showAddZekrDialog,
-                      icon: Icon(Icons.add_rounded, size: 20.sp),
-                      label: Text(
-                        'أنشئ دعاءك الخاص',
+                      SizedBox(height: 24.h),
+                      Text(
+                        'لا توجد أذكار أو أدعية حالياً',
                         style: TextStyle(
-                          fontSize: 15.sp,
+                          fontSize: 20.sp,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 12.h),
+                      Text(
+                        'قم بإنشاء دعائك أو تسبيحك الخاص للبدء بالذكر وتلقي التذكيرات اليومية الفخمة.',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 32.h),
+                      ElevatedButton.icon(
+                        onPressed: _showAddZekrDialog,
+                        icon: Icon(Icons.add_rounded, size: 20.sp),
+                        label: Text(
+                          'أنشئ دعاءك الخاص',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.w,
+                            vertical: 14.h,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                          elevation: 2,
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24.w,
-                          vertical: 14.h,
+                    ],
+                  ),
+                ),
+              )
+            : Padding(
+                padding: EdgeInsets.only(
+                  left: 30.w,
+                  right: 30.w,
+                  top: 90.h,
+                  bottom: 40.h,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // بطاقة الذكر التفاعلية الموحدة
+                    Expanded(
+                      child: InteractiveContentCard(
+                        content: _currentZekr,
+                        fontSize: _activeFontSize,
+                        onZoomIn: () {
+                          if (_activeFontSize < 35.0) {
+                            setState(() {
+                              _activeFontSize += 2.0;
+                            });
+                            HapticFeedback.lightImpact();
+                          }
+                        },
+                        onZoomOut: () {
+                          if (_activeFontSize > 12.0) {
+                            setState(() {
+                              _activeFontSize -= 2.0;
+                            });
+                            HapticFeedback.lightImpact();
+                          }
+                        },
+                        showZoomControls: true,
+                        showFavorite: false,
+                        showShare: false,
+                        showCopy: true,
+                        onCopy: () {
+                          Clipboard.setData(ClipboardData(text: _currentZekr));
+                          HapticFeedback.mediumImpact();
+                          _showDummyMessage('تم نسخ الذكر بنجاح');
+                        },
+                        counterBadgeText: 'الهدف : $_currentCount / $_target',
+                        showCounterBadge: true,
+                        showIndexLabel: false,
+                        headerTrailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Tooltip(
+                              message: _isSoundEnabled
+                                  ? 'كتم صوت نقرة المسبحة'
+                                  : 'تفعيل صوت نقرة المسبحة',
+                              child: InkWell(
+                                onTap: _toggleSound,
+                                borderRadius: BorderRadius.circular(12.r),
+                                child: Container(
+                                  padding: EdgeInsets.all(6.w),
+                                  decoration: BoxDecoration(
+                                    color: _isSoundEnabled
+                                        ? AppColors.primary.withValues(
+                                            alpha: 0.12,
+                                          )
+                                        : Colors.grey.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  child: Icon(
+                                    _isSoundEnabled
+                                        ? Icons.volume_up_rounded
+                                        : Icons.volume_off_rounded,
+                                    size: 19.sp,
+                                    color: _isSoundEnabled
+                                        ? AppColors.primary
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 6.w),
+                          ],
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        elevation: 2,
+                        customActions: [
+                          CardAction(
+                            icon: Icons.edit_outlined,
+                            tooltip: 'تعديل الذكر',
+                            color: Colors.amber.shade800,
+                            onTap: () {
+                              final currentDhikr = dhikrBox.values.firstWhere(
+                                (d) => d.text == _currentZekr,
+                                orElse: () => dhikrBox.values.first,
+                              );
+                              _showEditZekrDialog(currentDhikr);
+                            },
+                          ),
+                        ],
                       ),
+                    ),
+                    SizedBox(height: 80.h),
+
+                    // العداد التفاعلي مع أزرار الإجراءات الجانبية وإعادة التعيين
+                    InteractiveCounterControl(
+                      count: _currentCount,
+                      totalRepeat: _target,
+                      progress: _progress,
+                      onCounterTap: _onCounterTap,
+                      showProgressRing: false,
+                      size: 115.w,
+                      countFontSize: 34.sp,
+                      pressedScale: 1.0,
+                      enableSound: _isSoundEnabled,
+                      soundAsset: 'assets/audio/tasbeeh/tasbeeh_velvet.wav',
+                      soundVolume: 0.9,
+                      enableHaptic: _isHapticEnabled,
+                      customProgressRing: SizedBox(
+                        width: 170.w,
+                        height: 170.w,
+                        child: Lottie.asset(
+                          'assets/animation/tasbih/misbaha_tasbeeh.json',
+                          controller: _misbahaController,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      showNavigationButtons: false,
+                      // الزر الأيمن: إظهار قائمة الأذكار
+                      rightSideAction: CounterSideAction(
+                        icon: Icons.list_rounded,
+                        label: 'قائمة الأذكار',
+                        onTap: _showZekrSelector,
+                      ),
+                      // الزر الأيسر: إضافة دعاء / ذكر جديد
+                      leftSideAction: CounterSideAction(
+                        icon: Icons.add_rounded,
+                        label: 'إضافة ذكر',
+                        onTap: _showAddZekrDialog,
+                      ),
+                      // زر إعادة التعيين في الأسفل
+                      showResetButton: true,
+                      onReset: _resetCounter,
+                      resetLabel: 'إعادة تعيين العداد',
+                      resetConfirmTitle: 'تأكيد تصفير العداد',
+                      resetConfirmMessage:
+                          'هل تريد إعادة تعيين عداد التسبيح الحالي والبدء من جديد؟',
+                      hintText: 'اضغط للتسبيح واحتساب الأجر',
                     ),
                   ],
                 ),
               ),
-            )
-          : Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-              child: Column(
-                children: [
-                  // بطاقة الذكر التفاعلية الموحدة
-                  Expanded(
-                    child: InteractiveContentCard(
-                      content: _currentZekr,
-                      fontSize: _activeFontSize,
-                      onZoomIn: () {
-                        if (_activeFontSize < 35.0) {
-                          setState(() {
-                            _activeFontSize += 2.0;
-                          });
-                          HapticFeedback.lightImpact();
-                        }
-                      },
-                      onZoomOut: () {
-                        if (_activeFontSize > 12.0) {
-                          setState(() {
-                            _activeFontSize -= 2.0;
-                          });
-                          HapticFeedback.lightImpact();
-                        }
-                      },
-                      showZoomControls: true,
-                      showFavorite: false,
-                      showShare: false,
-                      showCopy: true,
-                      onCopy: () {
-                        Clipboard.setData(ClipboardData(text: _currentZekr));
-                        HapticFeedback.mediumImpact();
-                        _showDummyMessage('تم نسخ الذكر بنجاح');
-                      },
-                      counterBadgeText: 'الهدف : $_currentCount / $_target',
-                      showCounterBadge: true,
-                      showIndexLabel: false,
-                      headerTrailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Tooltip(
-                            message: _isSoundEnabled
-                                ? 'كتم صوت نقرة المسبحة'
-                                : 'تفعيل صوت نقرة المسبحة',
-                            child: InkWell(
-                              onTap: _toggleSound,
-                              borderRadius: BorderRadius.circular(12.r),
-                              child: Container(
-                                padding: EdgeInsets.all(6.w),
-                                decoration: BoxDecoration(
-                                  color: _isSoundEnabled
-                                      ? AppColors.primary.withValues(
-                                          alpha: 0.12,
-                                        )
-                                      : Colors.grey.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Icon(
-                                  _isSoundEnabled
-                                      ? Icons.volume_up_rounded
-                                      : Icons.volume_off_rounded,
-                                  size: 19.sp,
-                                  color: _isSoundEnabled
-                                      ? AppColors.primary
-                                      : Colors.grey.shade500,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 6.w),
-                        ],
-                      ),
-                      customActions: [
-                        CardAction(
-                          icon: Icons.edit_outlined,
-                          tooltip: 'تعديل الذكر',
-                          color: Colors.amber.shade800,
-                          onTap: () {
-                            final currentDhikr = dhikrBox.values.firstWhere(
-                              (d) => d.text == _currentZekr,
-                              orElse: () => dhikrBox.values.first,
-                            );
-                            _showEditZekrDialog(currentDhikr);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 150.h),
-
-                  // العداد التفاعلي مع أزرار الإجراءات الجانبية وإعادة التعيين
-                  InteractiveCounterControl(
-                    count: _currentCount,
-                    totalRepeat: _target,
-                    progress: _progress,
-                    onCounterTap: _onCounterTap,
-                    showProgressRing: false,
-                    size: 115.w,
-                    countFontSize: 34.sp,
-                    pressedScale: 1.0,
-                    enableSound: _isSoundEnabled,
-                    soundAsset: 'assets/audio/tasbeeh/tasbeeh_velvet.wav',
-                    soundVolume: 0.9,
-                    enableHaptic: _isHapticEnabled,
-                    customProgressRing: SizedBox(
-                      width: 170.w,
-                      height: 170.w,
-                      child: Lottie.asset(
-                        'assets/animation/tasbih/misbaha_tasbeeh.json',
-                        controller: _misbahaController,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    showNavigationButtons: false,
-                    // الزر الأيمن: إظهار قائمة الأذكار
-                    rightSideAction: CounterSideAction(
-                      icon: Icons.list_rounded,
-                      label: 'قائمة الأذكار',
-                      onTap: _showZekrSelector,
-                    ),
-                    // الزر الأيسر: إضافة دعاء / ذكر جديد
-                    leftSideAction: CounterSideAction(
-                      icon: Icons.add_rounded,
-                      label: 'إضافة ذكر',
-                      onTap: _showAddZekrDialog,
-                    ),
-                    // زر إعادة التعيين في الأسفل
-                    showResetButton: true,
-                    onReset: _resetCounter,
-                    resetLabel: 'إعادة تعيين العداد',
-                    resetConfirmTitle: 'تأكيد تصفير العداد',
-                    resetConfirmMessage:
-                        'هل تريد إعادة تعيين عداد التسبيح الحالي والبدء من جديد؟',
-                    hintText: 'اضغط للتسبيح واحتساب الأجر',
-                  ),
-                  SizedBox(height: 24.h),
-                ],
-              ),
-            ),
+      ),
     );
   }
 }
