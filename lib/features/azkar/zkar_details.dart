@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/features/azkar/model/zekr_category.dart';
+import 'package:tarteel/features/azkar/model/zekr_model%20.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
@@ -13,22 +14,26 @@ import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
 import 'package:tarteel/features/azkar/icons/azkar_icons.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
-import 'package:tarteel/features/azkar/cubit/details/azkar_details_cubit.dart';
-import 'package:tarteel/features/azkar/cubit/details/azkar_details_state.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_state.dart';
 
 class AzkarDetailsScreen extends StatelessWidget {
   final ZekrCategory? category;
   final String? categoryTitle;
 
   const AzkarDetailsScreen({super.key, this.category, this.categoryTitle})
-    : assert(category != null || categoryTitle != null);
+      : assert(category != null || categoryTitle != null);
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AzkarDetailsCubit(
-        initialCategory: category,
-        initialCategoryTitle: categoryTitle ?? category?.title,
+      create: (_) => GenericReaderCubit<ZekrCategory, ZekrModel>(
+        initialDetail: category,
+        initialTitle: categoryTitle ?? category!.title,
+        categoryKey: 'azkar',
+        detailFetcher: AzkarService.loadCategoryByTitle,
+        itemsExtractor: (cat) => cat.azkar,
+        targetRepeatExtractor: (zekr) => int.tryParse(zekr.count) ?? 1,
       ),
       child: const _AzkarDetailsView(),
     );
@@ -58,38 +63,32 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
   }
 
   void _onCounterTap(BuildContext context) {
-    final cubit = context.read<AzkarDetailsCubit>();
+    final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
     cubit.incrementCounter(
       onSingleCompleted: () {
-        final state = cubit.state;
-        if (state.category != null &&
-            state.currentIndex < state.category!.azkar.length - 1) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted && _pageController.hasClients) {
-              final nextIndex = state.currentIndex + 1;
-              _pageController.animateToPage(
-                nextIndex,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-              );
-            }
-          });
+        if (mounted && _pageController.hasClients) {
+          final nextIndex = cubit.state.currentIndex + 1;
+          if (nextIndex < cubit.state.totalCount) {
+            _pageController.animateToPage(
+              nextIndex,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+            );
+          }
         }
       },
       onAllCompleted: () {
-        Future.delayed(const Duration(milliseconds: 250), () {
-          if (mounted && context.mounted) {
-            _showCompletionSheet(context);
-          }
-        });
+        if (mounted && context.mounted) {
+          _showCompletionSheet(context);
+        }
       },
     );
   }
 
   Future<void> _showCategoriesBottomSheet(BuildContext context) async {
     HapticFeedback.lightImpact();
-    final cubit = context.read<AzkarDetailsCubit>();
-    final currentTitle = cubit.state.categoryTitle;
+    final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
+    final currentTitle = cubit.state.title;
 
     final actions = await AzkarService.loadAzkarAsActions();
     if (!context.mounted) return;
@@ -144,7 +143,7 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
   }
 
   void _showCompletionSheet(BuildContext context) {
-    final cubit = context.read<AzkarDetailsCubit>();
+    final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -173,7 +172,7 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
             ),
             SizedBox(height: 10.h),
             Text(
-              'لقد أتممت قراءة كافة أذكار ${cubit.state.categoryTitle} بنجاح.',
+              'لقد أتممت قراءة كافة أذكار ${cubit.state.title} بنجاح.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14.sp,
@@ -243,7 +242,8 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocConsumer<AzkarDetailsCubit, AzkarDetailsState>(
+    return BlocConsumer<GenericReaderCubit<ZekrCategory, ZekrModel>,
+        GenericReaderState<ZekrCategory, ZekrModel>>(
       listener: (context, state) {
         if (_pageController.hasClients &&
             _pageController.page?.round() != state.currentIndex) {
@@ -251,11 +251,11 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
         }
       },
       builder: (context, state) {
-        if (state.isLoading || state.category == null) {
+        if (state.isLoading || state.detail == null) {
           return Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
             appBar: tarteelAppBar(
-              titleText: state.categoryTitle,
+              titleText: state.title,
               elevation: 0,
               toolbarHeight: 90,
             ),
@@ -263,39 +263,48 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
           );
         }
 
-        final category = state.category!;
-        final currentZekr = state.currentZekr;
+        final currentZekr = state.currentItem;
+        final targetRepeat = currentZekr != null
+            ? (int.tryParse(currentZekr.count) ?? 1)
+            : 1;
+        final progress = (state.currentCount / (targetRepeat > 0 ? targetRepeat : 1))
+            .clamp(0.0, 1.0);
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: tarteelAppBar(
-            titleText: state.categoryTitle,
+            titleText: state.title,
             elevation: 0,
             toolbarHeight: 90,
           ),
           body: AnimatedSkyBackground(
-            categoryTitle: state.categoryTitle,
+            categoryTitle: state.title,
             child: SafeArea(
               child: Column(
                 children: [
                   SizedBox(height: 16.h),
-                  // Dynamic Section Progress Bar using reusable component & Cubit
                   SectionProgressBar(
                     currentIndex: state.currentIndex,
-                    totalCount: category.azkar.length,
+                    totalCount: state.totalCount,
                     isZeroBasedIndex: true,
                   ),
 
-                  // Page View Container
                   Expanded(
                     child: PageView.builder(
                       controller: _pageController,
-                      itemCount: category.azkar.length,
+                      itemCount: state.totalCount,
                       onPageChanged: (index) {
-                        context.read<AzkarDetailsCubit>().changePage(index);
+                        context
+                            .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                            .changePage(index);
                       },
                       itemBuilder: (context, index) {
-                        final zekr = category.azkar[index];
+                        final zekr = state.items[index];
+                        final itemRepeat = int.tryParse(zekr.count) ?? 1;
+                        final countVal = state.counters.length > index
+                            ? state.counters[index]
+                            : 0;
+
                         return AnimatedPadding(
                           duration: const Duration(milliseconds: 200),
                           padding: EdgeInsets.only(
@@ -307,17 +316,19 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                             content: zekr.content,
                             indexLabel: 'الذكر ${state.currentIndex + 1}',
                             fontSize: state.fontSize,
-                            onZoomIn: () =>
-                                context.read<AzkarDetailsCubit>().zoomIn(),
-                            onZoomOut: () =>
-                                context.read<AzkarDetailsCubit>().zoomOut(),
+                            onZoomIn: () => context
+                                .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                                .zoomIn(),
+                            onZoomOut: () => context
+                                .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                                .zoomOut(),
                             showFavorite: true,
                             favoriteType: 'azkar',
-                            favoriteTitle: state.categoryTitle,
+                            favoriteTitle: state.title,
                             description: zekr.description,
                             reference: zekr.reference,
                             counterBadgeText:
-                                'التكرار  : ${zekr.currentCount} / ${state.totalRepeat}',
+                                'التكرار  : $countVal / $itemRepeat',
                           ),
                         );
                       },
@@ -326,9 +337,9 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                   SizedBox(height: 60.h),
 
                   InteractiveCounterControl(
-                    count: currentZekr?.currentCount ?? 0,
-                    totalRepeat: state.totalRepeat,
-                    progress: state.currentProgress,
+                    count: state.currentCount,
+                    totalRepeat: targetRepeat,
+                    progress: progress,
                     onCounterTap: () => _onCounterTap(context),
                     cornerAction: CounterSideAction(
                       icon: Icons.format_list_bulleted_rounded,
@@ -363,10 +374,12 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                         );
                       }
                     },
-                    hasNext: state.currentIndex < category.azkar.length - 1,
+                    hasNext: state.currentIndex < state.totalCount - 1,
                     hasPrevious: state.currentIndex > 0,
                     onReset: () async {
-                      await context.read<AzkarDetailsCubit>().resetCategory();
+                      await context
+                          .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                          .resetCategory();
                       if (_pageController.hasClients) {
                         _pageController.jumpToPage(0);
                       }

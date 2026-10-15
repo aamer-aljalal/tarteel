@@ -12,6 +12,7 @@ class HisnService implements LazyDataLoader<AccessListModel, HisnCategory> {
 
   // كاش للعناوين السريعة فقط
   static List<AccessListModel>? _cachedHeaders;
+  static List<AccessListModel>? get cachedHeaders => _cachedHeaders;
 
   // كاش تفاصيل الأقسام التي تم فتحها مسبقاً (On-Demand Cache)
   static final Map<String, HisnCategory> _detailsCache = {};
@@ -64,7 +65,7 @@ class HisnService implements LazyDataLoader<AccessListModel, HisnCategory> {
   }
 
   // ============================================================================
-  // تحميل تفاصيل باب محدد عند طلبه فقط (On-Demand)
+  // تحميل تفاصيل قسم محدد عند طلبه فقط (On-Demand)
   // ============================================================================
   static Future<HisnCategory> loadCategoryByTitle(String title) async {
     if (_detailsCache.containsKey(title)) {

@@ -10,8 +10,8 @@ import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/buttons/interactive_counter_control.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
-import 'package:tarteel/features/hisn_almuslim/cubit/details/hisn_details_cubit.dart';
-import 'package:tarteel/features/hisn_almuslim/cubit/details/hisn_details_state.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_state.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
@@ -25,9 +25,13 @@ class HisnDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => HisnDetailsCubit(
-        initialCategory: category,
-        initialCategoryTitle: categoryTitle ?? category?.title,
+      create: (_) => GenericReaderCubit<HisnCategory, String>(
+        initialDetail: category,
+        initialTitle: categoryTitle ?? category!.title,
+        categoryKey: 'hisn',
+        detailFetcher: HisnService.loadCategoryByTitle,
+        itemsExtractor: (cat) => cat.texts,
+        targetRepeatExtractor: (_) => 1,
       ),
       child: const _HisnDetailsView(),
     );
@@ -57,8 +61,8 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
   }
 
   void _onCounterTap(BuildContext context) {
-    context.read<HisnDetailsCubit>().incrementCounter(
-      onNextRequested: () {
+    context.read<GenericReaderCubit<HisnCategory, String>>().incrementCounter(
+      onSingleCompleted: () {
         Future.delayed(const Duration(milliseconds: 400), () {
           if (mounted && _pageController.hasClients) {
             _pageController.nextPage(
@@ -73,8 +77,8 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
 
   Future<void> _showCategoriesBottomSheet(BuildContext context) async {
     HapticFeedback.lightImpact();
-    final cubit = context.read<HisnDetailsCubit>();
-    final currentTitle = cubit.state.categoryTitle;
+    final cubit = context.read<GenericReaderCubit<HisnCategory, String>>();
+    final currentTitle = cubit.state.title;
 
     final actions = await HisnService.loadHisnAsActions();
     if (!context.mounted) return;
@@ -131,7 +135,8 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocConsumer<HisnDetailsCubit, HisnDetailsState>(
+    return BlocConsumer<GenericReaderCubit<HisnCategory, String>,
+        GenericReaderState<HisnCategory, String>>(
       listener: (context, state) {
         if (_pageController.hasClients &&
             _pageController.page?.round() != state.currentIndex) {
@@ -139,11 +144,11 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
         }
       },
       builder: (context, state) {
-        if (state.isLoading || state.category == null) {
+        if (state.isLoading || state.detail == null) {
           return Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
             appBar: tarteelAppBar(
-              titleText: state.categoryTitle,
+              titleText: state.title,
               elevation: 0,
               toolbarHeight: 90,
             ),
@@ -151,35 +156,36 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
           );
         }
 
-        final category = state.category!;
+        final category = state.detail!;
+        final progress = (state.currentCount / 1).clamp(0.0, 1.0);
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: tarteelAppBar(
-            titleText: state.categoryTitle,
+            titleText: state.title,
             elevation: 0,
             toolbarHeight: 90,
           ),
           body: AnimatedSkyBackground(
-            categoryTitle: state.categoryTitle,
+            categoryTitle: state.title,
             child: SafeArea(
               child: Column(
                 children: [
                   SizedBox(height: 16.h),
-                  // Dynamic Section Progress Bar using reusable component & Cubit
                   SectionProgressBar(
                     currentIndex: state.currentIndex,
                     totalCount: category.texts.length,
                     isZeroBasedIndex: true,
                   ),
 
-                  // Page View Container
                   Expanded(
                     child: PageView.builder(
                       controller: _pageController,
                       itemCount: category.texts.length,
                       onPageChanged: (index) {
-                        context.read<HisnDetailsCubit>().changePage(index);
+                        context
+                            .read<GenericReaderCubit<HisnCategory, String>>()
+                            .changePage(index);
                       },
                       itemBuilder: (context, index) {
                         final text = category.texts[index];
@@ -199,13 +205,15 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
                             content: text,
                             indexLabel: 'الدعاء ${index + 1}',
                             fontSize: state.fontSize,
-                            onZoomIn: () =>
-                                context.read<HisnDetailsCubit>().zoomIn(),
-                            onZoomOut: () =>
-                                context.read<HisnDetailsCubit>().zoomOut(),
+                            onZoomIn: () => context
+                                .read<GenericReaderCubit<HisnCategory, String>>()
+                                .zoomIn(),
+                            onZoomOut: () => context
+                                .read<GenericReaderCubit<HisnCategory, String>>()
+                                .zoomOut(),
                             showFavorite: true,
                             favoriteType: 'hisn',
-                            favoriteTitle: state.categoryTitle,
+                            favoriteTitle: state.title,
                             description: footnote,
                             showCounterBadge: false,
                           ),
@@ -217,8 +225,8 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
                   SizedBox(height: 60.h),
                   InteractiveCounterControl(
                     count: state.currentCount,
-                    totalRepeat: state.totalRepeat,
-                    progress: state.currentProgress,
+                    totalRepeat: 1,
+                    progress: progress,
                     onCounterTap: () => _onCounterTap(context),
                     cornerAction: CounterSideAction(
                       icon: Icons.format_list_bulleted_rounded,
@@ -257,7 +265,9 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
                     hasPrevious: state.currentIndex > 0,
                     showResetButton: true,
                     onReset: () async {
-                      await context.read<HisnDetailsCubit>().resetCategory();
+                      await context
+                          .read<GenericReaderCubit<HisnCategory, String>>()
+                          .resetCategory();
                       if (_pageController.hasClients) {
                         _pageController.jumpToPage(0);
                       }

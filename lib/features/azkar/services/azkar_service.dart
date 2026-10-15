@@ -14,6 +14,7 @@ class AzkarService implements LazyDataLoader<AccessListModel, ZekrCategory> {
 
   // كاش الكتالوج الخفيف (العناوين والأيقونات فقط - سريع جداً)
   static List<AccessListModel>? _cachedHeaders;
+  static List<AccessListModel>? get cachedHeaders => _cachedHeaders;
 
   // كاش كامل للأقسام
   static List<ZekrCategory>? _cachedCategories;

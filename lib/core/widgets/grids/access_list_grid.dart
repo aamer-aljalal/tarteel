@@ -52,7 +52,9 @@ class AccessListGrid extends StatelessWidget {
           return itemWidget;
         }
 
-        final animationDelay = (index * 0.04).clamp(0.0, 0.95);
+        // تحسين الأداء للقوائم الطويلة (مثل حصن المسلم 130 باباً):
+        // نقصر تأخير الأنيميشن على أول 9 عناصر فقط لكي تظهر الشاشة فوراً دون انتظار تراكم التأخير
+        final animationDelay = ((index % 9) * 0.04).clamp(0.0, 0.4);
         final animation = CurvedAnimation(
           parent: controller!,
           curve: Interval(animationDelay, 1.0, curve: Curves.easeOutCubic),

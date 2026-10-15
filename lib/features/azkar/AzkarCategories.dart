@@ -1,11 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
+import 'package:tarteel/Model/AccessListModel.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_cubit.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_state.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
-import 'package:tarteel/features/azkar/cubit/azkar_cubit.dart';
-import 'package:tarteel/features/azkar/cubit/azkar_state.dart';
+import 'package:tarteel/features/azkar/cubit/azkar_catalog_bridge.dart';
+import 'package:tarteel/features/azkar/model/zekr_category.dart';
 
 class AzkarCategoriesScreen extends StatelessWidget {
   const AzkarCategoriesScreen({super.key});
@@ -13,7 +16,7 @@ class AzkarCategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AzkarCubit(),
+      create: (_) => AzkarCubitFactory.create(),
       child: const _AzkarCategoriesView(),
     );
   }
@@ -64,11 +67,15 @@ class _AzkarCategoriesViewState extends State<_AzkarCategoriesView>
           bottomHeight: 75,
           toolbarHeight: 80,
           onSearchChanged: (val) {
-            context.read<AzkarCubit>().filterCategories(val);
+            context
+                .read<GenericCatalogCubit<AccessListModel, ZekrCategory>>()
+                .search(val);
           },
         ),
         body: IslamicPatternBackground(
-          child: BlocConsumer<AzkarCubit, AzkarState>(
+          child: BlocConsumer<
+              GenericCatalogCubit<AccessListModel, ZekrCategory>,
+              GenericCatalogState<AccessListModel>>(
             listener: (context, state) {
               if (!state.isLoading && state.errorMessage == null) {
                 _animationController.reset();
@@ -104,7 +111,11 @@ class _AzkarCategoriesViewState extends State<_AzkarCategoriesView>
                         SizedBox(height: 12.h),
                         ElevatedButton(
                           onPressed: () {
-                            context.read<AzkarCubit>().loadCategories();
+                            context
+                                .read<
+                                    GenericCatalogCubit<AccessListModel,
+                                        ZekrCategory>>()
+                                .loadCatalog();
                           },
                           child: const Text('إعادة المحاولة'),
                         ),
@@ -114,7 +125,7 @@ class _AzkarCategoriesViewState extends State<_AzkarCategoriesView>
                 );
               }
 
-              if (state.filteredActions.isEmpty) {
+              if (state.filteredItems.isEmpty) {
                 return Center(
                   child: Padding(
                     padding: EdgeInsets.all(24.w),
@@ -140,7 +151,11 @@ class _AzkarCategoriesViewState extends State<_AzkarCategoriesView>
                         TextButton(
                           onPressed: () {
                             _searchController.clear();
-                            context.read<AzkarCubit>().clearSearch();
+                            context
+                                .read<
+                                    GenericCatalogCubit<AccessListModel,
+                                        ZekrCategory>>()
+                                .clearSearch();
                           },
                           child: const Text(
                             'عرض كافة الأذكار',
@@ -162,7 +177,7 @@ class _AzkarCategoriesViewState extends State<_AzkarCategoriesView>
                 child: Column(
                   children: [
                     AccessListGrid(
-                      actions: state.filteredActions,
+                      actions: state.filteredItems,
                       controller: _animationController,
                     ),
                     SizedBox(height: 32.h),

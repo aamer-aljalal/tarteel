@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:tarteel/Model/AccessListModel.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_cubit.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_state.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
-import 'package:tarteel/features/hisn_almuslim/cubit/hisn_cubit.dart';
-import 'package:tarteel/features/hisn_almuslim/cubit/hisn_state.dart';
+import 'package:tarteel/features/hisn_almuslim/cubit/hisn_catalog_bridge.dart';
+import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 
 class HisnCategoriesScreen extends StatelessWidget {
   const HisnCategoriesScreen({super.key});
@@ -13,7 +16,7 @@ class HisnCategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => HisnCubit(),
+      create: (_) => HisnCubitFactory.create(),
       child: const _HisnCategoriesView(),
     );
   }
@@ -63,11 +66,15 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
           bottomHeight: 75,
           toolbarHeight: 80,
           onSearchChanged: (val) {
-            context.read<HisnCubit>().filterCategories(val);
+            context
+                .read<GenericCatalogCubit<AccessListModel, HisnCategory>>()
+                .search(val);
           },
         ),
         body: IslamicPatternBackground(
-          child: BlocConsumer<HisnCubit, HisnState>(
+          child: BlocConsumer<
+              GenericCatalogCubit<AccessListModel, HisnCategory>,
+              GenericCatalogState<AccessListModel>>(
             listener: (context, state) {
               if (!state.isLoading && state.errorMessage == null) {
                 _animationController.reset();
@@ -103,7 +110,11 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
                         SizedBox(height: 12.h),
                         ElevatedButton(
                           onPressed: () {
-                            context.read<HisnCubit>().loadCategories();
+                            context
+                                .read<
+                                    GenericCatalogCubit<AccessListModel,
+                                        HisnCategory>>()
+                                .loadCatalog();
                           },
                           child: const Text('إعادة المحاولة'),
                         ),
@@ -113,7 +124,7 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
                 );
               }
 
-              if (state.filteredActions.isEmpty) {
+              if (state.filteredItems.isEmpty) {
                 return Center(
                   child: Padding(
                     padding: EdgeInsets.all(24.w),
@@ -139,7 +150,11 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
                         TextButton(
                           onPressed: () {
                             _searchController.clear();
-                            context.read<HisnCubit>().clearSearch();
+                            context
+                                .read<
+                                    GenericCatalogCubit<AccessListModel,
+                                        HisnCategory>>()
+                                .clearSearch();
                           },
                           child: const Text(
                             'عرض كل الفصول',
@@ -161,7 +176,7 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
                 child: Column(
                   children: [
                     AccessListGrid(
-                      actions: state.filteredActions,
+                      actions: state.filteredItems,
                       controller: _animationController,
                     ),
                     SizedBox(height: 32.h),
