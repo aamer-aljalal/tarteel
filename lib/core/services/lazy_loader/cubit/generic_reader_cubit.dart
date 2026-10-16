@@ -13,14 +13,69 @@
 library;
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 import 'generic_reader_state.dart';
 
+/// واجهة معيارية غير مرتبطة بأنواع Generics لتمكين مكونات الـ UI من قراءة والتحكم بالكيوبت تلقائياً
+abstract class ReaderCubitContract {
+  int get currentCount;
+  int get currentTargetRepeat;
+  double get currentProgress;
+  bool get isCurrentItemCompleted;
+  int get currentIndex;
+  int get totalCount;
+  double get fontSize;
+  String get title;
+  bool get hasNext;
+  bool get hasPrevious;
+  void incrementCounter({
+    bool allowOvercount = false,
+    bool autoNextOnComplete = true,
+    VoidCallback? onSingleCompleted,
+    VoidCallback? onAutoNext,
+    VoidCallback? onAllCompleted,
+    VoidCallback? onAlreadyCompleted,
+  });
+  void nextItem();
+  void previousItem();
+  void changePage(int newIndex);
+  void resetCurrentItem();
+  void resetCategory();
+  void zoomIn();
+  void zoomOut();
+}
+
+/// دالة عامة وذكية للوصول إلى ReaderCubit من أي مكون في الشجرة دون الحاجة لتحديد Generics
+ReaderCubitContract? findReaderCubit(BuildContext context) {
+  try {
+    ReaderCubitContract? found;
+    context.visitAncestorElements((element) {
+      if (element is InheritedElement) {
+        final widget = element.widget;
+        if (widget is InheritedProvider) {
+          final val = (element as dynamic).value;
+          if (val is ReaderCubitContract) {
+            found = val;
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    return found;
+  } catch (_) {
+    return null;
+  }
+}
+
 class GenericReaderCubit<TDetail, TItem>
-    extends Cubit<GenericReaderState<TDetail, TItem>> {
+    extends Cubit<GenericReaderState<TDetail, TItem>>
+    implements ReaderCubitContract {
   /// دالة جلب التفاصيل عند الطلب
   final Future<TDetail> Function(String title) detailFetcher;
 
@@ -40,7 +95,7 @@ class GenericReaderCubit<TDetail, TItem>
     required this.itemsExtractor,
     required this.categoryKey,
     this.targetRepeatExtractor,
-  }) : super(GenericReaderState(
+  }) : super(GenericReaderState<TDetail, TItem>(
           detail: initialDetail,
           title: initialTitle,
           isLoading: initialDetail == null,
@@ -119,10 +174,58 @@ class GenericReaderCubit<TDetail, TItem>
     } catch (_) {}
   }
 
-  /// زيادة العداد للعنصر الحالي
+  @override
+  int get currentCount => state.currentCount;
+
+  @override
+  int get currentIndex => state.currentIndex;
+
+  @override
+  int get totalCount => state.totalCount;
+
+  @override
+  double get fontSize => state.fontSize;
+
+  @override
+  String get title => state.title;
+
+  @override
+  bool get hasNext => state.currentIndex < state.totalCount - 1;
+
+  @override
+  bool get hasPrevious => state.currentIndex > 0;
+
+  /// هدف التكرار للعنصر الحالي
+  @override
+  int get currentTargetRepeat {
+    final item = state.currentItem;
+    if (item == null) return 1;
+    return targetRepeatExtractor != null ? targetRepeatExtractor!(item) : 1;
+  }
+
+  /// نسبة تقدم العنصر الحالي (0.0 إلى 1.0)
+  @override
+  double get currentProgress {
+    final target = currentTargetRepeat;
+    if (target <= 0) return 0.0;
+    return (state.currentCount / target).clamp(0.0, 1.0);
+  }
+
+  /// هل العنصر الحالي مكتمل الهدف
+  @override
+  bool get isCurrentItemCompleted {
+    return state.currentCount >= currentTargetRepeat;
+  }
+
+  /// زيادة العداد للعنصر الحالي مع التحكم بالجمود والتكرار الفائض
+  @override
   void incrementCounter({
+    bool allowOvercount = false,
+    bool autoNextOnComplete = true,
     VoidCallback? onSingleCompleted,
+    VoidCallback? onAutoNext,
     VoidCallback? onAllCompleted,
+    VoidCallback? onAlreadyCompleted,
   }) {
     if (state.items.isEmpty || state.counters.isEmpty) return;
 
@@ -130,9 +233,17 @@ class GenericReaderCubit<TDetail, TItem>
     final item = state.currentItem;
     if (item == null) return;
 
-    final target = targetRepeatExtractor != null
-        ? targetRepeatExtractor!(item)
-        : 1;
+    final target = currentTargetRepeat;
+    final current = state.counters[idx];
+
+    // إذا كان العنصر مكتملاً بالفعل وغير مسموح بالزيادة الفائضة (حالة التجميد الذكي)
+    if (current >= target && !allowOvercount) {
+      if (state.hapticEnabled) {
+        HapticFeedback.lightImpact();
+      }
+      onAlreadyCompleted?.call();
+      return;
+    }
 
     final updated = List<int>.from(state.counters);
     updated[idx]++;
@@ -151,17 +262,32 @@ class GenericReaderCubit<TDetail, TItem>
 
     StatsService.recordAction(categoryKey, amount: 1);
 
-    // التحقق من اكتمال هذا العنصر
-    if (count >= target) {
+    // التحقق من وصول الهدف للمرة الأولى
+    if (count == target) {
       final isAllDone = _checkAllCompleted(updated);
       if (isAllDone) {
         StatsService.recordAction('completed_${categoryKey}_category');
         if (state.hapticEnabled) HapticFeedback.vibrate();
         onAllCompleted?.call();
-      } else {
-        onSingleCompleted?.call();
+      } else if (autoNextOnComplete) {
+        final nextCallback = onAutoNext ?? onSingleCompleted;
+        nextCallback?.call();
       }
     }
+  }
+
+  /// تصفية وإعادة تعيين عداد العنصر الحالي فقط
+  Future<void> resetCurrentItem() async {
+    if (state.counters.isEmpty || state.currentIndex >= state.counters.length) return;
+    final idx = state.currentIndex;
+    final updated = List<int>.from(state.counters);
+    updated[idx] = 0;
+    emit(state.copyWith(counters: updated));
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('${categoryKey}_count_${state.title}_$idx');
+    } catch (_) {}
   }
 
   bool _checkAllCompleted(List<int> currentCounters) {
@@ -179,6 +305,20 @@ class GenericReaderCubit<TDetail, TItem>
     if (newIndex >= 0 && newIndex < state.items.length) {
       emit(state.copyWith(currentIndex: newIndex));
       _saveRecentAction();
+    }
+  }
+
+  @override
+  void nextItem() {
+    if (hasNext) {
+      changePage(state.currentIndex + 1);
+    }
+  }
+
+  @override
+  void previousItem() {
+    if (hasPrevious) {
+      changePage(state.currentIndex - 1);
     }
   }
 
@@ -239,5 +379,10 @@ class GenericReaderCubit<TDetail, TItem>
     } catch (_) {}
 
     _saveRecentAction();
+  }
+
+  /// إعادة المحاولة وتحميل البيانات من جديد
+  Future<void> reload() async {
+    await _initialize(null, state.title);
   }
 }

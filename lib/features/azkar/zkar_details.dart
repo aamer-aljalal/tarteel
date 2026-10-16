@@ -16,13 +16,14 @@ import 'package:tarteel/features/azkar/services/azkar_service.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_state.dart';
+import 'package:tarteel/core/widgets/states/app_status_view.dart';
 
 class AzkarDetailsScreen extends StatelessWidget {
   final ZekrCategory? category;
   final String? categoryTitle;
 
   const AzkarDetailsScreen({super.key, this.category, this.categoryTitle})
-      : assert(category != null || categoryTitle != null);
+    : assert(category != null || categoryTitle != null);
 
   @override
   Widget build(BuildContext context) {
@@ -60,29 +61,6 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  void _onCounterTap(BuildContext context) {
-    final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
-    cubit.incrementCounter(
-      onSingleCompleted: () {
-        if (mounted && _pageController.hasClients) {
-          final nextIndex = cubit.state.currentIndex + 1;
-          if (nextIndex < cubit.state.totalCount) {
-            _pageController.animateToPage(
-              nextIndex,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeInOut,
-            );
-          }
-        }
-      },
-      onAllCompleted: () {
-        if (mounted && context.mounted) {
-          _showCompletionSheet(context);
-        }
-      },
-    );
   }
 
   Future<void> _showCategoriesBottomSheet(BuildContext context) async {
@@ -242,8 +220,10 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocConsumer<GenericReaderCubit<ZekrCategory, ZekrModel>,
-        GenericReaderState<ZekrCategory, ZekrModel>>(
+    return BlocConsumer<
+      GenericReaderCubit<ZekrCategory, ZekrModel>,
+      GenericReaderState<ZekrCategory, ZekrModel>
+    >(
       listener: (context, state) {
         if (_pageController.hasClients &&
             _pageController.page?.round() != state.currentIndex) {
@@ -251,7 +231,7 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
         }
       },
       builder: (context, state) {
-        if (state.isLoading || state.detail == null) {
+        if (state.isLoading) {
           return Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
             appBar: tarteelAppBar(
@@ -263,12 +243,39 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
           );
         }
 
-        final currentZekr = state.currentItem;
-        final targetRepeat = currentZekr != null
-            ? (int.tryParse(currentZekr.count) ?? 1)
-            : 1;
-        final progress = (state.currentCount / (targetRepeat > 0 ? targetRepeat : 1))
-            .clamp(0.0, 1.0);
+        if (state.errorMessage != null) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.title,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: AppStatusView.error(
+              message: state.errorMessage!,
+              onRetry: () {
+                context
+                    .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                    .reload();
+              },
+            ),
+          );
+        }
+
+        if (state.items.isEmpty) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.title,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: AppStatusView.empty(
+              title: 'لا توجد أذكار في هذا القسم حالياً',
+              icon: Icons.bookmark_border_rounded,
+            ),
+          );
+        }
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -300,10 +307,6 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                       },
                       itemBuilder: (context, index) {
                         final zekr = state.items[index];
-                        final itemRepeat = int.tryParse(zekr.count) ?? 1;
-                        final countVal = state.counters.length > index
-                            ? state.counters[index]
-                            : 0;
 
                         return AnimatedPadding(
                           duration: const Duration(milliseconds: 200),
@@ -314,21 +317,11 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                           ),
                           child: InteractiveContentCard(
                             content: zekr.content,
-                            indexLabel: 'الذكر ${state.currentIndex + 1}',
-                            fontSize: state.fontSize,
-                            onZoomIn: () => context
-                                .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
-                                .zoomIn(),
-                            onZoomOut: () => context
-                                .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
-                                .zoomOut(),
+                            indexLabel: 'الذكر ${index + 1}',
                             showFavorite: true,
                             favoriteType: 'azkar',
-                            favoriteTitle: state.title,
                             description: zekr.description,
                             reference: zekr.reference,
-                            counterBadgeText:
-                                'التكرار  : $countVal / $itemRepeat',
                           ),
                         );
                       },
@@ -337,10 +330,12 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                   SizedBox(height: 60.h),
 
                   InteractiveCounterControl(
-                    count: state.currentCount,
-                    totalRepeat: targetRepeat,
-                    progress: progress,
-                    onCounterTap: () => _onCounterTap(context),
+                    pageController: _pageController,
+                    autoNextOnComplete: true,
+                    allowOvercount: false,
+                    showNavigationButtons: true,
+                    showResetButton: true,
+                    onAllCompleted: () => _showCompletionSheet(context),
                     cornerAction: CounterSideAction(
                       icon: Icons.format_list_bulleted_rounded,
                       tooltip: 'أقسام الأذكار',
@@ -358,37 +353,6 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                         );
                       },
                     ),
-                    onNext: () {
-                      if (_pageController.hasClients) {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                    onPrevious: () {
-                      if (_pageController.hasClients) {
-                        _pageController.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                    hasNext: state.currentIndex < state.totalCount - 1,
-                    hasPrevious: state.currentIndex > 0,
-                    onReset: () async {
-                      await context
-                          .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
-                          .resetCategory();
-                      if (_pageController.hasClients) {
-                        _pageController.jumpToPage(0);
-                      }
-                    },
-                    showResetButton: true,
-                    resetConfirmTitle: 'إعادة تعيين الأذكار',
-                    resetConfirmMessage:
-                        'هل تريد إعادة تعيين عداد القراءة لكافة الأذكار في هذا القسم والبدء من جديد؟',
-                    resetColor: Colors.redAccent,
                   ),
                 ],
               ),

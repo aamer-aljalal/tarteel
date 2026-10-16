@@ -15,6 +15,7 @@ import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
+import 'package:tarteel/core/widgets/states/app_status_view.dart';
 
 class TasbeehScreen extends StatefulWidget {
   const TasbeehScreen({super.key});
@@ -601,74 +602,15 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       appBar: tarteelAppBar(titleText: 'التسبيح', toolbarHeight: 90),
       body: IslamicPatternBackground(
         child: isEmpty
-            ? Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 32.w,
-                    vertical: 40.h,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(24.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.spa_outlined,
-                          size: 80.sp,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(height: 24.h),
-                      Text(
-                        'لا توجد أذكار أو أدعية حالياً',
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 12.h),
-                      Text(
-                        'قم بإنشاء دعائك أو تسبيحك الخاص للبدء بالذكر وتلقي التذكيرات اليومية الفخمة.',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.grey.shade600,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 32.h),
-                      ElevatedButton.icon(
-                        onPressed: _showAddZekrDialog,
-                        icon: Icon(Icons.add_rounded, size: 20.sp),
-                        label: Text(
-                          'أنشئ دعاءك الخاص',
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.w,
-                            vertical: 14.h,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          elevation: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            ? AppStatusView(
+                icon: Icons.spa_outlined,
+                hasIconBackground: true,
+                title: 'لا توجد أذكار أو أدعية حالياً',
+                subtitle:
+                    'قم بإنشاء دعائك أو تسبيحك الخاص للبدء بالذكر وتلقي التذكيرات اليومية الفخمة.',
+                buttonText: 'أنشئ دعاءك الخاص',
+                buttonIcon: Icons.add_rounded,
+                onButtonPressed: _showAddZekrDialog,
               )
             : Padding(
                 padding: EdgeInsets.only(

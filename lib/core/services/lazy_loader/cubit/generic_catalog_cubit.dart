@@ -20,7 +20,7 @@ class GenericCatalogCubit<THeader, TDetail>
     required this.loader,
     required this.titleExtractor,
     bool autoLoad = true,
-  }) : super(const GenericCatalogState(isLoading: true)) {
+  }) : super(GenericCatalogState<THeader>(isLoading: true)) {
     if (autoLoad) {
       loadCatalog();
     }

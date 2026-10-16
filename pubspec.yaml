@@ -95,9 +95,9 @@ flutter:
     - assets/animation/tasbih/
     - assets/img/
     - assets/img/icon/
-    - assets/img/Qibla/
     - assets/audio/adhan/
     - assets/audio/tasbeeh/
+    # - assets/img/Qibla/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
 
 /// [CounterSideAction]
 /// تعريف لزر جانبي جاهز ومصمم باحترافية ليوضع على يمين أو يسار العداد التفاعلي.
@@ -51,17 +52,32 @@ class CounterSideAction {
 /// 5. منطقة سفلية لتلميح الاستخدام وزر إعادة التعيين أو أي محتوى مخصص عبر ([bottomAction]).
 /// 6. تكيف كامل مع الوضع الليلي والنهاري وتصميم تطبيق ترتيل.
 class InteractiveCounterControl extends StatefulWidget {
-  /// العدد الحالي المنجز
-  final int count;
+  /// العدد الحالي المنجز (اختياري: إن لم يُمرر يتم جلبه تلقائياً من الكيوبت)
+  final int? count;
 
-  /// العدد الإجمالي المستهدف (اختياري)
+  /// العدد الإجمالي المستهدف (اختياري: إن لم يُمرر يتم جلبه تلقائياً من الكيوبت)
   final int? totalRepeat;
 
-  /// نسبة التقدم من 0.0 إلى 1.0 (إذا تُركت فارغة تُحسب تلقائياً من count / totalRepeat)
+  /// نسبة التقدم من 0.0 إلى 1.0 (اختياري: تُحسب تلقائياً من الكيوبت أو العداد)
   final double? progress;
 
-  /// إجراء عند النقر على الزر الدائري المركزي (زيادة العداد)
-  final VoidCallback onCounterTap;
+  /// إجراء عند النقر على الزر الدائري المركزي (اختياري: إن لم يُمرر يُنفذ دالة الكيوبت تلقائياً)
+  final VoidCallback? onCounterTap;
+
+  /// وحدة التحكم بصفحات العرض للتنقل التلقائي والسلس (اختياري)
+  final PageController? pageController;
+
+  /// هل ينتقل تلقائياً للذكر التالي عند بلوغ العدد المطلوب (الافتراضي: true)
+  final bool autoNextOnComplete;
+
+  /// هل يسمح بالزيادة الفائضة فوق الهدف إذا عاد المستخدم إليه (الافتراضي: false - حالة التجميد الذكي)
+  final bool allowOvercount;
+
+  /// إجراء يُنفذ عند اكتمال كافة أذكار هذا القسم بالكامل (اختياري)
+  final VoidCallback? onAllCompleted;
+
+  /// إجراء اختياري يُنفذ عند بلوغ الهدف المحدد للمرة الأولى (مثل فتح قائمة الأذكار في شاشة التسبيح)
+  final VoidCallback? onTargetReached;
 
   /// إجراء إعادة التعيين
   final VoidCallback? onReset;
@@ -207,10 +223,15 @@ class InteractiveCounterControl extends StatefulWidget {
 
   const InteractiveCounterControl({
     super.key,
-    required this.count,
+    this.count,
     this.totalRepeat,
     this.progress,
-    required this.onCounterTap,
+    this.onCounterTap,
+    this.pageController,
+    this.autoNextOnComplete = true,
+    this.allowOvercount = false,
+    this.onAllCompleted,
+    this.onTargetReached,
     this.onReset,
     this.showResetButton = true,
     this.resetLabel = 'بدء من جديد / إعادة تعيين',
@@ -289,12 +310,26 @@ class InteractiveCounterControl extends StatefulWidget {
 class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
   double _buttonScale = 1.0;
   AudioPlayer? _audioPlayer;
+  bool _targetReachedHandled = false;
 
   @override
   void initState() {
     super.initState();
     _initAudio();
   }
+
+  ReaderCubitContract? get _cubit =>
+      widget.count == null ? findReaderCubit(context) : null;
+
+  int get _effectiveCount => widget.count ?? _cubit?.currentCount ?? 0;
+  int? get _effectiveTotalRepeat =>
+      widget.totalRepeat ?? _cubit?.currentTargetRepeat;
+
+  bool get _effectiveHasNext =>
+      widget.onNext != null ? widget.hasNext : (_cubit?.hasNext ?? widget.hasNext);
+  bool get _effectiveHasPrevious => widget.onPrevious != null
+      ? widget.hasPrevious
+      : (_cubit?.hasPrevious ?? widget.hasPrevious);
 
   @override
   void didUpdateWidget(covariant InteractiveCounterControl oldWidget) {
@@ -306,6 +341,13 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
       _audioPlayer
           ?.setVolume(widget.soundVolume.clamp(0.0, 1.0))
           .catchError((_) {});
+    }
+
+    final currentCount = widget.count ?? 0;
+    final totalRepeat = widget.totalRepeat ?? 0;
+    if (currentCount < totalRepeat ||
+        widget.totalRepeat != oldWidget.totalRepeat) {
+      _targetReachedHandled = false;
     }
   }
 
@@ -344,11 +386,16 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
   }
 
   Future<void> _handleReset() async {
-    if (widget.onReset == null) return;
+    final hasCustomReset = widget.onReset != null;
+    final cubit = _cubit;
+    if (!hasCustomReset && cubit == null) return;
 
-    // إذا لم يكن مطلوباً تأكيد، أو كان العداد بالفعل 0، ننفذ مباشرة دون إزعاج المستخدم
-    if (!widget.requireResetConfirmation || widget.count == 0) {
-      widget.onReset!();
+    if (!widget.requireResetConfirmation || _effectiveCount == 0) {
+      if (hasCustomReset) {
+        widget.onReset!();
+      } else {
+        cubit?.resetCurrentItem();
+      }
       return;
     }
 
@@ -362,7 +409,39 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
     );
 
     if (confirmed) {
-      widget.onReset!();
+      if (hasCustomReset) {
+        widget.onReset!();
+      } else {
+        cubit?.resetCurrentItem();
+      }
+    }
+  }
+
+  void _handleNext() {
+    if (widget.onNext != null) {
+      widget.onNext!();
+    } else if (widget.pageController != null &&
+        widget.pageController!.hasClients) {
+      widget.pageController!.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else if (_cubit != null) {
+      _cubit!.nextItem();
+    }
+  }
+
+  void _handlePrevious() {
+    if (widget.onPrevious != null) {
+      widget.onPrevious!();
+    } else if (widget.pageController != null &&
+        widget.pageController!.hasClients) {
+      widget.pageController!.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else if (_cubit != null) {
+      _cubit!.previousItem();
     }
   }
 
@@ -391,15 +470,46 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
       });
     }
 
-    widget.onCounterTap();
+    if (widget.onCounterTap != null) {
+      widget.onCounterTap!();
+    } else if (_cubit != null) {
+      _cubit!.incrementCounter(
+        allowOvercount: widget.allowOvercount,
+        autoNextOnComplete: widget.autoNextOnComplete,
+        onAutoNext: () {
+          if (widget.pageController != null &&
+              widget.pageController!.hasClients) {
+            widget.pageController!.nextPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          }
+        },
+        onAllCompleted: widget.onAllCompleted,
+      );
+    }
+
+    final curCount = _effectiveCount;
+    final totalRep = _effectiveTotalRepeat;
+    if (widget.onTargetReached != null && totalRep != null && totalRep > 0) {
+      if ((curCount + 1) >= totalRep && !_targetReachedHandled) {
+        _targetReachedHandled = true;
+        widget.onTargetReached!();
+      }
+    }
   }
 
   double get _calculatedProgress {
     if (widget.progress != null) {
       return widget.progress!.clamp(0.0, 1.0);
     }
-    if (widget.totalRepeat != null && widget.totalRepeat! > 0) {
-      return (widget.count / widget.totalRepeat!).clamp(0.0, 1.0);
+    final cubit = _cubit;
+    if (widget.count == null && cubit != null) {
+      return cubit.currentProgress.clamp(0.0, 1.0);
+    }
+    final total = _effectiveTotalRepeat;
+    if (total != null && total > 0) {
+      return (_effectiveCount / total).clamp(0.0, 1.0);
     }
     return 0.0;
   }
@@ -491,13 +601,13 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
             : widget.leadingAction ??
                   (widget.showNavigationButtons
                       ? IconButton(
-                          onPressed: widget.hasPrevious
-                              ? widget.onPrevious
+                          onPressed: _effectiveHasPrevious
+                              ? _handlePrevious
                               : null,
                           icon: Icon(
                             widget.previousIcon,
                             size: 30.sp,
-                            color: widget.hasPrevious
+                            color: _effectiveHasPrevious
                                 ? effectivePrimaryColor
                                 : (isDark
                                       ? Colors.grey.shade700
@@ -514,11 +624,11 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
             : widget.trailingAction ??
                   (widget.showNavigationButtons
                       ? IconButton(
-                          onPressed: widget.hasNext ? widget.onNext : null,
+                          onPressed: _effectiveHasNext ? _handleNext : null,
                           icon: Icon(
                             widget.nextIcon,
                             size: 30.sp,
-                            color: widget.hasNext
+                            color: _effectiveHasNext
                                 ? effectivePrimaryColor
                                 : (isDark
                                       ? Colors.grey.shade700
@@ -678,7 +788,7 @@ class _InteractiveCounterControlState extends State<InteractiveCounterControl> {
                             SizedBox(height: 6.h),
                           ],
                           Text(
-                            '${widget.count}',
+                            '$_effectiveCount',
                             style:
                                 widget.countTextStyle ??
                                 TextStyle(

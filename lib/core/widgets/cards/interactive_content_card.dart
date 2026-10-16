@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:tarteel/core/services/favorites_service.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/Text/Responsive_text.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
 
 /// [CardAction]
 /// تعريف إجراء أو زر مخصص جاهز التصميم يوضع في شريط الإجراءات السفلي لـ [InteractiveContentCard].
@@ -35,8 +36,8 @@ class InteractiveContentCard extends StatefulWidget {
   /// هل تظهر شارة الترتيب في الأعلى
   final bool showIndexLabel;
 
-  /// حجم خط النص الأقصى الحالي
-  final double fontSize;
+  /// حجم خط النص الأقصى الحالي (اختياري: إن لم يُمرر يتم جلبه تلقائياً من الكيوبت)
+  final double? fontSize;
 
   /// خطوة تكبير/تصغير الخط (افتراضياً 2.0)
   final double fontStep;
@@ -127,7 +128,7 @@ class InteractiveContentCard extends StatefulWidget {
     required this.content,
     this.indexLabel,
     this.showIndexLabel = true,
-    this.fontSize = 20.0,
+    this.fontSize,
     this.fontStep = 2.0,
     this.minFontSize = 12.0,
     this.maxFontSize = 36.0,
@@ -165,6 +166,39 @@ class InteractiveContentCard extends StatefulWidget {
 class _InteractiveContentCardState extends State<InteractiveContentCard> {
   bool _isFavorite = false;
 
+  ReaderCubitContract? get _cubit => findReaderCubit(context);
+
+  double get _effectiveFontSize =>
+      widget.fontSize ?? _cubit?.fontSize ?? 20.0;
+
+  String? get _effectiveCounterBadgeText {
+    if (widget.counterBadgeText != null) return widget.counterBadgeText;
+    final cubit = _cubit;
+    if (cubit != null && cubit.currentTargetRepeat > 0) {
+      return 'التكرار  : ${cubit.currentCount} / ${cubit.currentTargetRepeat}';
+    }
+    return null;
+  }
+
+  String? get _effectiveFavoriteTitle =>
+      widget.favoriteTitle ?? _cubit?.title;
+
+  void _handleZoomIn() {
+    if (widget.onZoomIn != null) {
+      widget.onZoomIn!();
+    } else {
+      _cubit?.zoomIn();
+    }
+  }
+
+  void _handleZoomOut() {
+    if (widget.onZoomOut != null) {
+      widget.onZoomOut!();
+    } else {
+      _cubit?.zoomOut();
+    }
+  }
+
   String get _effectiveKey =>
       widget.favoriteKey ?? widget.content.trim().hashCode.toString();
 
@@ -189,6 +223,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
       setState(() => _isFavorite = widget.isFavorite!);
       return;
     }
+
     final fav = await FavoritesService.isFavorite(
       type: widget.favoriteType,
       key: _effectiveKey,
@@ -209,7 +244,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
       type: widget.favoriteType,
       key: _effectiveKey,
       content: widget.content,
-      title: widget.favoriteTitle ?? widget.indexLabel,
+      title: _effectiveFavoriteTitle ?? widget.indexLabel,
       description: widget.description,
       reference: widget.reference,
     );
@@ -254,7 +289,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
               if (widget.content.isNotEmpty)
                 ResponsiveText(
                   content: widget.content,
-                  fontSize: widget.fontSize,
+                  fontSize: _effectiveFontSize,
                   maxFontSize: widget.maxFontSize,
                   minFontSize: widget.minFontSize,
                   fontFamily: 'Amiri',
@@ -435,7 +470,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
                   children: [
                     _buildZoomButton(
                       Icons.zoom_in_rounded,
-                      widget.onZoomIn,
+                      _handleZoomIn,
                       'تكبير الخط',
                     ),
                     Container(
@@ -445,7 +480,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
                     ),
                     _buildZoomButton(
                       Icons.zoom_out_rounded,
-                      widget.onZoomOut,
+                      _handleZoomOut,
                       'تصغير الخط',
                     ),
                   ],
@@ -477,10 +512,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
   }
 
   Widget _buildFooterActions(BuildContext context, bool isDark) {
-    final hasBadge =
-        widget.showCounterBadge &&
-        widget.counterBadgeText != null &&
-        widget.counterBadgeText!.isNotEmpty;
+    final badgeText = _effectiveCounterBadgeText;
 
     return Directionality(
       textDirection: TextDirection.ltr,
@@ -562,7 +594,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
           const Spacer(),
 
           // الجانب الأيمن: شارة التكرار (إن وجدت)
-          if (hasBadge)
+          if (widget.showCounterBadge && badgeText != null && badgeText.isNotEmpty)
             Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
               decoration: BoxDecoration(
@@ -575,7 +607,7 @@ class _InteractiveContentCardState extends State<InteractiveContentCard> {
               child: Directionality(
                 textDirection: TextDirection.rtl,
                 child: Text(
-                  widget.counterBadgeText!,
+                  badgeText,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.primary,

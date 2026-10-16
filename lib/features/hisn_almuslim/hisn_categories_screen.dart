@@ -7,8 +7,9 @@ import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_state.da
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
-import 'package:tarteel/features/hisn_almuslim/cubit/hisn_catalog_bridge.dart';
+import 'package:tarteel/core/widgets/states/app_status_view.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
+import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
 class HisnCategoriesScreen extends StatelessWidget {
   const HisnCategoriesScreen({super.key});
@@ -16,7 +17,10 @@ class HisnCategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => HisnCubitFactory.create(),
+      create: (_) => GenericCatalogCubit<AccessListModel, HisnCategory>(
+        loader: HisnService(),
+        titleExtractor: (item) => item.title,
+      ),
       child: const _HisnCategoriesView(),
     );
   }
@@ -87,86 +91,31 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
               }
 
               if (state.errorMessage != null) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64.sp,
-                          color: Colors.red.shade400,
-                        ),
-                        SizedBox(height: 16.h),
-                        Text(
-                          state.errorMessage!,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Cairo',
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                        ElevatedButton(
-                          onPressed: () {
-                            context
-                                .read<
-                                    GenericCatalogCubit<AccessListModel,
-                                        HisnCategory>>()
-                                .loadCatalog();
-                          },
-                          child: const Text('إعادة المحاولة'),
-                        ),
-                      ],
-                    ),
-                  ),
+                return AppStatusView.error(
+                  message: state.errorMessage!,
+                  onRetry: () {
+                    context
+                        .read<
+                            GenericCatalogCubit<AccessListModel,
+                                HisnCategory>>()
+                        .loadCatalog();
+                  },
                 );
               }
 
               if (state.filteredItems.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.search_off_rounded,
-                          size: 64.sp,
-                          color: Colors.grey.shade400,
-                        ),
-                        SizedBox(height: 16.h),
-                        Text(
-                          'لا توجد نتائج مطابقة لبحثك',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade600,
-                            fontFamily: 'Cairo',
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        TextButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            context
-                                .read<
-                                    GenericCatalogCubit<AccessListModel,
-                                        HisnCategory>>()
-                                .clearSearch();
-                          },
-                          child: const Text(
-                            'عرض كل الفصول',
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                return AppStatusView.empty(
+                  title: 'لا توجد نتائج مطابقة لبحثك',
+                  icon: Icons.search_off_rounded,
+                  buttonText: 'عرض كل الفصول',
+                  onButtonPressed: () {
+                    _searchController.clear();
+                    context
+                        .read<
+                            GenericCatalogCubit<AccessListModel,
+                                HisnCategory>>()
+                        .clearSearch();
+                  },
                 );
               }
 

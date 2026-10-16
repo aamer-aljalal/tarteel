@@ -7,8 +7,9 @@ import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_state.da
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
-import 'package:tarteel/features/azkar/cubit/azkar_catalog_bridge.dart';
+import 'package:tarteel/core/widgets/states/app_status_view.dart';
 import 'package:tarteel/features/azkar/model/zekr_category.dart';
+import 'package:tarteel/features/azkar/services/azkar_service.dart';
 
 class AzkarCategoriesScreen extends StatelessWidget {
   const AzkarCategoriesScreen({super.key});
@@ -16,7 +17,10 @@ class AzkarCategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AzkarCubitFactory.create(),
+      create: (_) => GenericCatalogCubit<AccessListModel, ZekrCategory>(
+        loader: AzkarService(),
+        titleExtractor: (item) => item.title,
+      ),
       child: const _AzkarCategoriesView(),
     );
   }
@@ -88,86 +92,31 @@ class _AzkarCategoriesViewState extends State<_AzkarCategoriesView>
               }
 
               if (state.errorMessage != null) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64.sp,
-                          color: Colors.red.shade400,
-                        ),
-                        SizedBox(height: 16.h),
-                        Text(
-                          state.errorMessage!,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Cairo',
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                        ElevatedButton(
-                          onPressed: () {
-                            context
-                                .read<
-                                    GenericCatalogCubit<AccessListModel,
-                                        ZekrCategory>>()
-                                .loadCatalog();
-                          },
-                          child: const Text('إعادة المحاولة'),
-                        ),
-                      ],
-                    ),
-                  ),
+                return AppStatusView.error(
+                  message: state.errorMessage!,
+                  onRetry: () {
+                    context
+                        .read<
+                            GenericCatalogCubit<AccessListModel,
+                                ZekrCategory>>()
+                        .loadCatalog();
+                  },
                 );
               }
 
               if (state.filteredItems.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.search_off_rounded,
-                          size: 64.sp,
-                          color: Colors.grey.shade400,
-                        ),
-                        SizedBox(height: 16.h),
-                        Text(
-                          'لا توجد أذكار مطابقة لبحثك',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade600,
-                            fontFamily: 'Cairo',
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        TextButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            context
-                                .read<
-                                    GenericCatalogCubit<AccessListModel,
-                                        ZekrCategory>>()
-                                .clearSearch();
-                          },
-                          child: const Text(
-                            'عرض كافة الأذكار',
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                return AppStatusView.empty(
+                  title: 'لا توجد أذكار مطابقة لبحثك',
+                  icon: Icons.search_off_rounded,
+                  buttonText: 'عرض كافة الأذكار',
+                  onButtonPressed: () {
+                    _searchController.clear();
+                    context
+                        .read<
+                            GenericCatalogCubit<AccessListModel,
+                                ZekrCategory>>()
+                        .clearSearch();
+                  },
                 );
               }
 

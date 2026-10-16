@@ -12,6 +12,7 @@ import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_state.dart';
+import 'package:tarteel/core/widgets/states/app_status_view.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
 import 'package:tarteel/features/hisn_almuslim/services/hisn_service.dart';
 
@@ -58,21 +59,6 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  void _onCounterTap(BuildContext context) {
-    context.read<GenericReaderCubit<HisnCategory, String>>().incrementCounter(
-      onSingleCompleted: () {
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (mounted && _pageController.hasClients) {
-            _pageController.nextPage(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeInOut,
-            );
-          }
-        });
-      },
-    );
   }
 
   Future<void> _showCategoriesBottomSheet(BuildContext context) async {
@@ -144,7 +130,7 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
         }
       },
       builder: (context, state) {
-        if (state.isLoading || state.detail == null) {
+        if (state.isLoading) {
           return Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
             appBar: tarteelAppBar(
@@ -156,8 +142,41 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
           );
         }
 
+        if (state.errorMessage != null) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.title,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: AppStatusView.error(
+              message: state.errorMessage!,
+              onRetry: () {
+                context
+                    .read<GenericReaderCubit<HisnCategory, String>>()
+                    .reload();
+              },
+            ),
+          );
+        }
+
+        if (state.items.isEmpty) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.title,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: AppStatusView.empty(
+              title: 'لا توجد أدعية في هذا الباب حالياً',
+              icon: Icons.auto_stories_outlined,
+            ),
+          );
+        }
+
         final category = state.detail!;
-        final progress = (state.currentCount / 1).clamp(0.0, 1.0);
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -204,16 +223,8 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
                           child: InteractiveContentCard(
                             content: text,
                             indexLabel: 'الدعاء ${index + 1}',
-                            fontSize: state.fontSize,
-                            onZoomIn: () => context
-                                .read<GenericReaderCubit<HisnCategory, String>>()
-                                .zoomIn(),
-                            onZoomOut: () => context
-                                .read<GenericReaderCubit<HisnCategory, String>>()
-                                .zoomOut(),
                             showFavorite: true,
                             favoriteType: 'hisn',
-                            favoriteTitle: state.title,
                             description: footnote,
                             showCounterBadge: false,
                           ),
@@ -224,10 +235,15 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
 
                   SizedBox(height: 60.h),
                   InteractiveCounterControl(
-                    count: state.currentCount,
-                    totalRepeat: 1,
-                    progress: progress,
-                    onCounterTap: () => _onCounterTap(context),
+                    pageController: _pageController,
+                    autoNextOnComplete: true,
+                    allowOvercount: false,
+                    showResetButton: true,
+                    resetConfirmTitle: 'إعادة تعيين الأدعية',
+                    resetConfirmMessage:
+                        'هل تريد إعادة تعيين عداد القراءة لكافة الأدعية في هذا القسم والبدء من جديد؟',
+                    resetConfirmActionText: 'نعم، تصفير',
+                    resetColor: Colors.redAccent,
                     cornerAction: CounterSideAction(
                       icon: Icons.format_list_bulleted_rounded,
                       tooltip: 'أبواب حصن المسلم',
@@ -245,38 +261,6 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
                         );
                       },
                     ),
-                    onNext: () {
-                      if (_pageController.hasClients) {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                    onPrevious: () {
-                      if (_pageController.hasClients) {
-                        _pageController.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                    hasNext: state.currentIndex < category.texts.length - 1,
-                    hasPrevious: state.currentIndex > 0,
-                    showResetButton: true,
-                    onReset: () async {
-                      await context
-                          .read<GenericReaderCubit<HisnCategory, String>>()
-                          .resetCategory();
-                      if (_pageController.hasClients) {
-                        _pageController.jumpToPage(0);
-                      }
-                    },
-                    resetConfirmTitle: 'إعادة تعيين الأدعية',
-                    resetConfirmMessage:
-                        'هل تريد إعادة تعيين عداد القراءة لكافة الأدعية في هذا القسم والبدء من جديد؟',
-                    resetConfirmActionText: 'نعم، تصفير',
-                    resetColor: Colors.redAccent,
                   ),
                 ],
               ),
