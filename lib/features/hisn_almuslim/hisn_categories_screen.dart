@@ -76,64 +76,63 @@ class _HisnCategoriesViewState extends State<_HisnCategoriesView>
           },
         ),
         body: IslamicPatternBackground(
-          child: BlocConsumer<
-              GenericCatalogCubit<AccessListModel, HisnCategory>,
-              GenericCatalogState<AccessListModel>>(
-            listener: (context, state) {
-              if (!state.isLoading && state.errorMessage == null) {
-                _animationController.reset();
-                _animationController.forward();
-              }
-            },
-            builder: (context, state) {
-              if (state.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          child:
+              BlocConsumer<
+                GenericCatalogCubit<AccessListModel, HisnCategory>,
+                GenericCatalogState<AccessListModel>
+              >(
+                listener: (context, state) {
+                  if (!state.isLoading && state.errorMessage == null) {
+                    _animationController.reset();
+                    _animationController.forward();
+                  }
+                },
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-              if (state.errorMessage != null) {
-                return AppStatusView.error(
-                  message: state.errorMessage!,
-                  onRetry: () {
-                    context
-                        .read<
-                            GenericCatalogCubit<AccessListModel,
-                                HisnCategory>>()
-                        .loadCatalog();
-                  },
-                );
-              }
+                  if (state.errorMessage != null) {
+                    return AppStatusView.error(
+                      message: state.errorMessage!,
+                      onRetry: () {
+                        context
+                            .read<
+                              GenericCatalogCubit<AccessListModel, HisnCategory>
+                            >()
+                            .loadCatalog();
+                      },
+                    );
+                  }
 
-              if (state.filteredItems.isEmpty) {
-                return AppStatusView.empty(
-                  title: 'لا توجد نتائج مطابقة لبحثك',
-                  icon: Icons.search_off_rounded,
-                  buttonText: 'عرض كل الفصول',
-                  onButtonPressed: () {
-                    _searchController.clear();
-                    context
-                        .read<
-                            GenericCatalogCubit<AccessListModel,
-                                HisnCategory>>()
-                        .clearSearch();
-                  },
-                );
-              }
+                  if (state.filteredItems.isEmpty) {
+                    return AppStatusView.empty(
+                      title: 'لا توجد نتائج مطابقة لبحثك',
+                      icon: Icons.search_off_rounded,
+                      buttonText: 'عرض كل الفصول',
+                      onButtonPressed: () {
+                        _searchController.clear();
+                        context
+                            .read<
+                              GenericCatalogCubit<AccessListModel, HisnCategory>
+                            >()
+                            .clearSearch();
+                      },
+                    );
+                  }
 
-              return SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                child: Column(
-                  children: [
-                    AccessListGrid(
-                      actions: state.filteredItems,
-                      controller: _animationController,
+                  return AccessListGrid(
+                    actions: state.filteredItems,
+                    padding: EdgeInsets.only(
+                      left: 20.w,
+                      right: 20.w,
+                      top: 20.h,
+                      bottom: 50.h,
                     ),
-                    SizedBox(height: 32.h),
-                  ],
-                ),
-              );
-            },
-          ),
+                    controller: _animationController,
+                  );
+                },
+              ),
         ),
       ),
     );

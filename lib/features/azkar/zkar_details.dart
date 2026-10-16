@@ -11,8 +11,8 @@ import 'package:tarteel/core/widgets/cards/interactive_content_card.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/Routes/AppRoutes.dart';
 import 'package:tarteel/core/widgets/backgrounds/animated_sky_background.dart';
-import 'package:tarteel/features/azkar/icons/azkar_icons.dart';
 import 'package:tarteel/features/azkar/services/azkar_service.dart';
+import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_state.dart';
@@ -71,52 +71,28 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
     final actions = await AzkarService.loadAzkarAsActions();
     if (!context.mounted) return;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     AppModalBottomSheet.show(
       context: context,
       title: 'أقسام الأذكار',
       subtitle: 'اختر القسم الذي ترغب بالانتقال إليه مباشرة',
       heightFraction: 0.72,
-      items: actions.map((item) {
-        final isCurrent = item.title == currentTitle;
-        final icon = AzkarIcons.icons[item.title] ?? Icons.menu_book_rounded;
-
-        return BottomSheetItem(
-          title: item.title,
-          subtitle: 'قسم مأثور',
-          isSelected: isCurrent,
-          leading: Container(
-            width: 40.w,
-            height: 40.h,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isCurrent
-                  ? AppColors.goldAccent.withValues(alpha: 0.2)
-                  : (isDark
-                        ? Colors.white12
-                        : AppColors.primary.withValues(alpha: 0.08)),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: 20.sp,
-              color: isCurrent ? AppColors.goldAccent : AppColors.primary,
-            ),
-          ),
-          onTap: () {
-            Navigator.pop(context);
-            if (!isCurrent) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AzkarDetailsScreen(categoryTitle: item.title),
-                ),
-              );
-            }
-          },
-        );
-      }).toList(),
+      child: AccessListGrid(
+        actions: actions,
+        isRectangle: true,
+        selectedTitle: currentTitle,
+        padding: EdgeInsets.zero,
+        onItemTap: (item) {
+          Navigator.pop(context);
+          if (item.title != currentTitle) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AzkarDetailsScreen(categoryTitle: item.title),
+              ),
+            );
+          }
+        },
+      ),
     );
   }
 

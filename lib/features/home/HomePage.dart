@@ -63,31 +63,20 @@ class _HomePageState extends State<HomePage> {
             const HomeHeader(),
             Expanded(
               child: IslamicPatternBackground(
-                child: Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.0.w,
-                      vertical: 20.0.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        BlocBuilder<HomeCubit, HomeState>(
-                          builder: (context, state) {
-                            if (state.isLoading && state.actions.isEmpty) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            return AccessListGrid(actions: state.actions);
-                          },
-                        ),
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
-                  ),
+                child: BlocBuilder<HomeCubit, HomeState>(
+                  builder: (context, state) {
+                    return AccessListGrid(
+                      actions: state.actions,
+                      isLoading: state.isLoading,
+                      isRectangle: false,
+                      padding: EdgeInsets.only(
+                        left: 20.w,
+                        right: 20.w,
+                        top: 20.h,
+                        bottom: 50.h,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

@@ -34,11 +34,17 @@ class AccessListModel {
   /// هل الزر مفعّل وظاهر للمستخدم (الافتراضي: true)
   final bool isEnabled;
 
-  /// شارة إضافية تظهر فوق الزر اختيارياً (مثل: "جدي ")
+  /// شارة إضافية تظهر فوق الزر اختيارياً (مثل: "جديد")
   final String? badge;
 
   /// بيانات ومعاملات إضافية يمكن تمريرها مع المسار
   final dynamic arguments;
+
+  /// تفاصيل أو وصف إضافي يظهر تحت العنوان عند العرض المستطيل
+  final String? subtitle;
+
+  /// اسم بديل للحصول على تفاصيل العنوان
+  String? get details => subtitle;
 
   const AccessListModel({
     this.id,
@@ -49,7 +55,9 @@ class AccessListModel {
     this.isEnabled = true,
     this.badge,
     this.arguments,
-  });
+    String? subtitle,
+    String? details,
+  }) : subtitle = subtitle ?? details;
 
   // ============================================================================
   //  التحويل من JSON إلى كائن AccessListModel (عند الجلب من جيت هب أو التخزين)
@@ -68,6 +76,7 @@ class AccessListModel {
       isEnabled: json['isEnabled'] as bool? ?? true,
       badge: json['badge'] as String?,
       arguments: json['arguments'],
+      subtitle: json['subtitle'] as String? ?? json['details'] as String? ?? json['description'] as String?,
     );
   }
 
@@ -83,6 +92,7 @@ class AccessListModel {
       'isEnabled': isEnabled,
       if (badge != null) 'badge': badge,
       if (arguments != null) 'arguments': arguments,
+      if (subtitle != null) 'subtitle': subtitle,
     };
   }
 
