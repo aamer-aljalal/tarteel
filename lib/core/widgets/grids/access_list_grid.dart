@@ -56,6 +56,9 @@ class AccessListGrid extends StatelessWidget {
   /// دالة مخصصة للتحقق من تحديد العنصر
   final bool Function(AccessListModel item)? isSelected;
 
+  /// عنصر رأس اختياري يظهر في أعلى القائمة قبل العناصر (مثل بطاقة إعلانية أو إحصائية)
+  final Widget? header;
+
   const AccessListGrid({
     super.key,
     required this.actions,
@@ -70,6 +73,7 @@ class AccessListGrid extends StatelessWidget {
     this.onItemTap,
     this.selectedTitle,
     this.isSelected,
+    this.header,
   });
 
   /// التحقق مما إذا كان العرض المطلوب هو الشكل المستطيل
@@ -88,7 +92,8 @@ class AccessListGrid extends StatelessWidget {
 
     // الهوامش الافتراضية: 20 من الجوانب و 20 من الأعلى والأسفل (أو ما يمرره المبرمج)
     final effectivePadding =
-        padding ?? EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 20.0.h);
+        padding ??
+        EdgeInsets.only(left: 20.w, right: 20.w, top: 20.h, bottom: 50.h);
 
     Widget content;
 
@@ -106,14 +111,19 @@ class AccessListGrid extends StatelessWidget {
       );
     } else if (_isRectangleMode) {
       // 1. العرض المستطيل (يأخذ الصف بالكامل ويعرض الأيقونة والعنوان والتفاصيل إن وجدت)
+      final hasHeader = header != null;
       content = ListView.separated(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: actions.length,
+        itemCount: actions.length + (hasHeader ? 1 : 0),
         separatorBuilder: (context, index) => SizedBox(height: 10.h),
         itemBuilder: (context, index) {
-          final item = actions[index];
+          if (hasHeader && index == 0) {
+            return header!;
+          }
+          final itemIndex = hasHeader ? index - 1 : index;
+          final item = actions[itemIndex];
 
           final itemWidget = GestureDetector(
             onTap: () {
@@ -139,7 +149,7 @@ class AccessListGrid extends StatelessWidget {
             return itemWidget;
           }
 
-          final animationDelay = ((index % 9) * 0.04).clamp(0.0, 0.4);
+          final animationDelay = ((itemIndex % 9) * 0.04).clamp(0.0, 0.4);
           final animation = CurvedAnimation(
             parent: controller!,
             curve: Interval(animationDelay, 1.0, curve: Curves.easeOutCubic),
@@ -159,7 +169,7 @@ class AccessListGrid extends StatelessWidget {
       );
     } else {
       // 2. العرض الشبكي الافتراضي (مربعات متناسقة 100% كما هي دون أي تغيير)
-      content = GridView.builder(
+      final gridWidget = GridView.builder(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -218,6 +228,16 @@ class AccessListGrid extends StatelessWidget {
           );
         },
       );
+
+      content = header != null
+          ? Column(
+              children: [
+                header!,
+                SizedBox(height: 10.h),
+                gridWidget,
+              ],
+            )
+          : gridWidget;
     }
 
     // تحديد ما إذا كان التمرير يجب أن يكون مفعّلاً في المكون
@@ -273,7 +293,9 @@ class AccessListGrid extends StatelessWidget {
         children: [
           SizedBox(height: 12.h),
           Container(
-            padding: EdgeInsets.all(10.w),
+            width: 44.w,
+            height: 44.w,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.goldAccent),
               color: isSelected
@@ -283,11 +305,23 @@ class AccessListGrid extends StatelessWidget {
                         : AppColors.primary.withValues(alpha: 0.22)),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              item.icon,
-              size: 20.sp,
-              color: isSelected ? AppColors.goldAccent : AppColors.greenBorder,
-            ),
+            child: item.badge != null && item.badge!.isNotEmpty
+                ? Text(
+                    item.badge!,
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.goldAccent
+                          : (isDark ? AppColors.goldAccent : AppColors.primary),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.sp,
+                      fontFamily: 'Cairo',
+                    ),
+                  )
+                : Icon(
+                    item.icon,
+                    size: 20.sp,
+                    color: isSelected ? AppColors.goldAccent : AppColors.greenBorder,
+                  ),
           ),
           SizedBox(height: 10.h),
           Expanded(
@@ -357,7 +391,9 @@ class AccessListGrid extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10.w),
+            width: 44.w,
+            height: 44.w,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.goldAccent),
               color: isSelected
@@ -367,11 +403,23 @@ class AccessListGrid extends StatelessWidget {
                         : AppColors.primary.withValues(alpha: 0.22)),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              item.icon,
-              size: 22.sp,
-              color: isSelected ? AppColors.goldAccent : AppColors.greenBorder,
-            ),
+            child: item.badge != null && item.badge!.isNotEmpty
+                ? Text(
+                    item.badge!,
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.goldAccent
+                          : (isDark ? AppColors.goldAccent : AppColors.primary),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.sp,
+                      fontFamily: 'Cairo',
+                    ),
+                  )
+                : Icon(
+                    item.icon,
+                    size: 22.sp,
+                    color: isSelected ? AppColors.goldAccent : AppColors.greenBorder,
+                  ),
           ),
           SizedBox(width: 14.w),
           Expanded(

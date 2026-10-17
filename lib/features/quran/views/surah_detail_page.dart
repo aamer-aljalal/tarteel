@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/features/quran/controllers/quran_reading_controller.dart';
+import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
+import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
+import 'package:tarteel/core/widgets/buttons/app_button.dart';
 import 'package:tarteel/features/quran/widgets/ayah_top_bar.dart';
-import 'package:tarteel/features/quran/widgets/ayah_actions_sheet.dart';
-import 'package:tarteel/features/quran/widgets/ayah_interpretation_sheet.dart';
 import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
 import 'package:tarteel/features/quran/widgets/reading_modes/quran_continuous_scroll_view.dart';
 import 'package:tarteel/features/quran/widgets/reading_modes/quran_page_view.dart';
@@ -380,70 +381,296 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
       _pressedAyahNotifier.value = null;
       return;
     }
-    await showModalBottomSheet(
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: AyahActionsSheet(
-            surah: widget.surah,
-            ayah: ayah,
-            interpretation: interpretation,
-            isKhatmaSession: widget.isKhatmaSession,
-            onCopy: () => QuranReadingController.copyAyah(
-              context: context,
-              surah: widget.surah,
-              ayah: ayah,
-            ),
-            onSave: () => QuranReadingController.saveAyahToFavorites(
-              context: context,
-              surah: widget.surah,
-              ayah: ayah,
-              interpretation: interpretation,
-            ),
-            onInterpretation: () => _showInterpretation(ayah, interpretation),
-            onUpdateKhatma: widget.isKhatmaSession
-                ? () async {
-                    final success =
-                        await QuranReadingController.updateKhatmaBookmark(
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+          elevation: 0,
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Container(
+              constraints: BoxConstraints(maxWidth: 420.w),
+              padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 18.h),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2621) : Colors.white,
+                borderRadius: BorderRadius.circular(22.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : AppColors.primary.withValues(alpha: 0.15),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.12),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. رأس النافذة المنبثقة
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(
+                          Icons.menu_book_rounded,
+                          color: AppColors.primary,
+                          size: 20.sp,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'سورة ${widget.surah.nameArabic}',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Cairo',
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'الآية رقم ${ayah.verse} • ${widget.surah.revelationPlace == 'makkah' ? 'مكية' : 'مدنية'}',
+                              style: TextStyle(
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Cairo',
+                                color: AppColors.goldAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 20.sp,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+
+                  Divider(
+                    height: 1,
+                    thickness: 0.8,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.grey.shade200,
+                  ),
+                  SizedBox(height: 14.h),
+
+                  // 2. بطاقة عرض نص الآية الكريمة
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 12.h,
+                    ),
+                    constraints: BoxConstraints(maxHeight: 160.h),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.black26
+                          : const Color(0xFFF9F6EE),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: AppColors.goldAccent.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Center(
+                        child: Text(
+                          ayah.text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 17.sp,
+                            height: 1.9,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Amiri',
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1E2822),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // 3. زر التفسير الميسر الرئيسي الفاخر
+                  AppButton(
+                    text: 'عرض التفسير الميسر',
+                    leadingIcon: Icons.auto_stories_rounded,
+                    variant: AppButtonVariant.primary,
+                    size: AppButtonSize.medium,
+                    isFullWidth: true,
+                    borderRadius: 14.r,
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showInterpretation(ayah, interpretation);
+                    },
+                  ),
+                  SizedBox(height: 10.h),
+
+                  // 4. صف الإجراءات (نسخ الآية وحفظها بالمفضلة)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppButton(
+                          text: 'نسخ الآية',
+                          leadingIcon: Icons.copy_rounded,
+                          variant: AppButtonVariant.outline,
+                          size: AppButtonSize.medium,
+                          borderRadius: 12.r,
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            QuranReadingController.copyAyah(
+                              context: context,
+                              surah: widget.surah,
+                              ayah: ayah,
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: AppButton(
+                          text: 'حفظ بالمفضلة',
+                          leadingIcon: Icons.favorite_border_rounded,
+                          variant: AppButtonVariant.outline,
+                          size: AppButtonSize.medium,
+                          borderRadius: 12.r,
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            QuranReadingController.saveAyahToFavorites(
+                              context: context,
+                              surah: widget.surah,
+                              ayah: ayah,
+                              interpretation: interpretation,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // 5. زر تحديث الختمة (إذا كانت الجلسة جلسة ختمة)
+                  if (widget.isKhatmaSession) ...[
+                    SizedBox(height: 10.h),
+                    AppButton(
+                      text: 'تحديث موضع الختمة',
+                      leadingIcon: Icons.bookmark_added_rounded,
+                      variant: AppButtonVariant.gold,
+                      size: AppButtonSize.medium,
+                      isFullWidth: true,
+                      borderRadius: 14.r,
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final success =
+                            await QuranReadingController.updateKhatmaBookmark(
                           context: context,
                           ayah: ayah,
                         );
-                    if (success && mounted) {
-                      setState(() {
-                        _hasBookmarkedInThisSession = true;
-                        if (_scrollController.hasClients) {
-                          _initialScrollOffset =
-                              _scrollController.position.pixels;
+                        if (success && mounted) {
+                          setState(() {
+                            _hasBookmarkedInThisSession = true;
+                            if (_scrollController.hasClients) {
+                              _initialScrollOffset =
+                                  _scrollController.position.pixels;
+                            }
+                          });
                         }
-                      });
-                    }
-                  }
-                : null,
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         );
       },
     );
+
     _pressedAyahNotifier.value = null;
   }
 
   void _showInterpretation(QuranAyah ayah, String interpretation) {
-    Navigator.pop(context);
-    showModalBottomSheet(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    AppModalBottomSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: AyahInterpretationSheet(
-            surahName: widget.surah.nameArabic,
-            ayah: ayah,
-            interpretation: interpretation,
-          ),
-        );
-      },
+      title: 'تفسير الآية (${ayah.verse}) من سورة ${widget.surah.nameArabic}',
+      subtitle: 'التفسير الميسر',
+      heightFraction: 0.75,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: EdgeInsets.all(14.w),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : const Color(0xFFF9F9F9),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: isDark ? Colors.white12 : Colors.black12,
+                ),
+              ),
+              child: Text(
+                ayah.text,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  height: 1.8,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Amiri',
+                  color: isDark ? Colors.white : const Color(0xFF1A1710),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(bottom: 24.h),
+                child: Text(
+                  interpretation.isEmpty ? 'التفسير غير متوفر' : interpretation,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    height: 1.8,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -530,11 +757,11 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
         if (shouldPop && mounted) {
-          Navigator.pop(context);
+          Navigator.of(this.context).pop();
         }
       },
       child: Directionality(

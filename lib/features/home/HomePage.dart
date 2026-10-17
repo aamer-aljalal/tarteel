@@ -13,13 +13,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:tarteel/Model/AccessListModel.dart';
 import 'package:tarteel/core/dialogs/exit_confirmation_dialog.dart';
 import 'package:tarteel/core/providers/prayer_provider.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_cubit.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_state.dart';
 import 'package:tarteel/core/widgets/backgrounds/islamic_pattern_background.dart';
 import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
-import 'package:tarteel/features/home/cubit/home_cubit.dart';
-import 'package:tarteel/features/home/cubit/home_state.dart';
 import 'package:tarteel/features/home/widgets/home_header/home_header.dart';
 
 class HomePage extends StatefulWidget {
@@ -34,7 +34,9 @@ class _HomePageState extends State<HomePage> {
   void reassemble() {
     super.reassemble();
     // إعادة تحميل ومزامنة ملف الأزرار فوراً عند كل Hot Reload / Ctrl+S
-    context.read<HomeCubit>().syncFromGithub(HomeCubit.githubActionsUrl);
+    context
+        .read<GenericCatalogCubit<AccessListModel, AccessListModel>>()
+        .loadCatalog();
   }
 
   @override
@@ -63,21 +65,19 @@ class _HomePageState extends State<HomePage> {
             const HomeHeader(),
             Expanded(
               child: IslamicPatternBackground(
-                child: BlocBuilder<HomeCubit, HomeState>(
-                  builder: (context, state) {
-                    return AccessListGrid(
-                      actions: state.actions,
-                      isLoading: state.isLoading,
-                      isRectangle: false,
-                      padding: EdgeInsets.only(
-                        left: 20.w,
-                        right: 20.w,
-                        top: 20.h,
-                        bottom: 50.h,
-                      ),
-                    );
-                  },
-                ),
+                child:
+                    BlocBuilder<
+                      GenericCatalogCubit<AccessListModel, AccessListModel>,
+                      GenericCatalogState<AccessListModel>
+                    >(
+                      builder: (context, state) {
+                        return AccessListGrid(
+                          actions: state.filteredItems,
+                          isLoading: state.isLoading,
+                          isRectangle: false,
+                        );
+                      },
+                    ),
               ),
             ),
           ],

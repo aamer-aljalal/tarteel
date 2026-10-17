@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tarteel/Model/AccessListModel.dart';
 import 'package:tarteel/core/helpers/arabic_search_helper.dart';
+import 'package:tarteel/core/services/lazy_loader/lazy_data_loader.dart';
+import 'package:tarteel/routes/AppRoutes.dart';
 
 class QuranSurah {
   const QuranSurah({
@@ -46,8 +50,50 @@ class SearchableAyah {
   final String normalizedText;
 }
 
-class QuranService {
-  QuranService._();
+class QuranService implements LazyDataLoader<AccessListModel, QuranSurah> {
+  const QuranService();
+
+  static List<AccessListModel>? _cachedActions;
+
+  static Future<List<AccessListModel>> loadSurahsAsActions() async {
+    if (_cachedActions != null) return _cachedActions!;
+
+    final surahs = await loadSurahs();
+    _cachedActions = surahs.map((surah) {
+      final versesText = surah.versesCount == 7
+          ? '٧ آيات'
+          : '${surah.versesCount} آية';
+      return AccessListModel(
+        id: surah.number.toString(),
+        title: 'سورة ${surah.nameArabic}',
+        subtitle: '${surah.revelationPlace} • $versesText • ${surah.nameEnglish}',
+        badge: '${surah.number}',
+        icon: Icons.menu_book_rounded,
+        route: AppRoutes.surahDetails,
+        arguments: surah,
+      );
+    }).toList();
+
+    return _cachedActions!;
+  }
+
+  @override
+  Future<List<AccessListModel>> loadHeaders() async {
+    return loadSurahsAsActions();
+  }
+
+  @override
+  Future<QuranSurah> loadDetails(AccessListModel header) async {
+    if (header.arguments is QuranSurah) {
+      return header.arguments as QuranSurah;
+    }
+    final surahs = await loadSurahs();
+    final number = int.tryParse(header.id ?? '') ?? 1;
+    return surahs.firstWhere(
+      (s) => s.number == number,
+      orElse: () => surahs.first,
+    );
+  }
 
   static List<QuranSurah>? _surahs;
   static Map<String, dynamic>? _quran;

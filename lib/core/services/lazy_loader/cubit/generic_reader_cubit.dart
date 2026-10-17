@@ -277,6 +277,7 @@ class GenericReaderCubit<TDetail, TItem>
   }
 
   /// تصفية وإعادة تعيين عداد العنصر الحالي فقط
+  @override
   Future<void> resetCurrentItem() async {
     if (state.counters.isEmpty || state.currentIndex >= state.counters.length) return;
     final idx = state.currentIndex;
@@ -301,6 +302,7 @@ class GenericReaderCubit<TDetail, TItem>
   }
 
   /// تغيير الصفحة الحالية
+  @override
   void changePage(int newIndex) {
     if (newIndex >= 0 && newIndex < state.items.length) {
       emit(state.copyWith(currentIndex: newIndex));
@@ -340,6 +342,7 @@ class GenericReaderCubit<TDetail, TItem>
   }
 
   /// تكبير الخط
+  @override
   void zoomIn() {
     if (state.fontSize < 34.0) {
       final newSize = state.fontSize + 2.0;
@@ -350,6 +353,7 @@ class GenericReaderCubit<TDetail, TItem>
   }
 
   /// تصغير الخط
+  @override
   void zoomOut() {
     if (state.fontSize > 14.0) {
       final newSize = state.fontSize - 2.0;
@@ -367,6 +371,7 @@ class GenericReaderCubit<TDetail, TItem>
   }
 
   /// تصفية وإعادة تعيين العدادات
+  @override
   Future<void> resetCategory() async {
     final reset = List<int>.filled(state.items.length, 0);
     emit(state.copyWith(currentIndex: 0, counters: reset));

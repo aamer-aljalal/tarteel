@@ -16,7 +16,9 @@ import 'package:tarteel/core/providers/prayer_provider.dart';
 import 'package:tarteel/features/adhan/services/adhan_player_service.dart';
 import 'package:tarteel/core/providers/theme_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tarteel/features/home/cubit/home_cubit.dart';
+import 'package:tarteel/Model/AccessListModel.dart';
+import 'package:tarteel/core/services/lazy_loader/cubit/generic_catalog_cubit.dart';
+import 'package:tarteel/features/home/services/home_actions_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +44,14 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => PrayerProvider()..initializeData(),
         ),
-        BlocProvider(
-          create: (_) => HomeCubit(),
+        BlocProvider<GenericCatalogCubit<AccessListModel, AccessListModel>>(
+          create: (_) => GenericCatalogCubit<AccessListModel, AccessListModel>(
+            loader: const HomeActionsService(),
+            titleExtractor: (item) => item.title,
+            remoteSyncer: () => HomeActionsService.syncFromGithub(
+              HomeActionsService.githubActionsUrl,
+            ),
+          ),
         ),
         ChangeNotifierProvider.value(value: themeProvider),
       ],

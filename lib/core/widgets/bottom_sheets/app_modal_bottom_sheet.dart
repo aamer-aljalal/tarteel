@@ -130,6 +130,10 @@ class AppModalBottomSheet extends StatelessWidget {
   /// هل يظهر الشريط اللوني الرأسي بجانب العنوان
   final bool showPrimaryBar;
 
+  /// هل يتم تغليف الـ child في SingleChildScrollView تلقائياً
+  /// (اجعلها false إذا كان الـ child يحتوي على ListView أو Expanded خاص به)
+  final bool wrapWithScrollView;
+
   /// حشوة داخلية للمحتوى
   final EdgeInsetsGeometry? contentPadding;
 
@@ -150,6 +154,7 @@ class AppModalBottomSheet extends StatelessWidget {
     this.bottomWidget,
     this.showDragHandle = true,
     this.showPrimaryBar = true,
+    this.wrapWithScrollView = true,
     this.contentPadding,
   });
 
@@ -173,6 +178,7 @@ class AppModalBottomSheet extends StatelessWidget {
     bool showPrimaryBar = true,
     bool isDismissible = true,
     bool enableDrag = true,
+    bool wrapWithScrollView = true,
     EdgeInsetsGeometry? contentPadding,
   }) {
     return showModalBottomSheet<T>(
@@ -197,6 +203,7 @@ class AppModalBottomSheet extends StatelessWidget {
         bottomWidget: bottomWidget,
         showDragHandle: showDragHandle,
         showPrimaryBar: showPrimaryBar,
+        wrapWithScrollView: wrapWithScrollView,
         contentPadding: contentPadding,
         child: child,
       ),
@@ -381,14 +388,20 @@ class AppModalBottomSheet extends StatelessWidget {
               ),
 
               // 4. المحتوى الرئيسي (سواءً قائمة أو محتوى مخصص)
-              Expanded(
-                flex: heightFraction != null ? 1 : 0,
-                child: Padding(
+              if (heightFraction != null)
+                Expanded(
+                  child: Padding(
+                    padding: contentPadding ??
+                        EdgeInsets.symmetric(horizontal: 16.w),
+                    child: _buildBody(context, isDark),
+                  ),
+                )
+              else
+                Padding(
                   padding:
                       contentPadding ?? EdgeInsets.symmetric(horizontal: 16.w),
                   child: _buildBody(context, isDark),
                 ),
-              ),
 
               // 5. الويدجت المثبت في الأسفل (أزرار الحفظ أو الإجراءات)
               if (bottomWidget != null) ...[
@@ -424,11 +437,14 @@ class AppModalBottomSheet extends StatelessWidget {
   Widget _buildBody(BuildContext context, bool isDark) {
     // 1. إذا تم تمرير child مباشر (مثل النماذج)
     if (child != null) {
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.only(bottom: 16.h),
-        child: child!,
-      );
+      if (wrapWithScrollView) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(bottom: 16.h),
+          child: child!,
+        );
+      }
+      return child!;
     }
 
     // 2. إذا تم تمرير مصفوفة عناصر جاهزة (items)

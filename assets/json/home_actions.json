@@ -75,12 +75,5 @@
     "route": "/stats",
     "icon": "stats",
     "isEnabled": true
-  },
-  {
-    "id": "settings",
-    "title": "الإعدادات",
-    "route": "/settings",
-    "icon": "settings",
-    "isEnabled": true
   }
 ]

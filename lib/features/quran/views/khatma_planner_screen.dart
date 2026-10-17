@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
+import 'package:tarteel/core/widgets/buttons/app_button.dart';
+import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/core/services/general_notification_service.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/views/surah_detail_page.dart';
@@ -228,12 +230,6 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
     return value.ceil();
   }
 
-  int get _elapsedDays {
-    if (_startDate == null) return 1;
-    final diff = DateTime.now().difference(_startDate!).inDays;
-    return diff + 1;
-  }
-
   int get _daysRemaining {
     final total = _daysSliderValue.toInt();
     if (_startDate == null) return total;
@@ -265,214 +261,6 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
       'ديسمبر',
     ];
     return '${completionDate.day} ${months[completionDate.month - 1]} ${completionDate.year}';
-  }
-
-  // Daily Ward celebration dialog
-  void _showCelebrationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Dialog(
-            backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24.r),
-            ),
-            child: Container(
-              padding: EdgeInsets.all(24.w),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.emoji_events_rounded,
-                      color: AppColors.primary,
-                      size: 48.sp,
-                    ),
-                  ),
-                  SizedBox(height: 18.h),
-                  Text(
-                    'الحمد لله حمداً كثيراً! 🎉✨',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'لقد أتممت قراءة الورد المحدد في خطتك اليومية بنجاح ($_dailyAyahsNeeded آية).',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4,
-                      
-                      color: isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    'تقبل الله طاعتك وثبّت أجرك، ونراك غداً على خير في ورد جديد 🌸',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      
-                      color: Colors.grey.shade500,
-                      height: 1.4,
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44.h,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'آمين، تقبل الله 🤲',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Full Quran completion celebration dialog
-  void _showFullQuranCelebrationDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Dialog(
-            backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24.r),
-            ),
-            child: Container(
-              padding: EdgeInsets.all(24.w),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.35),
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(20.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.star_rounded,
-                      color: Colors.amber,
-                      size: 64.sp,
-                    ),
-                  ),
-                  SizedBox(height: 18.h),
-                  Text(
-                    'مبارك ختم القرآن الكريم! 🎉📖✨',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      
-                    ),
-                  ),
-                  SizedBox(height: 10.h),
-                  Text(
-                    'الحمد لله الذي بنعمته تتم الصالحات! لقد أتممت ختم كتاب الله عز وجل بنجاح تام طوال هذه الرحلة المباركة.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4,
-                      
-                      color: isDark ? Colors.white70 : Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    'تقبل الله منك صالح الأعمال وتلاوة القرآن العظيم، وجعله لك نوراً في الدنيا والآخرة وشفيعاً لك يوم القيامة 🤲🌸',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      
-                      color: Colors.grey.shade500,
-                      height: 1.4,
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48.h,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _cancelKhatmaPlan();
-                      },
-                      child: Text(
-                        'آمين، وبدء ختمة جديدة 🌟',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   // Select reminder time
@@ -807,46 +595,12 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
         SizedBox(height: 30.h),
 
         // Start challenge button
-        SizedBox(
-          width: double.infinity,
-          height: 52.h,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primary.withValues(alpha: 0.85),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              onPressed: _startKhatmaPlan,
-              child: Text(
-                'بدء تحدي الختمة والالتزام 🌟',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w900,
-                  
-                ),
-              ),
-            ),
-          ),
+        AppButton(
+          text: 'بدء تحدي الختمة والالتزام 🌟',
+          onPressed: _startKhatmaPlan,
+          isFullWidth: true,
+          size: AppButtonSize.large,
+          borderRadius: 16.r,
         ),
         SizedBox(height: 20.h),
       ],
@@ -976,61 +730,22 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                       color: AppColors.primary,
                       size: 24.sp,
                     ),
-                    onPressed: () {
-                      // Confirms before editing existing plan
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => Directionality(
-                          textDirection: TextDirection.rtl,
-                          child: AlertDialog(
-                            backgroundColor: isDark
-                                ? const Color(0xFF1E1E1E)
-                                : Colors.white,
-                            title: Text(
-                              'تعديل الخطة الحالية',
-                              style: TextStyle(
-                                
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            content: Text(
-                              'هل تريد تعديل الخطة الحالية؟ سيؤدي ذلك لإعادة ضبط الأيام والورد من جديد مع الاحتفاظ بالآيات المقروءة.',
-                              style: TextStyle(
-                                
-                                fontSize: 11.sp,
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text(
-                                  'إلغاء',
-                                  style: TextStyle(),
-                                ),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  setState(() {
-                                    _showActiveKhatma = false;
-                                  });
-                                },
-                                child: const Text(
-                                  'تعديل',
-                                  style: TextStyle(
-                                    
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                    onPressed: () async {
+                      final confirmed = await AppConfirmDialog.show(
+                        context,
+                        title: 'تعديل الخطة الحالية',
+                        message:
+                            'هل تريد تعديل الخطة الحالية؟ سيؤدي ذلك لإعادة ضبط الأيام والورد من جديد مع الاحتفاظ بالآيات المقروءة.',
+                        confirmText: 'تعديل',
+                        cancelText: 'إلغاء',
+                        confirmColor: AppColors.primary,
+                        icon: Icons.edit_note_rounded,
                       );
+                      if (confirmed && mounted) {
+                        setState(() {
+                          _showActiveKhatma = false;
+                        });
+                      }
                     },
                   ),
                 ],
@@ -1268,57 +983,13 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
         SizedBox(height: 20.h),
 
         // Read daily ward button
-        SizedBox(
-          width: double.infinity,
-          height: 52.h,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primary.withValues(alpha: 0.85),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              onPressed: _navigateToKhatmaReading,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.menu_book_outlined,
-                    color: Colors.white,
-                    size: 20.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'اذهب لقراءة القرآن الكريم الآن',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w900,
-                      
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        AppButton(
+          text: 'اذهب لقراءة القرآن الكريم الآن',
+          leadingIcon: Icons.menu_book_outlined,
+          onPressed: _navigateToKhatmaReading,
+          isFullWidth: true,
+          size: AppButtonSize.large,
+          borderRadius: 16.r,
         ),
         SizedBox(height: 14.h),
 
@@ -1326,64 +997,20 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
         Center(
           child: TextButton.icon(
             style: TextButton.styleFrom(foregroundColor: Colors.red.shade600),
-            onPressed: () {
-              // Confirm deletion
-              showDialog(
-                context: context,
-                builder: (ctx) => Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: AlertDialog(
-                    backgroundColor: isDark
-                        ? const Color(0xFF1E1E1E)
-                        : Colors.white,
-                    title: Text(
-                      'إلغاء الختمة الحالية',
-                      style: TextStyle(
-                        
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                    content: Text(
-                      'هل أنت متأكد تماماً من إلغاء وحذف هذه الختمة نهائياً؟ سيؤدي ذلك لمسح كل تقدمك التراكمي بالأيام والآيات.',
-                      style: TextStyle( fontSize: 9.sp),
-                    ),
-                    actions: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text(
-                              'تراجع',
-                              style: TextStyle(),
-                            ),
-                          ),
-
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                            ),
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              _cancelKhatmaPlan();
-                            },
-                            child: const Text(
-                              'نعم، الغاء الخطة',
-                              style: TextStyle(
-                                
-                                color: Colors.white,
-                                fontSize: 9,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+            onPressed: () async {
+              final confirmed = await AppConfirmDialog.show(
+                context,
+                title: 'إلغاء الختمة الحالية',
+                message:
+                    'هل أنت متأكد تماماً من إلغاء وحذف هذه الختمة نهائياً؟ سيؤدي ذلك لمسح كل تقدمك التراكمي بالأيام والآيات.',
+                confirmText: 'نعم، إلغاء الخطة',
+                cancelText: 'تراجع',
+                isDestructive: true,
+                icon: Icons.delete_outline_rounded,
               );
+              if (confirmed && mounted) {
+                _cancelKhatmaPlan();
+              }
             },
             icon: Icon(Icons.delete_outline_rounded, size: 16.sp),
             label: Text(

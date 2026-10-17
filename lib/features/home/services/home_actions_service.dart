@@ -15,8 +15,25 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tarteel/Model/AccessListModel.dart';
 import 'package:tarteel/core/services/github_sync_service.dart';
+import 'package:tarteel/core/services/lazy_loader/lazy_data_loader.dart';
 
-class HomeActionsService {
+class HomeActionsService implements LazyDataLoader<AccessListModel, AccessListModel> {
+  /// الرابط السحابي المباشر لملف أزرار ترتيل على GitHub
+  static const String githubActionsUrl =
+      'https://raw.githubusercontent.com/aamer-aljalal/tarteel-config/main/actions.json';
+
+  const HomeActionsService();
+
+  @override
+  Future<List<AccessListModel>> loadHeaders() async {
+    return loadActions();
+  }
+
+  @override
+  Future<AccessListModel> loadDetails(AccessListModel header) async {
+    return header;
+  }
+
   /// مفتاح تخزين الأزرار الإضافية الديناميكية القادمة من جيت هب
   static const String _dynamicActionsKey = 'dynamic_extra_actions_v1';
 
@@ -24,7 +41,7 @@ class HomeActionsService {
   static const String _defaultAssetPath = 'assets/json/home_actions.json';
 
   // ============================================================================
-  // 📥 قراءة وتحميل الأزرار (ملف الأصول المحلي + الأزرار الإضافية من جيت هب)
+  //  قراءة وتحميل الأزرار (ملف الأصول المحلي + الأزرار الإضافية من جيت هب)
   // ============================================================================
   static Future<List<AccessListModel>> loadActions() async {
     try {
