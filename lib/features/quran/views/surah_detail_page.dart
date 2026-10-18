@@ -567,14 +567,15 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                     currentJuz: state.currentJuz,
                     currentHizb: state.currentHizb,
                   ),
-                  // 2. محتوى صفحة المصحف (العمودان يتحركان وينقلبان داخل كل صفحة)
+                  // 2. محتوى صفحة المصحف (قراءة مريحة بدون أي إطارات صور)
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 8.h,
+                      ),
                       child: state.isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
+                          ? const Center(child: CircularProgressIndicator())
                           : state.isPageView
                           ? QuranPageView(
                               pageController: _pageController,
@@ -584,9 +585,9 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                               buildPageSliver: (index) =>
                                   _buildPageSliver(context, state, index),
                               onPageChanged: (index) {
-                                context
-                                    .read<QuranReaderCubit>()
-                                    .changePage(index);
+                                context.read<QuranReaderCubit>().changePage(
+                                  index,
+                                );
                               },
                             )
                           : QuranContinuousScrollView(
@@ -596,8 +597,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                               totalPages: state.pages.length,
                               buildPageSliver: (index) =>
                                   _buildPageSliver(context, state, index),
-                              onScrollEnd: () =>
-                                  _saveCurrentVisibleAyah(state),
+                              onScrollEnd: () => _saveCurrentVisibleAyah(state),
                             ),
                     ),
                   ),
