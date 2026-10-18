@@ -9,6 +9,8 @@ class QuranPageView extends StatefulWidget {
     required this.buildPageSliver,
     required this.onPageChanged,
     this.initialPage = 0,
+    this.pageIndicatorText,
+    this.showPageIndicator = false,
   });
 
   final PageController pageController;
@@ -16,6 +18,8 @@ class QuranPageView extends StatefulWidget {
   final Widget Function(int pageIndex) buildPageSliver;
   final ValueChanged<int> onPageChanged;
   final int initialPage;
+  final String Function(int pageIndex)? pageIndicatorText;
+  final bool showPageIndicator;
 
   @override
   State<QuranPageView> createState() => _QuranPageViewState();
@@ -50,16 +54,28 @@ class _QuranPageViewState extends State<QuranPageView> {
             },
           ),
         ),
-        SizedBox(height: 8.h),
-        // Sleek page indicator badge
-        Text(
-          '${_currentPage + 1}',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
+        if (widget.showPageIndicator) ...[
+          SizedBox(height: 8.h),
+          // Sleek page indicator badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2822).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: Text(
+              widget.pageIndicatorText != null
+                  ? widget.pageIndicatorText!(_currentPage)
+                  : '${_currentPage + 1}',
+              style: TextStyle(
+                color: const Color(0xFF1E2822),
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Amiri',
+              ),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

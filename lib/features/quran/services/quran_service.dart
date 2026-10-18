@@ -8,47 +8,9 @@ import 'package:tarteel/core/helpers/arabic_search_helper.dart';
 import 'package:tarteel/core/services/lazy_loader/lazy_data_loader.dart';
 import 'package:tarteel/routes/AppRoutes.dart';
 
-class QuranSurah {
-  const QuranSurah({
-    required this.number,
-    required this.nameArabic,
-    required this.nameEnglish,
-    required this.transliteration,
-    required this.revelationPlace,
-    required this.versesCount,
-  });
+import '../models/quran_models.dart';
+export '../models/quran_models.dart';
 
-  final int number;
-  final String nameArabic;
-  final String nameEnglish;
-  final String transliteration;
-  final String revelationPlace;
-  final int versesCount;
-}
-
-class QuranAyah {
-  const QuranAyah({
-    required this.chapter,
-    required this.verse,
-    required this.text,
-  });
-
-  final int chapter;
-  final int verse;
-  final String text;
-}
-
-class SearchableAyah {
-  const SearchableAyah({
-    required this.ayah,
-    required this.surah,
-    required this.normalizedText,
-  });
-
-  final QuranAyah ayah;
-  final QuranSurah surah;
-  final String normalizedText;
-}
 
 class QuranService implements LazyDataLoader<AccessListModel, QuranSurah> {
   const QuranService();
@@ -96,16 +58,77 @@ class QuranService implements LazyDataLoader<AccessListModel, QuranSurah> {
   }
 
   static List<QuranSurah>? _surahs;
-  static Map<String, dynamic>? _quran;
+  static Map<int, List<QuranAyah>>? _surahAyahsCache;
+  static Map<int, List<QuranAyah>>? _pageAyahsCache;
   static Map<String, String>? _interpretations;
   static List<SearchableAyah>? _searchableAyahs;
 
   static Future<void> preloadQuran() async {
-    if (_quran != null) return;
+    await _ensureQuranLoaded();
+  }
+
+  static Future<void> _ensureQuranLoaded() async {
+    if (_surahAyahsCache != null) return;
     try {
-      final raw = await rootBundle.loadString('assets/json/quran.json');
-      _quran = await Isolate.run(() => jsonDecode(raw) as Map<String, dynamic>);
-    } catch (_) {}
+      final raw =
+          await rootBundle.loadString('assets/json/quran/quran_uthmani.json');
+      final parsed = await Isolate.run(() {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        final surahs = data['data']['surahs'] as List<dynamic>;
+
+        final surahMap = <int, List<QuranAyah>>{};
+        final pageMap = <int, List<QuranAyah>>{};
+
+        for (final s in surahs) {
+          final sMap = s as Map<String, dynamic>;
+          final surahNumber = sMap['number'] as int;
+          final rawAyahs = sMap['ayahs'] as List<dynamic>;
+
+          final ayahsList = <QuranAyah>[];
+          for (final a in rawAyahs) {
+            final aMap = a as Map<String, dynamic>;
+            final verse = aMap['numberInSurah'] as int;
+            var text = aMap['text'] as String;
+
+            // إزالة البسملة الملحقة ببداية الآية الأولى لجميع السور عدا الفاتحة (1) والتوبة (9)
+            if (surahNumber != 1 && surahNumber != 9 && verse == 1) {
+              const prefix1 = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ';
+              const prefix2 = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ ';
+              if (text.startsWith(prefix1)) {
+                text = text.substring(prefix1.length).trim();
+              } else if (text.startsWith(prefix2)) {
+                text = text.substring(prefix2.length).trim();
+              }
+            }
+
+            final sajdaRaw = aMap['sajda'];
+            final hasSajda = sajdaRaw != false && sajdaRaw != null;
+
+            final ayah = QuranAyah(
+              chapter: surahNumber,
+              verse: verse,
+              text: text,
+              page: aMap['page'] as int? ?? 1,
+              juz: aMap['juz'] as int? ?? 1,
+              hizbQuarter: aMap['hizbQuarter'] as int? ?? 1,
+              hasSajdah: hasSajda,
+            );
+
+            ayahsList.add(ayah);
+            pageMap.putIfAbsent(ayah.page, () => []).add(ayah);
+          }
+
+          surahMap[surahNumber] = ayahsList;
+        }
+
+        return {'surahs': surahMap, 'pages': pageMap};
+      });
+
+      _surahAyahsCache = parsed['surahs'] as Map<int, List<QuranAyah>>;
+      _pageAyahsCache = parsed['pages'] as Map<int, List<QuranAyah>>;
+    } catch (e) {
+      debugPrint('Error loading Quran data: $e');
+    }
   }
 
   static Future<List<QuranSurah>> loadSurahs() async {
@@ -133,48 +156,29 @@ class QuranService implements LazyDataLoader<AccessListModel, QuranSurah> {
   }
 
   static Future<List<QuranAyah>> loadAyahs(int surahNumber) async {
-    if (_quran == null) {
-      final raw = await rootBundle.loadString('assets/json/quran.json');
-      _quran = await Isolate.run(() => jsonDecode(raw) as Map<String, dynamic>);
-    }
+    await _ensureQuranLoaded();
+    return _surahAyahsCache?[surahNumber] ?? [];
+  }
 
-    final rawAyahs = (_quran!['$surahNumber'] as List<dynamic>? ?? []);
-
-    return rawAyahs.map((item) {
-      final map = item as Map<String, dynamic>;
-      return QuranAyah(
-        chapter: map['chapter'] as int,
-        verse: map['verse'] as int,
-        text: map['text'] as String,
-      );
-    }).toList();
+  static Future<List<QuranAyah>> loadPage(int pageNumber) async {
+    await _ensureQuranLoaded();
+    return _pageAyahsCache?[pageNumber] ?? [];
   }
 
   static Future<List<SearchableAyah>> loadAllSearchableAyahs() async {
     if (_searchableAyahs != null) return _searchableAyahs!;
 
     final surahs = await loadSurahs();
+    await _ensureQuranLoaded();
     final List<SearchableAyah> results = [];
 
-    if (_quran == null) {
-      final raw = await rootBundle.loadString('assets/json/quran.json');
-      _quran = await Isolate.run(() => jsonDecode(raw) as Map<String, dynamic>);
-    }
-
     for (final surah in surahs) {
-      final rawAyahs = (_quran!['${surah.number}'] as List<dynamic>? ?? []);
-      for (final item in rawAyahs) {
-        final map = item as Map<String, dynamic>;
-        final text = map['text'] as String;
-        final ayah = QuranAyah(
-          chapter: map['chapter'] as int,
-          verse: map['verse'] as int,
-          text: text,
-        );
+      final ayahs = _surahAyahsCache?[surah.number] ?? [];
+      for (final ayah in ayahs) {
         results.add(SearchableAyah(
           ayah: ayah,
           surah: surah,
-          normalizedText: ArabicSearchHelper.normalize(text),
+          normalizedText: ArabicSearchHelper.normalize(ayah.text),
         ));
       }
     }

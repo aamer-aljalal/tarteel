@@ -143,10 +143,7 @@ class _QuranVerseSearchPageState extends State<QuranVerseSearchPage> {
 }
 
 class _VerseTile extends StatelessWidget {
-  const _VerseTile({
-    required this.searchableAyah,
-    required this.onTap,
-  });
+  const _VerseTile({required this.searchableAyah, required this.onTap});
 
   final SearchableAyah searchableAyah;
   final VoidCallback onTap;
@@ -189,14 +186,19 @@ class _VerseTile extends StatelessWidget {
                     Text(
                       'سورة ${searchableAyah.surah.nameArabic}',
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: isDark ? AppColors.goldAccent : AppColors.primary,
+                        color: isDark
+                            ? AppColors.goldAccent
+                            : AppColors.primary,
                         fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Cairo',
                       ),
                     ),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
                       decoration: BoxDecoration(
                         color: colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4.r),

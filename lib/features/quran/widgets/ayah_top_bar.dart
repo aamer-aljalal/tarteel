@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/views/quran_verse_search_page.dart';
 
@@ -9,142 +8,155 @@ class MushafTopBar extends StatelessWidget {
   const MushafTopBar({
     super.key,
     required this.surah,
-    required this.isPageView,
-    required this.onReadingModeChanged,
-    required this.allSurahs,
-    required this.onNavigateToSurah,
-    required this.fontSize,
-    required this.onFontSizeChanged,
+    this.currentJuz = 1,
+    this.currentHizb = 1,
   });
 
   final QuranSurah surah;
-  final bool isPageView;
-  final ValueChanged<bool> onReadingModeChanged;
-  final List<QuranSurah> allSurahs;
-  final Function(int surahNumber) onNavigateToSurah;
-  final double fontSize;
-  final ValueChanged<double> onFontSizeChanged;
-
-  void _showReadingSettings(BuildContext context) {
-    AppModalBottomSheet.show(
-      context: context,
-      title: 'إعدادات القراءة',
-      heightFraction: null,
-      child: ReadingSettingsSheet(
-        isPageView: isPageView,
-        onReadingModeChanged: onReadingModeChanged,
-        initialFontSize: fontSize,
-        onFontSizeChanged: onFontSizeChanged,
-      ),
-    );
-  }
-
-  void _showSurahSelector(BuildContext context) {
-    AppModalBottomSheet.show(
-      context: context,
-      title: 'سور القرآن الكريم',
-      heightFraction: 0.85,
-      wrapWithScrollView: false,
-      contentPadding: EdgeInsets.zero,
-      child: SurahSelectorSheet(
-        allSurahs: allSurahs,
-        currentSurah: surah,
-        onNavigate: onNavigateToSurah,
-      ),
-    );
-  }
+  final int currentJuz;
+  final int currentHizb;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: const Color(0XFF244E38),
-        borderRadius: BorderRadius.circular(4.r),
-        image: const DecorationImage(
-          image: AssetImage('assets/img/top_bar.png'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(Colors.black38, BlendMode.darken),
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/img/quran/background.png'),
+          fit: BoxFit.fill,
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // 2. Surah Selector Menu
-          IconButton(
-            icon: Icon(
-              Icons.format_list_bulleted_rounded,
-              color: Colors.white.withValues(alpha: 0.9),
-              size: 20.sp,
-            ),
-            onPressed: () => _showSurahSelector(context),
-            tooltip: 'فهرس السور',
-          ),
-
-          // Centered Premium Surah Name & Info (Auto-scales, no overlap)
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'سورة ${surah.nameArabic}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w900,
-                      fontFamily: 'Amiri',
-                      height: 1.8,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '${surah.revelationPlace == 'makkah' ? 'مكية' : 'مدنية'} • ${surah.versesCount} آية',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: const Color(0xFFEABB11),
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Cairo',
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Left Actions: Settings, Back Button
-          Row(
-            mainAxisSize: MainAxisSize.min,
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          height: 65.h,
+          // padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          child: Row(
             children: [
-              // 3. Settings (Gear icon)
-              IconButton(
-                icon: Icon(
-                  Icons.settings_rounded,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  size: 20.sp,
+              // 1. النجمة على اليمين: الجزء
+              _buildStarBadge(title: 'الجزء', value: '$currentJuz'),
+
+              // 2. في المنتصف: لوحة اسم السورة (top.png)
+              Expanded(
+                child: SizedBox(
+                  height: 120.h,
+                  width: 150.w,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          'assets/img/quran/top.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 42.w,
+                          vertical: 8.h,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'سورة ${surah.nameArabic}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Amiri',
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 5.h),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '${surah.isMakki ? 'مكية' : 'مدنية'} • ${surah.versesCount} آيه',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    255,
+                                    255,
+                                    255,
+                                  ),
+                                  fontSize: 10.5.sp,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Amiri',
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                onPressed: () => _showReadingSettings(context),
-                tooltip: 'إعدادات القراءة',
               ),
 
-              // Back Button
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white,
-                  size: 20.sp,
+              // 3. النجمة على اليسار: الحزب
+              _buildStarBadge(title: 'الحزب', value: '$currentHizb'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStarBadge({required String title, required String value}) {
+    return SizedBox(
+      width: 64.h,
+      height: 64.h,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // خلفية خضراء داكنة داخل النجمة
+          Container(
+            width: 42.h,
+            height: 42.h,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF13442A),
+            ),
+          ),
+          // صورة النجمة الذهبية
+          Image.asset(
+            'assets/img/quran/goldenCircle.png',
+            width: 64.h,
+            height: 64.h,
+            fit: BoxFit.contain,
+          ),
+          // النصوص داخل النجمة
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: const Color(0xFFEABB11),
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Cairo',
+                  height: 1.0,
                 ),
-                onPressed: () => Navigator.pop(context),
-                tooltip: 'رجوع',
+              ),
+              SizedBox(height: 1.h),
+              Text(
+                value,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Amiri',
+                  height: 1.0,
+                ),
               ),
             ],
           ),
@@ -218,7 +230,6 @@ class _ReadingSettingsSheetState extends State<ReadingSettingsSheet> {
                 style: TextStyle(
                   fontSize: 10.sp,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'Amiri',
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
@@ -534,14 +545,10 @@ class _SurahSelectorSheetState extends State<SurahSelectorSheet> {
           child: TextField(
             controller: _searchController,
             textAlign: TextAlign.right,
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 14.sp),
+            style: TextStyle(fontSize: 14.sp),
             decoration: InputDecoration(
               hintText: 'ابحث عن سورة...',
-              hintStyle: TextStyle(
-                color: Colors.grey,
-                fontSize: 13.sp,
-                fontFamily: 'Cairo',
-              ),
+              hintStyle: TextStyle(color: Colors.grey, fontSize: 11.sp),
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -569,11 +576,7 @@ class _SurahSelectorSheetState extends State<SurahSelectorSheet> {
               ? Center(
                   child: Text(
                     'لا توجد نتائج بحث',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontFamily: 'Cairo',
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                   ),
                 )
               : ListView.builder(
@@ -659,7 +662,7 @@ class _SurahSelectorSheetState extends State<SurahSelectorSheet> {
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.bold,
-                                        fontFamily: 'Cairo',
+                                        fontFamily: 'Amiri',
                                         color: isCurrent
                                             ? AppColors.goldAccent
                                             : (isDark
@@ -671,7 +674,7 @@ class _SurahSelectorSheetState extends State<SurahSelectorSheet> {
                                       '${surah.revelationPlace == 'makkah' ? 'مكية' : 'مدنية'} • ${surah.versesCount} آية',
                                       style: TextStyle(
                                         fontSize: 11.sp,
-                                        fontFamily: 'Cairo',
+                                        fontFamily: 'Amiri',
                                         color: isDark
                                             ? Colors.grey.shade400
                                             : Colors.grey.shade600,

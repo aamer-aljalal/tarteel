@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tarteel/features/quran/controllers/quran_reading_controller.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/buttons/app_button.dart';
+import 'package:tarteel/features/quran/controllers/quran_reading_controller.dart';
+import 'package:tarteel/features/quran/cubit/quran_reader_cubit.dart';
+import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
+import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/widgets/ayah_top_bar.dart';
 import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
 import 'package:tarteel/features/quran/widgets/reading_modes/quran_continuous_scroll_view.dart';
 import 'package:tarteel/features/quran/widgets/reading_modes/quran_page_view.dart';
-import 'package:tarteel/core/services/in_app_notification_service.dart';
 
-class SurahDetailPage extends StatefulWidget {
+class SurahDetailPage extends StatelessWidget {
+  final QuranSurah surah;
+  final List<QuranAyah> ayahs;
+  final int initialPage;
+  final int? initialAyah;
+  final bool isKhatmaSession;
+
   const SurahDetailPage({
     super.key,
     required this.surah,
@@ -22,269 +29,105 @@ class SurahDetailPage extends StatefulWidget {
     this.isKhatmaSession = false,
   });
 
-  final QuranSurah surah;
-  final List<QuranAyah> ayahs;
-  final int initialPage;
-  final int? initialAyah;
-  final bool isKhatmaSession;
-
   @override
-  State<SurahDetailPage> createState() => _SurahDetailPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => QuranReaderCubit(
+        initialSurah: surah,
+        initialAyahs: ayahs,
+        initialPage: initialPage,
+        initialAyah: initialAyah,
+        isKhatmaSession: isKhatmaSession,
+      ),
+      child: _SurahDetailView(
+        isKhatmaSession: isKhatmaSession,
+        initialAyah: initialAyah,
+      ),
+    );
+  }
 }
 
-class _SurahDetailPageState extends State<SurahDetailPage> {
-  late final List<List<QuranAyah>> _continuousPages;
-  List<List<QuranAyah>> _paginatedPages = [];
-  late List<List<QuranAyah>> _pages;
-  late List<GlobalKey> _pageKeys;
-  late final GlobalKey _centerSliverKey;
-  int _currentPage = 0;
-  int _centerPage = 0;
-  final bool _isLoading = false;
-  List<QuranSurah> _allSurahs = [];
-  final ValueNotifier<QuranAyah?> _pressedAyahNotifier = ValueNotifier(null);
+class _SurahDetailView extends StatefulWidget {
+  final bool isKhatmaSession;
+  final int? initialAyah;
 
+  const _SurahDetailView({required this.isKhatmaSession, this.initialAyah});
+
+  @override
+  State<_SurahDetailView> createState() => _SurahDetailViewState();
+}
+
+class _SurahDetailViewState extends State<_SurahDetailView> {
   final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
-  bool _isPageView = false;
-  double _initialScrollOffset = 0.0;
-  bool _hasBookmarkedInThisSession = false;
-  bool _hasChangedPage = false;
+  final ValueNotifier<QuranAyah?> _pressedAyahNotifier = ValueNotifier(null);
   final GlobalKey _initialAyahKey = GlobalKey();
-  late final Map<int, GlobalKey> _ayahKeys;
+  final GlobalKey _centerSliverKey = GlobalKey();
 
-  double? _lastScreenWidth;
-  double? _lastScreenHeight;
-  double _fontSize = 20.0;
+  late Map<int, GlobalKey> _ayahKeys;
+  late List<GlobalKey> _pageKeys;
+  double _initialScrollOffset = 0.0;
+  bool _hasScrolledToInitialAyah = false;
 
   @override
   void initState() {
     super.initState();
-    _continuousPages = [widget.ayahs];
-    _paginatedPages = [];
-    _pages = _continuousPages;
-    _pageKeys = List.generate(_pages.length, (_) => GlobalKey());
-    _centerSliverKey = GlobalKey();
+    final cubit = context.read<QuranReaderCubit>();
+    _initKeys(cubit.state);
 
-    _ayahKeys = {for (var a in widget.ayahs) a.verse: GlobalKey()};
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _initialScrollOffset = _scrollController.position.pixels;
+      }
+      _scrollToInitialAyahIfNeeded();
+    });
+  }
+
+  void _initKeys(QuranReaderState state) {
+    _pageKeys = List.generate(state.pages.length, (_) => GlobalKey());
+    _ayahKeys = {for (var a in state.ayahs) a.verse: GlobalKey()};
     if (widget.initialAyah != null &&
         _ayahKeys.containsKey(widget.initialAyah)) {
       _ayahKeys[widget.initialAyah!] = _initialAyahKey;
     }
-
-    int startPage = widget.initialPage;
-    if (widget.initialAyah != null) {
-      for (int i = 0; i < _pages.length; i++) {
-        if (_pages[i].any((a) => a.verse == widget.initialAyah)) {
-          startPage = i;
-          break;
-        }
-      }
-    }
-
-    _centerPage = startPage;
-    if (_centerPage >= _pages.length) _centerPage = 0;
-    _currentPage = _centerPage;
-
-    _loadAllSurahs();
-    _loadReadingModePreference();
-    _loadFontSizePreference();
-
-    if (widget.surah.number == 18) {
-      InAppNotificationService.markCompleted('surah_kahf');
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initialScrollOffset = _scrollController.hasClients
-          ? _scrollController.position.pixels
-          : 0.0;
-      _saveRecentQuranAction();
-
-      // Scroll to target initial Ayah if present
-      if (widget.initialAyah != null &&
-          _initialAyahKey.currentContext != null) {
-        Scrollable.ensureVisible(
-          _initialAyahKey.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          alignment: 0.1, // Near top
-        );
-      }
-    });
   }
 
-  Future<void> _loadFontSizePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    final double savedSize = prefs.getDouble('quran_font_size') ?? 20.0;
-    if (mounted) {
-      setState(() {
-        _fontSize = savedSize;
-      });
-      if (_lastScreenWidth != null && _lastScreenHeight != null) {
-        _calculateDynamicPages(_lastScreenWidth!, _lastScreenHeight!);
-      }
-    }
-  }
-
-  Future<void> _setFontSize(double size) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('quran_font_size', size);
-    if (mounted) {
-      setState(() {
-        _fontSize = size;
-      });
-      if (_lastScreenWidth != null && _lastScreenHeight != null) {
-        _calculateDynamicPages(_lastScreenWidth!, _lastScreenHeight!);
-      }
+  void _scrollToInitialAyahIfNeeded() {
+    if (_hasScrolledToInitialAyah) return;
+    if (widget.initialAyah != null && _initialAyahKey.currentContext != null) {
+      _hasScrolledToInitialAyah = true;
+      Scrollable.ensureVisible(
+        _initialAyahKey.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.1,
+      );
     }
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final mediaQuery = MediaQuery.of(context);
-    final screenWidth = mediaQuery.size.width;
-    final screenHeight = mediaQuery.size.height;
-
-    if (screenWidth != _lastScreenWidth || screenHeight != _lastScreenHeight) {
-      _lastScreenWidth = screenWidth;
-      _lastScreenHeight = screenHeight;
-      _calculateDynamicPages(screenWidth, screenHeight);
-    }
+  void dispose() {
+    _pressedAyahNotifier.dispose();
+    _scrollController.dispose();
+    _pageController.dispose();
+    super.dispose();
   }
 
-  void _calculateDynamicPages(double screenWidth, double screenHeight) {
-    final mediaQuery = MediaQuery.of(context);
-    final textScale = mediaQuery.textScaler.scale(1.0);
-
-    final scaleX = screenWidth / 375.0;
-
-    final fontSize = _fontSize * scaleX * textScale;
-    final lineHeight = fontSize * 2.0;
-
-    final scaleY = screenHeight / 812.0;
-    final topBarOffset = 80.0 * scaleX;
-    final bottomOffset = 100.0 * scaleY;
-
-    final availableHeight =
-        screenHeight -
-        topBarOffset -
-        bottomOffset -
-        mediaQuery.padding.top -
-        mediaQuery.padding.bottom;
-
-    final maxLines = (availableHeight / lineHeight).floor().clamp(8, 20);
-
-    final availableWidth = screenWidth - (56.0 * scaleX);
-    final averageWordWidth = fontSize * 1.35;
-    final wordsPerLine = (availableWidth / averageWordWidth).clamp(6.0, 12.0);
-
-    _paginatedPages = _splitIntoPagesDynamic(
-      widget.ayahs,
-      maxLines: maxLines,
-      wordsPerLine: wordsPerLine,
-    );
-
-    setState(() {
-      _pages = _isPageView ? _paginatedPages : _continuousPages;
-      _pageKeys = List.generate(_pages.length, (_) => GlobalKey());
-
-      if (_currentPage >= _pages.length) {
-        _currentPage = _pages.length - 1;
-        if (_currentPage < 0) _currentPage = 0;
-      }
-    });
-  }
-
-  List<List<QuranAyah>> _splitIntoPagesDynamic(
-    List<QuranAyah> ayahs, {
-    required int maxLines,
-    required double wordsPerLine,
-  }) {
-    if (ayahs.isEmpty) return [[]];
-
-    final pages = <List<QuranAyah>>[];
-    var currentPage = <QuranAyah>[];
-    double currentLinesUsed = 0.0;
-
-    for (final ayah in ayahs) {
-      final wordsCount = ayah.text.trim().split(RegExp(r'\s+')).length;
-
-      final ayahLines = (wordsCount / wordsPerLine) + 0.3;
-
-      final isFirstPage = pages.isEmpty;
-      final limitLines = isFirstPage ? (maxLines - 1.8) : maxLines;
-
-      if (currentPage.isNotEmpty &&
-          (currentLinesUsed + ayahLines > limitLines)) {
-        pages.add(currentPage);
-        currentPage = <QuranAyah>[ayah];
-        currentLinesUsed = ayahLines;
-      } else {
-        currentPage.add(ayah);
-        currentLinesUsed += ayahLines;
-      }
-    }
-
-    if (currentPage.isNotEmpty) {
-      pages.add(currentPage);
-    }
-
-    return pages;
-  }
-
-  Future<void> _loadReadingModePreference() async {
-    final mode = await QuranReadingController.getReadingMode();
-    if (mounted) {
-      setState(() {
-        _isPageView = mode == 'page';
-        _pages = _isPageView ? _paginatedPages : _continuousPages;
-        _pageKeys = List.generate(_pages.length, (_) => GlobalKey());
-
-        int startPage = widget.initialPage;
-        if (widget.initialAyah != null) {
-          for (int i = 0; i < _pages.length; i++) {
-            if (_pages[i].any((a) => a.verse == widget.initialAyah)) {
-              startPage = i;
-              break;
-            }
-          }
-        }
-        _currentPage = startPage;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_isPageView && _pageController.hasClients) {
-          _pageController.jumpToPage(_currentPage);
-        } else if (!_isPageView && widget.initialAyah != null) {
-          final targetKey = _ayahKeys[widget.initialAyah];
-          if (targetKey != null && targetKey.currentContext != null) {
-            Scrollable.ensureVisible(
-              targetKey.currentContext!,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              alignment: 0.1,
-            );
-          }
-        }
-      });
-    }
-  }
-
-  QuranAyah? _getCurrentVisibleAyah() {
-    if (_isPageView) {
-      if (_currentPage < _pages.length && _pages[_currentPage].isNotEmpty) {
-        return _pages[_currentPage].first;
+  QuranAyah? _getCurrentVisibleAyah(QuranReaderState state) {
+    if (state.isPageView) {
+      if (state.currentPage < state.pages.length &&
+          state.pages[state.currentPage].isNotEmpty) {
+        return state.pages[state.currentPage].first;
       }
     } else {
       double minDiff = double.infinity;
       QuranAyah? topmostAyah;
-      for (final ayah in widget.ayahs) {
+      for (final ayah in state.ayahs) {
         final key = _ayahKeys[ayah.verse];
         if (key == null) continue;
-        final context = key.currentContext;
-        if (context == null) continue;
-        final box = context.findRenderObject() as RenderBox?;
+        final ctx = key.currentContext;
+        if (ctx == null) continue;
+        final box = ctx.findRenderObject() as RenderBox?;
         if (box == null || !box.hasSize) continue;
         final position = box.localToGlobal(Offset.zero);
         final y = position.dy;
@@ -293,84 +136,73 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
           topmostAyah = ayah;
         }
       }
-      return topmostAyah ?? widget.ayahs.first;
+      return topmostAyah ?? (state.ayahs.isNotEmpty ? state.ayahs.first : null);
     }
     return null;
   }
 
-  void _setReadingMode(bool isPage) {
-    if (_isPageView == isPage) return;
-
-    final currentAyah = _getCurrentVisibleAyah();
-
-    setState(() {
-      _isPageView = isPage;
-      _pages = _isPageView ? _paginatedPages : _continuousPages;
-      _pageKeys = List.generate(_pages.length, (_) => GlobalKey());
-    });
-    QuranReadingController.setReadingMode(_isPageView ? 'page' : 'list');
-
-    if (currentAyah != null) {
-      if (_isPageView) {
-        int targetPage = 0;
-        for (int i = 0; i < _paginatedPages.length; i++) {
-          if (_paginatedPages[i].any((a) => a.verse == currentAyah.verse)) {
-            targetPage = i;
-            break;
-          }
-        }
-        _currentPage = targetPage;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_pageController.hasClients) {
-            _pageController.jumpToPage(targetPage);
-          }
-        });
-      } else {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final targetKey = _ayahKeys[currentAyah.verse];
-          if (targetKey != null && targetKey.currentContext != null) {
-            Scrollable.ensureVisible(
-              targetKey.currentContext!,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              alignment: 0.1,
-            );
-          }
-        });
-      }
-    }
-  }
-
-  Future<void> _loadAllSurahs() async {
-    try {
-      final surahs = await QuranService.loadSurahs();
-      if (mounted) {
-        setState(() {
-          _allSurahs = surahs;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveRecentQuranAction() async {
-    await QuranReadingController.saveRecentAction(
-      surah: widget.surah,
-      currentPage: _currentPage,
-      initialAyah: widget.initialAyah,
-      isKhatmaSession: widget.isKhatmaSession,
-    );
-  }
-
-  void _saveCurrentVisibleAyah() {
+  void _saveCurrentVisibleAyah(QuranReaderState state) {
     QuranReadingController.saveTopVisibleAyah(
-      surah: widget.surah,
-      ayahs: widget.ayahs,
+      surah: state.surah,
+      ayahs: state.ayahs,
       ayahKeys: _ayahKeys,
       isKhatmaSession: widget.isKhatmaSession,
     );
   }
 
-  Future<void> _showAyahActions(QuranAyah ayah) async {
+  Future<bool> _onWillPop(QuranReaderState state) async {
+    if (state.hasBookmarkedInThisSession) return true;
+
+    if (state.isPageView) {
+      if (state.hasChangedPage) {
+        return await QuranReadingController.showKhatmaExitWarning(context);
+      }
+    } else {
+      if (_scrollController.hasClients) {
+        final currentOffset = _scrollController.position.pixels;
+        if ((currentOffset - _initialScrollOffset).abs() > 500) {
+          return await QuranReadingController.showKhatmaExitWarning(context);
+        }
+      }
+    }
+    return true;
+  }
+
+  Widget _buildPageSliver(
+    BuildContext context,
+    QuranReaderState state,
+    int index,
+  ) {
+    final pageAyahs = state.pages[index];
+    final realMushafPage = pageAyahs.isNotEmpty
+        ? pageAyahs.first.page
+        : (index + 1);
+
+    if (index >= _pageKeys.length) {
+      _pageKeys = List.generate(state.pages.length, (_) => GlobalKey());
+    }
+
+    return MushafPage(
+      key: _pageKeys[index],
+      surah: state.surah,
+      ayahs: pageAyahs,
+      isFirstPage: index == 0,
+      isLastPage: index == state.pages.length - 1,
+      pageNumber: realMushafPage,
+      onAyahLongPress: (ayah) => _showAyahActions(ayah, state.surah),
+      nextSurah: state.nextSurah,
+      prevSurah: state.prevSurah,
+      onNavigate: (surahNum) =>
+          context.read<QuranReaderCubit>().navigateToSurah(surahNum),
+      pressedAyahNotifier: _pressedAyahNotifier,
+      initialAyah: widget.initialAyah,
+      initialAyahKey: _initialAyahKey,
+      ayahKeys: _ayahKeys,
+      fontSize: state.fontSize,
+    );
+  }
+
+  Future<void> _showAyahActions(QuranAyah ayah, QuranSurah surah) async {
     _pressedAyahNotifier.value = ayah;
     final interpretation = await QuranService.loadInterpretation(
       surahNumber: ayah.chapter,
@@ -439,7 +271,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'سورة ${widget.surah.nameArabic}',
+                              'سورة ${surah.nameArabic}',
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
@@ -448,7 +280,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                               ),
                             ),
                             Text(
-                              'الآية رقم ${ayah.verse} • ${widget.surah.revelationPlace == 'makkah' ? 'مكية' : 'مدنية'}',
+                              'الآية رقم ${ayah.verse} • ${surah.isMakki ? 'مكية' : 'مدنية'}',
                               style: TextStyle(
                                 fontSize: 11.5.sp,
                                 fontWeight: FontWeight.w600,
@@ -462,39 +294,27 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                       IconButton(
                         icon: Icon(
                           Icons.close_rounded,
+                          color: isDark ? Colors.white54 : Colors.black45,
                           size: 20.sp,
-                          color: isDark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade600,
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        tooltip: 'إغلاق',
                       ),
                     ],
                   ),
-                  SizedBox(height: 12.h),
-
-                  Divider(
-                    height: 1,
-                    thickness: 0.8,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.grey.shade200,
-                  ),
                   SizedBox(height: 14.h),
 
-                  // 2. بطاقة عرض نص الآية الكريمة
+                  // 2. بطاقة عرض نص الآية
                   Container(
+                    constraints: BoxConstraints(maxHeight: 160.h),
                     padding: EdgeInsets.symmetric(
                       horizontal: 14.w,
                       vertical: 12.h,
                     ),
-                    constraints: BoxConstraints(maxHeight: 160.h),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.black26
-                          : const Color(0xFFF9F6EE),
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : const Color(0xFFFBF9F4),
                       borderRadius: BorderRadius.circular(14.r),
                       border: Border.all(
                         color: AppColors.goldAccent.withValues(alpha: 0.25),
@@ -531,7 +351,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                     borderRadius: 14.r,
                     onPressed: () {
                       Navigator.pop(ctx);
-                      _showInterpretation(ayah, interpretation);
+                      _showInterpretation(ayah, surah, interpretation);
                     },
                   ),
                   SizedBox(height: 10.h),
@@ -550,7 +370,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                             Navigator.pop(ctx);
                             QuranReadingController.copyAyah(
                               context: context,
-                              surah: widget.surah,
+                              surah: surah,
                               ayah: ayah,
                             );
                           },
@@ -568,7 +388,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                             Navigator.pop(ctx);
                             QuranReadingController.saveAyahToFavorites(
                               context: context,
-                              surah: widget.surah,
+                              surah: surah,
                               ayah: ayah,
                               interpretation: interpretation,
                             );
@@ -592,17 +412,13 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                         Navigator.pop(ctx);
                         final success =
                             await QuranReadingController.updateKhatmaBookmark(
-                          context: context,
-                          ayah: ayah,
-                        );
+                              context: context,
+                              ayah: ayah,
+                            );
                         if (success && mounted) {
-                          setState(() {
-                            _hasBookmarkedInThisSession = true;
-                            if (_scrollController.hasClients) {
-                              _initialScrollOffset =
-                                  _scrollController.position.pixels;
-                            }
-                          });
+                          context
+                              .read<QuranReaderCubit>()
+                              .markBookmarkedInSession();
                         }
                       },
                     ),
@@ -618,12 +434,16 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
     _pressedAyahNotifier.value = null;
   }
 
-  void _showInterpretation(QuranAyah ayah, String interpretation) {
+  void _showInterpretation(
+    QuranAyah ayah,
+    QuranSurah surah,
+    String interpretation,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     AppModalBottomSheet.show(
       context: context,
-      title: 'تفسير الآية (${ayah.verse}) من سورة ${widget.surah.nameArabic}',
+      title: 'تفسير الآية (${ayah.verse}) من سورة ${surah.nameArabic}',
       subtitle: 'التفسير الميسر',
       heightFraction: 0.75,
       child: Padding(
@@ -674,153 +494,221 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
     );
   }
 
-  @override
-  void dispose() {
-    _pressedAyahNotifier.dispose();
-    _scrollController.dispose();
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  Widget _buildPageSliver(int index) {
-    return MushafPage(
-      key: _pageKeys[index],
-      surah: widget.surah,
-      ayahs: _pages[index],
-      isFirstPage: index == 0,
-      isLastPage: index == _pages.length - 1,
-      pageNumber: index + 1,
-      onAyahLongPress: _showAyahActions,
-      nextSurah: _nextSurah,
-      prevSurah: _prevSurah,
-      onNavigate: _navigateToSurah,
-      pressedAyahNotifier: _pressedAyahNotifier,
-      initialAyah: widget.initialAyah,
-      initialAyahKey: _initialAyahKey,
-      ayahKeys: _ayahKeys,
-      fontSize: _fontSize,
+  void _showReadingSettings(BuildContext context, QuranReaderState state) {
+    AppModalBottomSheet.show(
+      context: context,
+      title: 'إعدادات القراءة',
+      heightFraction: null,
+      child: ReadingSettingsSheet(
+        isPageView: state.isPageView,
+        onReadingModeChanged: (val) {
+          final currentAyah = _getCurrentVisibleAyah(state);
+          context.read<QuranReaderCubit>().setReadingMode(
+            val,
+            currentVisibleAyah: currentAyah,
+          );
+        },
+        initialFontSize: state.fontSize,
+        onFontSizeChanged: (size) =>
+            context.read<QuranReaderCubit>().setFontSize(size),
+      ),
     );
   }
 
-  QuranSurah? get _nextSurah {
-    if (_allSurahs.isEmpty) return null;
-    final nextNumber = widget.surah.number + 1;
-    if (nextNumber > 114) return null;
-    return _allSurahs.firstWhere((s) => s.number == nextNumber);
-  }
-
-  QuranSurah? get _prevSurah {
-    if (_allSurahs.isEmpty) return null;
-    final prevNumber = widget.surah.number - 1;
-    if (prevNumber < 1) return null;
-    return _allSurahs.firstWhere((s) => s.number == prevNumber);
-  }
-
-  Future<void> _navigateToSurah(int surahNumber) async {
-    try {
-      final surahs = await QuranService.loadSurahs();
-      final targetSurah = surahs.firstWhere((s) => s.number == surahNumber);
-      final ayahs = await QuranService.loadAyahs(surahNumber);
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SurahDetailPage(
-            surah: targetSurah,
-            ayahs: ayahs,
-            isKhatmaSession: widget.isKhatmaSession,
-          ),
-        ),
-      );
-    } catch (_) {}
-  }
-
-  Future<bool> _onWillPop() async {
-    if (!widget.isKhatmaSession || _hasBookmarkedInThisSession) return true;
-
-    if (_isPageView) {
-      if (_hasChangedPage) {
-        return await QuranReadingController.showKhatmaExitWarning(context);
-      }
-    } else {
-      if (_scrollController.hasClients) {
-        final currentOffset = _scrollController.position.pixels;
-        if ((currentOffset - _initialScrollOffset).abs() > 500) {
-          return await QuranReadingController.showKhatmaExitWarning(context);
-        }
-      }
-    }
-    return true;
+  void _showSurahSelector(BuildContext context, QuranReaderState state) {
+    AppModalBottomSheet.show(
+      context: context,
+      title: 'سور القرآن الكريم',
+      heightFraction: 0.85,
+      wrapWithScrollView: false,
+      contentPadding: EdgeInsets.zero,
+      child: SurahSelectorSheet(
+        allSurahs: state.allSurahs,
+        currentSurah: state.surah,
+        onNavigate: (surahNum) =>
+            context.read<QuranReaderCubit>().navigateToSurah(surahNum),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) {
-          Navigator.of(this.context).pop();
+    return BlocConsumer<QuranReaderCubit, QuranReaderState>(
+      listener: (context, state) {
+        _initKeys(state);
+
+        if (state.isPageView && _pageController.hasClients) {
+          if (_pageController.page?.round() != state.currentPage) {
+            _pageController.jumpToPage(state.currentPage);
+          }
         }
       },
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-          body: SafeArea(
-            child: Column(
-              children: [
-                MushafTopBar(
-                  surah: widget.surah,
-                  isPageView: _isPageView,
-                  onReadingModeChanged: _setReadingMode,
-                  allSurahs: _allSurahs,
-                  onNavigateToSurah: _navigateToSurah,
-                  fontSize: _fontSize,
-                  onFontSizeChanged: _setFontSize,
-                ),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.only(top: 75.h, bottom: 50.h),
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/img/surah_detail_green.png'),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
+      builder: (context, state) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            final shouldPop = await _onWillPop(state);
+            if (shouldPop && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkBackground
+                  : const Color(0xFFFBF9F4),
+              body: Column(
+                children: [
+                  // 1. الترويسة العلوية الفخمة تمتد لأعلى الشاشة بدون أي فراغ
+                  MushafTopBar(
+                    surah: state.surah,
+                    currentJuz: state.currentJuz,
+                    currentHizb: state.currentHizb,
+                  ),
+                  // 2. محتوى صفحة المصحف (العمودان يتحركان وينقلبان داخل كل صفحة)
+                  Expanded(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 22),
-                      child: _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : _isPageView
+                      padding: EdgeInsets.symmetric(vertical: 4.h),
+                      child: state.isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : state.isPageView
                           ? QuranPageView(
                               pageController: _pageController,
-                              totalPages: _pages.length,
-                              buildPageSliver: _buildPageSliver,
+                              totalPages: state.pages.length,
+                              initialPage: state.currentPage,
+                              showPageIndicator: false,
+                              buildPageSliver: (index) =>
+                                  _buildPageSliver(context, state, index),
                               onPageChanged: (index) {
-                                setState(() {
-                                  _currentPage = index;
-                                  _hasChangedPage = true;
-                                });
+                                context
+                                    .read<QuranReaderCubit>()
+                                    .changePage(index);
                               },
                             )
                           : QuranContinuousScrollView(
                               scrollController: _scrollController,
                               centerSliverKey: _centerSliverKey,
-                              centerPage: _centerPage,
-                              totalPages: _pages.length,
-                              buildPageSliver: _buildPageSliver,
-                              onScrollEnd: _saveCurrentVisibleAyah,
+                              centerPage: state.currentPage,
+                              totalPages: state.pages.length,
+                              buildPageSliver: (index) =>
+                                  _buildPageSliver(context, state, index),
+                              onScrollEnd: () =>
+                                  _saveCurrentVisibleAyah(state),
                             ),
                     ),
                   ),
-                ),
-              ],
+
+                  // 3. الشريط السفلي مع خلفية background.png
+                  Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/img/quran/background.png'),
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Container(
+                        height: 50.h,
+                        // padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // 1. النجمة في المنتصف تعرض رقم الصفحة
+                            SizedBox(
+                              width: 56.h,
+                              height: 56.h,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: 36.h,
+                                    height: 36.h,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xFF13442A),
+                                    ),
+                                  ),
+                                  Image.asset(
+                                    'assets/img/quran/goldenCircle.png',
+                                    width: 40.h,
+                                    height: 40.h,
+                                    fit: BoxFit.contain,
+                                  ),
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+
+                                    children: [
+                                      Text(
+                                        '${state.currentPageNumber}',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Amiri',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 2. زري فهرس السور والإعدادات على اليمين (أيقونات فقط)
+                            Positioned(
+                              right: 0,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    onPressed: () =>
+                                        _showSurahSelector(context, state),
+                                    icon: Icon(
+                                      Icons.format_list_bulleted_rounded,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        252,
+                                        252,
+                                        252,
+                                      ),
+                                      size: 24.sp,
+                                    ),
+                                    tooltip: 'فهرس السور',
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        _showReadingSettings(context, state),
+                                    icon: Icon(
+                                      Icons.settings,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ),
+                                      size: 24.sp,
+                                    ),
+                                    tooltip: 'إعدادات القراءة',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

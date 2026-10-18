@@ -51,18 +51,36 @@ class _MushafPageState extends State<MushafPage> {
   @override
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final contentWidth = screenWidth;
-
-    return Container(
-      width: double.infinity,
-      color: Colors.transparent,
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: contentWidth,
+    return Stack(
+      children: [
+        // العمود الأيمن بأبعاده ونسبته الطبيعية
+        Positioned(
+          right: -98.w,
+          top: 6.h,
+          bottom: 6.h,
+          child: Image.asset(
+            'assets/img/quran/side_column.png',
+            fit: BoxFit.fitHeight,
+          ),
+        ),
+        // العمود الأيسر بأبعاده ونسبته الطبيعية (معكوس أفقياً)
+        Positioned(
+          left: -98.w,
+          top: 0,
+          bottom: 0,
+          child: Transform.flip(
+            flipX: true,
+            child: Image.asset(
+              'assets/img/quran/side_column.png',
+              fit: BoxFit.fitHeight,
+            ),
+          ),
+        ),
+        // محتوى الآيات مع مساحة متناسقة
+        Container(
+          width: double.infinity,
+          color: Colors.transparent,
+          padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 6.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -160,7 +178,7 @@ class _MushafPageState extends State<MushafPage> {
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -203,10 +221,7 @@ class _MushafPageState extends State<MushafPage> {
               HapticFeedback.mediumImpact();
               widget.onAyahLongPress(ayah);
             },
-            child: AyahNumber(
-              number: ayah.verse,
-              fontSize: widget.fontSize,
-            ),
+            child: AyahNumber(number: ayah.verse, fontSize: widget.fontSize),
           ),
         ),
       );
