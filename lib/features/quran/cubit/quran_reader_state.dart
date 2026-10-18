@@ -19,7 +19,7 @@ class QuranReaderState {
     required this.ayahs,
     required this.paginatedPages,
     required this.continuousPages,
-    this.isPageView = false,
+    this.isPageView = true,
     this.fontSize = 20.0,
     this.currentPage = 0,
     this.isLoading = false,
@@ -29,9 +29,8 @@ class QuranReaderState {
     this.hasChangedPage = false,
   });
 
-  /// الصفحات النشطة وفقاً للنمط المختار (صفحات vs قائمة متصلة)
-  List<List<QuranAyah>> get pages =>
-      isPageView ? paginatedPages : continuousPages;
+  /// الصفحات بنمط صفحات المصحف الشريف
+  List<List<QuranAyah>> get pages => paginatedPages;
 
   /// إجمالي عدد الصفحات
   int get totalPages => pages.length;

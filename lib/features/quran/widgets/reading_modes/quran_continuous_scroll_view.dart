@@ -20,6 +20,8 @@ class QuranContinuousScrollView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final safeCenterPage = centerPage.clamp(0, totalPages > 0 ? totalPages - 1 : 0);
+
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is ScrollEndNotification) {
@@ -32,15 +34,15 @@ class QuranContinuousScrollView extends StatelessWidget {
         center: centerSliverKey,
         physics: const ClampingScrollPhysics(),
         slivers: [
-          if (centerPage > 0)
+          if (safeCenterPage > 0)
             SliverList(
               delegate: SliverChildBuilderDelegate((
                 context,
                 index,
               ) {
-                final actualIndex = centerPage - 1 - index;
+                final actualIndex = safeCenterPage - 1 - index;
                 return buildPageSliver(actualIndex);
-              }, childCount: centerPage),
+              }, childCount: safeCenterPage),
             ),
           SliverList(
             key: centerSliverKey,
@@ -48,9 +50,9 @@ class QuranContinuousScrollView extends StatelessWidget {
               context,
               index,
             ) {
-              final actualIndex = centerPage + index;
+              final actualIndex = safeCenterPage + index;
               return buildPageSliver(actualIndex);
-            }, childCount: totalPages - centerPage),
+            }, childCount: (totalPages - safeCenterPage).clamp(0, totalPages)),
           ),
         ],
       ),

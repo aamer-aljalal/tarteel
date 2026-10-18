@@ -26,14 +26,6 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
   }
 
   Future<void> _initialize(int initialPage) async {
-    // 1. استرجاع نمط القراءة المحفوظ (صفحات أو متصل)
-    final mode = await QuranReadingController.getReadingMode();
-    final isPageView = mode == 'page';
-
-    // 2. استرجاع حجم الخط المحفوظ
-    final prefs = await SharedPreferences.getInstance();
-    final double savedSize = prefs.getDouble('quran_font_size') ?? 20.0;
-
     // 3. تحميل قائمة كافة السور للتنقل السلس
     List<QuranSurah> allSurahs = [];
     try {
@@ -42,7 +34,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
 
     // 4. تحديد الصفحة المبدئية عند فتح آية معينة
     int startPage = initialPage;
-    final activePages = isPageView ? state.paginatedPages : state.continuousPages;
+    final activePages = state.paginatedPages;
 
     if (initialAyah != null) {
       for (int i = 0; i < activePages.length; i++) {
@@ -58,8 +50,8 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     }
 
     emit(state.copyWith(
-      isPageView: isPageView,
-      fontSize: savedSize,
+      isPageView: true,
+      fontSize: 20.0,
       currentPage: startPage,
       allSurahs: allSurahs,
     ));
