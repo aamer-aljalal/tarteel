@@ -91,7 +91,7 @@ class _MushafPageState extends State<MushafPage> {
       // تباعد مرن ومتناسق مع الخط
       final factor = ((midFs - baseFontSize * 0.65) / (baseFontSize * 0.80))
           .clamp(0.0, 1.0);
-      final midLh = 1.75 + (factor * 0.55); // تتراوح بين 1.75 و 2.30
+      final midLh = 1.90 + (factor * 0.55); // تتراوح بين 1.75 و 2.30
       final h = measure(midFs, midLh);
 
       if (h <= targetHeight) {
@@ -112,7 +112,7 @@ class _MushafPageState extends State<MushafPage> {
       builder: (context, constraints) {
         final isContinuous = constraints.maxHeight.isInfinite;
         // نترك هامش جانبي ثابت مع مساحة للخطوط الصفراء
-        const double sidePadding = -40.0;
+        const double sidePadding = -70.0;
         final availableWidth = (constraints.maxWidth - (sidePadding * 0.40))
             .clamp(100.0, double.infinity);
         final availableHeight = constraints.maxHeight;
@@ -207,7 +207,7 @@ class _MushafPageState extends State<MushafPage> {
                       Container(
                         width: 120.w,
                         height: 1.h,
-                       color: const Color(0xFF1E1A12).withValues(alpha: 0.15),
+                        color: const Color(0xFF1E1A12).withValues(alpha: 0.15),
                       ),
                       SizedBox(height: 16.h),
                       Row(

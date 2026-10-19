@@ -523,7 +523,9 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                             itemCount: state.pages.length,
                             physics: const ClampingScrollPhysics(),
                             onPageChanged: (index) {
-                              context.read<QuranReaderCubit>().changePage(index);
+                              context.read<QuranReaderCubit>().changePage(
+                                index,
+                              );
                             },
                             itemBuilder: (context, index) {
                               return _buildPageSliver(context, state, index);
