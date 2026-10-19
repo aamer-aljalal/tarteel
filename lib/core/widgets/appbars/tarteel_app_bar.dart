@@ -44,8 +44,8 @@ class tarteelAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Called on each search text change.
   final ValueChanged<String>? onSearchChanged;
 
-  /// Optional callback for verse search. If provided, a dedicated button appears next to search.
-  final VoidCallback? onVerseSearchPressed;
+  /// Optional action buttons next to the search field.
+  final List<Widget>? searchActions;
 
   /// Hint text for the search field.
   final String? searchHint;
@@ -77,7 +77,7 @@ class tarteelAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showSearch = false,
     this.searchController,
     this.onSearchChanged,
-    this.onVerseSearchPressed,
+    this.searchActions,
     this.searchHint,
     this.searchTextAlign = TextAlign.right,
     this.bottomHeight = 70,
@@ -144,30 +144,11 @@ class tarteelAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-            if (onVerseSearchPressed != null) ...[
-              SizedBox(width: 8.w),
-              Material(
-                color: fillColor,
-                borderRadius: BorderRadius.circular(12.r),
-                child: InkWell(
-                  onTap: onVerseSearchPressed,
-                  borderRadius: BorderRadius.circular(12.r),
-                  child: Container(
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: prefixColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.manage_search_rounded,
-                      color: prefixColor,
-                      size: 24.sp,
-                    ),
-                  ),
-                ),
-              ),
+            if (searchActions != null && searchActions!.isNotEmpty) ...[
+              for (final action in searchActions!) ...[
+                SizedBox(width: 8.w),
+                action,
+              ],
             ],
           ],
         );

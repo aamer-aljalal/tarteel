@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/buttons/app_button.dart';
+import 'package:tarteel/core/widgets/buttons/app_glass_button.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_cubit.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
@@ -555,7 +556,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                 children: [
                                   // زر السورة السابقة
                                   if (state.prevSurah != null)
-                                    _buildBottomBarButton(
+                                    AppGlassButton(
                                       onTap: () {
                                         context
                                             .read<QuranReaderCubit>()
@@ -596,7 +597,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
 
                                   // زر السورة التالية
                                   if (state.nextSurah != null)
-                                    _buildBottomBarButton(
+                                    AppGlassButton(
                                       onTap: () {
                                         context
                                             .read<QuranReaderCubit>()
@@ -641,7 +642,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   // زر فهرس السور (دائري بخلفية شفافة وحدود بيضاء)
-                                  _buildBottomBarButton(
+                                  AppGlassButton(
                                     onTap: () =>
                                         _showSurahSelector(context, state),
                                     tooltip: 'فهرس السور',
@@ -656,20 +657,22 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                   ),
                                   SizedBox(width: 8.w),
                                   // زر حفظ العلامة المرجعية للصفحة (دائري ويتحول للأحمر عند حفظها)
-                                  _buildBottomBarButton(
+                                  AppGlassButton(
                                     onTap: () async {
                                       final cubit = context
                                           .read<QuranReaderCubit>();
                                       final pageNum =
                                           cubit.state.currentPageNumber;
 
-                                      // حفظ العلامة المرجعية العامة للصفحة
-                                      final bmSuccess = await cubit
-                                          .savePageBookmark();
-
-                                      // إذا كانت الجلسة جلسة ختمة نقوم أيضاً بحفظ موضع الختمة
+                                      bool success = false;
                                       if (widget.isKhatmaSession) {
-                                        await cubit.updateKhatmaBookmark();
+                                        // إذا كانت الجلسة جلسة ختمة يحفظ فقط موضع الختمة
+                                        success = await cubit
+                                            .updateKhatmaBookmark();
+                                      } else {
+                                        // إذا كانت جلسة عادية يحفظ فقط العلامة المرجعية العادية
+                                        success = await cubit
+                                            .savePageBookmark();
                                       }
 
                                       if (context.mounted) {
@@ -678,15 +681,19 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              bmSuccess
-                                                  ? 'تم حفظ العلامة المرجعية عند صفحة $pageNum'
+                                              success
+                                                  ? (widget.isKhatmaSession
+                                                        ? 'تم حفظ موضع الختمة عند صفحة $pageNum'
+                                                        : 'تم حفظ العلامة المرجعية عند صفحة $pageNum')
                                                   : 'تعذر حفظ العلامة المرجعية',
                                             ),
                                           ),
                                         );
                                       }
                                     },
-                                    tooltip: 'حفظ العلامة المرجعية لهذه الصفحة',
+                                    tooltip: widget.isKhatmaSession
+                                        ? 'حفظ موضع الختمة لهذه الصفحة'
+                                        : 'حفظ العلامة المرجعية لهذه الصفحة',
                                     isCircle: true,
                                     width: 32.w,
                                     height: 32.h,
@@ -726,50 +733,5 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
         );
       },
     );
-  }
-
-  /// دالة موحدة لبناء أزرار الشريط السفلي (تدعم الأزرار الدائرية والمستطيلة المقصوصة مع نص متجاوب)
-  Widget _buildBottomBarButton({
-    required VoidCallback onTap,
-    required Widget child,
-    String? tooltip,
-    required double width,
-    required double height,
-    bool isCircle = false,
-    double borderRadius = 6.0,
-    Color? borderColor,
-    Color? backgroundColor,
-  }) {
-    final effectiveBorderColor =
-        borderColor ?? Colors.white.withValues(alpha: 0.5);
-    final effectiveBgColor =
-        backgroundColor ?? Colors.white.withValues(alpha: 0.08);
-
-    Widget buttonBody = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        customBorder: isCircle ? const CircleBorder() : null,
-        borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
-        onTap: onTap,
-        child: Container(
-          width: width,
-          height: height,
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          decoration: BoxDecoration(
-            color: effectiveBgColor,
-            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
-            border: Border.all(color: effectiveBorderColor, width: 1.0),
-          ),
-          alignment: Alignment.center,
-          child: FittedBox(fit: BoxFit.scaleDown, child: child),
-        ),
-      ),
-    );
-
-    if (tooltip != null) {
-      return Tooltip(message: tooltip, child: buttonBody);
-    }
-    return buttonBody;
   }
 }

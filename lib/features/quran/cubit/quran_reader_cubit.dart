@@ -66,7 +66,9 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     int? savedBookmarkPage;
     try {
       final prefs = await SharedPreferences.getInstance();
-      savedBookmarkPage = prefs.getInt('quran_bookmark_page');
+      savedBookmarkPage = isKhatmaSession
+          ? prefs.getInt('khatma_last_read_page')
+          : prefs.getInt('quran_bookmark_page');
     } catch (_) {}
 
     emit(
@@ -275,6 +277,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
         }
       }
 
+      emit(state.copyWith(savedBookmarkPage: pageNumber));
       markBookmarkedInSession();
       return true;
     } catch (_) {
