@@ -19,7 +19,6 @@ class MushafPage extends StatefulWidget {
     required this.ayahKeys,
     required this.fontSize,
     this.initialAyah,
-    this.initialAyahKey,
   });
 
   final QuranSurah surah;
@@ -32,7 +31,6 @@ class MushafPage extends StatefulWidget {
   final Map<int, GlobalKey> ayahKeys;
   final double fontSize;
   final int? initialAyah;
-  final GlobalKey? initialAyahKey;
 
   @override
   State<MushafPage> createState() => _MushafPageState();

@@ -57,45 +57,23 @@ class _SurahDetailView extends StatefulWidget {
 }
 
 class _SurahDetailViewState extends State<_SurahDetailView> {
-  final PageController _pageController = PageController();
+  late final PageController _pageController;
   final ValueNotifier<QuranAyah?> _pressedAyahNotifier = ValueNotifier(null);
-  final GlobalKey _initialAyahKey = GlobalKey();
 
   late Map<int, GlobalKey> _ayahKeys;
   late List<GlobalKey> _pageKeys;
-  bool _hasScrolledToInitialAyah = false;
 
   @override
   void initState() {
     super.initState();
     final cubit = context.read<QuranReaderCubit>();
+    _pageController = PageController(initialPage: cubit.state.currentPage);
     _initKeys(cubit.state);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToInitialAyahIfNeeded();
-    });
   }
 
   void _initKeys(QuranReaderState state) {
     _pageKeys = List.generate(state.pages.length, (_) => GlobalKey());
     _ayahKeys = {for (var a in state.ayahs) a.verse: GlobalKey()};
-    if (widget.initialAyah != null &&
-        _ayahKeys.containsKey(widget.initialAyah)) {
-      _ayahKeys[widget.initialAyah!] = _initialAyahKey;
-    }
-  }
-
-  void _scrollToInitialAyahIfNeeded() {
-    if (_hasScrolledToInitialAyah) return;
-    if (widget.initialAyah != null && _initialAyahKey.currentContext != null) {
-      _hasScrolledToInitialAyah = true;
-      Scrollable.ensureVisible(
-        _initialAyahKey.currentContext!,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        alignment: 0.1,
-      );
-    }
   }
 
   @override
@@ -146,7 +124,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
       onAyahLongPress: (ayah) => _showAyahActions(ayah, state.surah),
       pressedAyahNotifier: _pressedAyahNotifier,
       initialAyah: widget.initialAyah,
-      initialAyahKey: _initialAyahKey,
       ayahKeys: _ayahKeys,
       fontSize: state.fontSize,
     );
