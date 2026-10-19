@@ -18,7 +18,7 @@ import 'package:tarteel/features/bookmarks/views/bookmarks_page.dart';
 import 'package:tarteel/features/hisn_almuslim/hisn_categories_screen.dart';
 import 'package:tarteel/features/hisn_almuslim/hisn_details_screen.dart';
 import 'package:tarteel/features/hisn_almuslim/model/hisn_category.dart';
-import 'package:tarteel/features/quran/views/khatma_planner_screen.dart';
+import 'package:tarteel/features/quran/khatma/views/khatma_screen.dart';
 import 'package:tarteel/features/prophets_stories/views/prophets_list_screen.dart';
 import 'package:tarteel/features/quiz/views/islamic_quiz_screen.dart';
 import 'package:tarteel/core/widgets/dynamic/dynamic_page_screen.dart';
@@ -117,7 +117,7 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (_) => const StatsScreen());
 
       case AppRoutes.khatmaPlanner:
-        return MaterialPageRoute(builder: (_) => const KhatmaPlannerScreen());
+        return MaterialPageRoute(builder: (_) => const KhatmaScreen());
 
       // ========================= المحفوظات =========================
 

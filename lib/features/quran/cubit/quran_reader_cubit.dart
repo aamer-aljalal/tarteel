@@ -5,6 +5,7 @@ import 'package:tarteel/core/services/favorites_service.dart';
 import 'package:tarteel/core/services/in_app_notification_service.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/services/stats_service.dart';
+import 'package:tarteel/features/quran/khatma/services/khatma_service.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'quran_reader_state.dart';
 
@@ -238,7 +239,10 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       await prefs.setInt('khatma_last_read_ayah', targetAyah.verse);
       await prefs.setInt('khatma_last_read_page', pageNumber);
 
-      // احتساب التقدم بالنسبة لإجمالي صفحات أو آيات المصحف
+      // تحديث الخطة المتقدمة (KhatmaService) المبنية على الصفحات وحساب الإنجاز وسلسلة الالتزام
+      await KhatmaService.updateReadingProgress(newPage: pageNumber);
+
+      // احتساب التقدم القديم للتوافقية
       final absoluteAyah = await QuranService.getAbsoluteAyahOffset(
         targetAyah.chapter,
         targetAyah.verse,
@@ -271,10 +275,6 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
         await prefs.setString('khatma_last_read_date', now.toIso8601String());
 
         await StatsService.recordAction('quran', amount: difference);
-
-        if (newTotalRead >= 6236) {
-          await StatsService.incrementCompletedKhatmas();
-        }
       }
 
       emit(state.copyWith(savedBookmarkPage: pageNumber));

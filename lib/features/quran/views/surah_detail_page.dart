@@ -84,18 +84,33 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
   }
 
   Future<bool> _onWillPop(QuranReaderState state) async {
+    // نافذة التأكيد تظهر فقط إذا كانت الجلسة جلسة خطة إتمام المصحف
+    if (!widget.isKhatmaSession) return true;
+
+    // إذا كان قد قام بحفظ موضع الصفحة في هذه الجلسة مسبقاً، يخرج مباشرة
     if (state.hasBookmarkedInThisSession) return true;
 
+    // إذا غير الصفحة دون أن يقوم بحفظها
     if (state.hasChangedPage) {
-      return await AppConfirmDialog.show(
+      final shouldSaveCurrentPage = await AppConfirmDialog.show(
         context,
-        title: 'تحديث الختمة',
+        title: 'موضع الختمة',
         message:
-            'لقد تقدمت في القراءة دون تحديث موضع الختمة. هل تود الخروج دون تحديث الموضع؟',
-        confirmText: 'الخروج بدون تحديث',
-        cancelText: 'العودة للتحديث',
-        icon: Icons.bookmark_border_rounded,
+            'لقد تقدمت في القراءة إلى صفحة ${state.currentPageNumber}. هل تود حفظ هذه الصفحة كموضع جديد لختمتك أم البقاء على الموضع السابق؟',
+        confirmText: 'حفظ الصفحة الحالية',
+        cancelText: 'البقاء على الموضع السابق',
+        confirmColor: AppColors.primary,
+        icon: Icons.bookmark_added_rounded,
       );
+
+      if (shouldSaveCurrentPage) {
+        // قام باختيار حفظ الصفحة الحالية
+        if (mounted) {
+          await context.read<QuranReaderCubit>().updateKhatmaBookmark();
+        }
+      }
+      // في كلتا الحالتين (سواء حفظ أو بقي على السابق) يسمح له بالخروج
+      return true;
     }
     return true;
   }
@@ -334,37 +349,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                       ),
                     ],
                   ),
-
-                  // 5. زر تحديث الختمة (إذا كانت الجلسة جلسة ختمة)
-                  if (widget.isKhatmaSession) ...[
-                    SizedBox(height: 10.h),
-                    AppButton(
-                      text:
-                          'حفظ موضع الختمة (صفحة ${context.read<QuranReaderCubit>().state.currentPageNumber})',
-                      leadingIcon: Icons.bookmark_added_rounded,
-                      variant: AppButtonVariant.gold,
-                      size: AppButtonSize.medium,
-                      isFullWidth: true,
-                      borderRadius: 14.r,
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        final cubit = context.read<QuranReaderCubit>();
-                        final pageNum = cubit.state.currentPageNumber;
-                        final success = await cubit.updateKhatmaBookmark(ayah);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                success
-                                    ? 'تم حفظ موضع الختمة عند صفحة $pageNum بنجاح'
-                                    : 'حدث خطأ أثناء حفظ موضع الختمة',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
                 ],
               ),
             ),
