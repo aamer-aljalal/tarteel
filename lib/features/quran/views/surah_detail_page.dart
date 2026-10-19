@@ -10,7 +10,6 @@ import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/widgets/ayah_top_bar.dart';
 import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
-import 'package:tarteel/features/quran/widgets/reading_modes/quran_continuous_scroll_view.dart';
 import 'package:tarteel/features/quran/widgets/reading_modes/quran_page_view.dart';
 
 class SurahDetailPage extends StatelessWidget {
@@ -58,15 +57,12 @@ class _SurahDetailView extends StatefulWidget {
 }
 
 class _SurahDetailViewState extends State<_SurahDetailView> {
-  final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
   final ValueNotifier<QuranAyah?> _pressedAyahNotifier = ValueNotifier(null);
   final GlobalKey _initialAyahKey = GlobalKey();
-  final GlobalKey _centerSliverKey = GlobalKey();
 
   late Map<int, GlobalKey> _ayahKeys;
   late List<GlobalKey> _pageKeys;
-  double _initialScrollOffset = 0.0;
   bool _hasScrolledToInitialAyah = false;
 
   @override
@@ -76,9 +72,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     _initKeys(cubit.state);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _initialScrollOffset = _scrollController.position.pixels;
-      }
       _scrollToInitialAyahIfNeeded();
     });
   }
@@ -108,62 +101,15 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
   @override
   void dispose() {
     _pressedAyahNotifier.dispose();
-    _scrollController.dispose();
     _pageController.dispose();
     super.dispose();
-  }
-
-  QuranAyah? _getCurrentVisibleAyah(QuranReaderState state) {
-    if (state.isPageView) {
-      if (state.currentPage < state.pages.length &&
-          state.pages[state.currentPage].isNotEmpty) {
-        return state.pages[state.currentPage].first;
-      }
-    } else {
-      double minDiff = double.infinity;
-      QuranAyah? topmostAyah;
-      for (final ayah in state.ayahs) {
-        final key = _ayahKeys[ayah.verse];
-        if (key == null) continue;
-        final ctx = key.currentContext;
-        if (ctx == null) continue;
-        final box = ctx.findRenderObject() as RenderBox?;
-        if (box == null || !box.hasSize) continue;
-        final position = box.localToGlobal(Offset.zero);
-        final y = position.dy;
-        if (y >= 80.h && y < minDiff) {
-          minDiff = y;
-          topmostAyah = ayah;
-        }
-      }
-      return topmostAyah ?? (state.ayahs.isNotEmpty ? state.ayahs.first : null);
-    }
-    return null;
-  }
-
-  void _saveCurrentVisibleAyah(QuranReaderState state) {
-    QuranReadingController.saveTopVisibleAyah(
-      surah: state.surah,
-      ayahs: state.ayahs,
-      ayahKeys: _ayahKeys,
-      isKhatmaSession: widget.isKhatmaSession,
-    );
   }
 
   Future<bool> _onWillPop(QuranReaderState state) async {
     if (state.hasBookmarkedInThisSession) return true;
 
-    if (state.isPageView) {
-      if (state.hasChangedPage) {
-        return await QuranReadingController.showKhatmaExitWarning(context);
-      }
-    } else {
-      if (_scrollController.hasClients) {
-        final currentOffset = _scrollController.position.pixels;
-        if ((currentOffset - _initialScrollOffset).abs() > 500) {
-          return await QuranReadingController.showKhatmaExitWarning(context);
-        }
-      }
+    if (state.hasChangedPage) {
+      return await QuranReadingController.showKhatmaExitWarning(context);
     }
     return true;
   }
@@ -494,27 +440,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     );
   }
 
-  void _showReadingSettings(BuildContext context, QuranReaderState state) {
-    AppModalBottomSheet.show(
-      context: context,
-      title: 'إعدادات القراءة',
-      heightFraction: null,
-      child: ReadingSettingsSheet(
-        isPageView: state.isPageView,
-        onReadingModeChanged: (val) {
-          final currentAyah = _getCurrentVisibleAyah(state);
-          context.read<QuranReaderCubit>().setReadingMode(
-            val,
-            currentVisibleAyah: currentAyah,
-          );
-        },
-        initialFontSize: state.fontSize,
-        onFontSizeChanged: (size) =>
-            context.read<QuranReaderCubit>().setFontSize(size),
-      ),
-    );
-  }
-
   void _showSurahSelector(BuildContext context, QuranReaderState state) {
     AppModalBottomSheet.show(
       context: context,
@@ -567,12 +492,11 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                     currentJuz: state.currentJuz,
                     currentHizb: state.currentHizb,
                   ),
-                  // 2. محتوى صفحة المصحف (قراءة مريحة بدون أي إطارات صور)
+                  // 2. محتوى صفحة المصحف (قراءة مريحة بنمط صفحات المصحف)
                   Expanded(
                     child: state.isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : state.isPageView
-                        ? QuranPageView(
+                        : QuranPageView(
                             pageController: _pageController,
                             totalPages: state.pages.length,
                             initialPage: state.currentPage,
@@ -584,15 +508,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                 index,
                               );
                             },
-                          )
-                        : QuranContinuousScrollView(
-                            scrollController: _scrollController,
-                            centerSliverKey: _centerSliverKey,
-                            centerPage: state.currentPage,
-                            totalPages: state.pages.length,
-                            buildPageSliver: (index) =>
-                                _buildPageSliver(context, state, index),
-                            onScrollEnd: () => _saveCurrentVisibleAyah(state),
                           ),
                   ),
 
@@ -613,46 +528,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            // 1. النجمة في المنتصف تعرض رقم الصفحة
-                            SizedBox(
-                              width: 56.h,
-                              height: 56.h,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Container(
-                                    width: 36.h,
-                                    height: 36.h,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xFF13442A),
-                                    ),
-                                  ),
-                                  Image.asset(
-                                    'assets/img/quran/goldenCircle.png',
-                                    width: 40.h,
-                                    height: 40.h,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-
-                                    children: [
-                                      Text(
-                                        '${state.currentPageNumber}',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'Amiri',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
                             // 2. زري فهرس السور والإعدادات على اليمين (أيقونات فقط)
                             Positioned(
                               right: 0,
@@ -673,21 +548,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                       size: 24.sp,
                                     ),
                                     tooltip: 'فهرس السور',
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        _showReadingSettings(context, state),
-                                    icon: Icon(
-                                      Icons.settings,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ),
-                                      size: 24.sp,
-                                    ),
-                                    tooltip: 'إعدادات القراءة',
                                   ),
                                 ],
                               ),

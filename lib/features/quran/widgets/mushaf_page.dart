@@ -207,7 +207,7 @@ class _MushafPageState extends State<MushafPage> {
                       Container(
                         width: 120.w,
                         height: 1.h,
-                        color: const Color(0xFF1E1A12).withValues(alpha: 0.15),
+                       color: const Color(0xFF1E1A12).withValues(alpha: 0.15),
                       ),
                       SizedBox(height: 16.h),
                       Row(
