@@ -6,12 +6,20 @@ import 'package:tarteel/core/services/in_app_notification_service.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
-import 'package:tarteel/features/quran/widgets/quran_reading_helper.dart';
 import 'quran_reader_state.dart';
 
 class QuranReaderCubit extends Cubit<QuranReaderState> {
   final bool isKhatmaSession;
   final int? initialAyah;
+
+  static List<List<QuranAyah>> splitIntoPages(List<QuranAyah> ayahs) {
+    if (ayahs.isEmpty) return [[]];
+    final pageMap = <int, List<QuranAyah>>{};
+    for (final ayah in ayahs) {
+      pageMap.putIfAbsent(ayah.page, () => []).add(ayah);
+    }
+    return pageMap.values.toList();
+  }
 
   QuranReaderCubit({
     required QuranSurah initialSurah,
@@ -23,7 +31,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
          QuranReaderState(
            surah: initialSurah,
            ayahs: initialAyahs,
-           paginatedPages: QuranReadingHelper.splitIntoPages(initialAyahs),
+           paginatedPages: splitIntoPages(initialAyahs),
            continuousPages: [initialAyahs],
            currentPage: initialPage,
          ),
@@ -122,7 +130,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       final targetSurah = surahs.firstWhere((s) => s.number == surahNumber);
       final ayahs = await QuranService.loadAyahs(surahNumber);
 
-      final paginated = QuranReadingHelper.splitIntoPages(ayahs);
+      final paginated = splitIntoPages(ayahs);
 
       emit(
         state.copyWith(

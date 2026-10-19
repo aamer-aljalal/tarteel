@@ -73,19 +73,19 @@ class _TasbeehScreenState extends State<TasbeehScreen>
     );
   }
 
-  Future<void> _toggleHaptic() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isHapticEnabled = !_isHapticEnabled;
-    });
-    await prefs.setBool('tasbeeh_haptic_enabled', _isHapticEnabled);
-    if (_isHapticEnabled) {
-      HapticFeedback.mediumImpact();
-    }
-    _showDummyMessage(
-      _isHapticEnabled ? 'تم تفعيل الاهتزاز التفاعلي' : 'تم تعطيل الاهتزاز',
-    );
-  }
+  // Future<void> _toggleHaptic() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   setState(() {
+  //     _isHapticEnabled = !_isHapticEnabled;
+  //   });
+  //   await prefs.setBool('tasbeeh_haptic_enabled', _isHapticEnabled);
+  //   if (_isHapticEnabled) {
+  //     HapticFeedback.mediumImpact();
+  //   }
+  //   _showDummyMessage(
+  //     _isHapticEnabled ? 'تم تفعيل الاهتزاز التفاعلي' : 'تم تعطيل الاهتزاز',
+  //   );
+  // }
 
   @override
   void dispose() {

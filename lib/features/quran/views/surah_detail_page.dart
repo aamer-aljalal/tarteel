@@ -4,13 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/buttons/app_button.dart';
-import 'package:tarteel/features/quran/widgets/quran_reading_helper.dart';
+import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_cubit.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/widgets/ayah_top_bar.dart';
 import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
-import 'package:tarteel/features/quran/widgets/reading_modes/quran_page_view.dart';
 
 class SurahDetailPage extends StatelessWidget {
   final QuranSurah surah;
@@ -109,7 +108,15 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     if (state.hasBookmarkedInThisSession) return true;
 
     if (state.hasChangedPage) {
-      return await QuranReadingHelper.showKhatmaExitWarning(context);
+      return await AppConfirmDialog.show(
+        context,
+        title: 'تحديث الختمة',
+        message:
+            'لقد تقدمت في القراءة دون تحديث موضع الختمة. هل تود الخروج دون تحديث الموضع؟',
+        confirmText: 'الخروج بدون تحديث',
+        cancelText: 'العودة للتحديث',
+        icon: Icons.bookmark_border_rounded,
+      );
     }
     return true;
   }
@@ -511,17 +518,15 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                   Expanded(
                     child: state.isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : QuranPageView(
-                            pageController: _pageController,
-                            totalPages: state.pages.length,
-                            initialPage: state.currentPage,
-                            showPageIndicator: false,
-                            buildPageSliver: (index) =>
-                                _buildPageSliver(context, state, index),
+                        : PageView.builder(
+                            controller: _pageController,
+                            itemCount: state.pages.length,
+                            physics: const ClampingScrollPhysics(),
                             onPageChanged: (index) {
-                              context.read<QuranReaderCubit>().changePage(
-                                index,
-                              );
+                              context.read<QuranReaderCubit>().changePage(index);
+                            },
+                            itemBuilder: (context, index) {
+                              return _buildPageSliver(context, state, index);
                             },
                           ),
                   ),
