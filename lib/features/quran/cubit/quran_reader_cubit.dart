@@ -1,8 +1,12 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tarteel/core/services/favorites_service.dart';
 import 'package:tarteel/core/services/in_app_notification_service.dart';
-import 'package:tarteel/features/quran/controllers/quran_reading_controller.dart';
+import 'package:tarteel/core/services/recent_actions_service.dart';
+import 'package:tarteel/core/services/stats_service.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
+import 'package:tarteel/features/quran/widgets/quran_reading_helper.dart';
 import 'quran_reader_state.dart';
 
 class QuranReaderCubit extends Cubit<QuranReaderState> {
@@ -15,24 +19,26 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     int initialPage = 0,
     this.initialAyah,
     this.isKhatmaSession = false,
-  }) : super(QuranReaderState(
-          surah: initialSurah,
-          ayahs: initialAyahs,
-          paginatedPages: QuranReadingController.splitIntoPages(initialAyahs),
-          continuousPages: [initialAyahs],
-          currentPage: initialPage,
-        )) {
+  }) : super(
+         QuranReaderState(
+           surah: initialSurah,
+           ayahs: initialAyahs,
+           paginatedPages: QuranReadingHelper.splitIntoPages(initialAyahs),
+           continuousPages: [initialAyahs],
+           currentPage: initialPage,
+         ),
+       ) {
     _initialize(initialPage);
   }
 
   Future<void> _initialize(int initialPage) async {
-    // 3. تحميل قائمة كافة السور للتنقل السلس
+    // 1. تحميل قائمة كافة السور للتنقل السلس
     List<QuranSurah> allSurahs = [];
     try {
       allSurahs = await QuranService.loadSurahs();
     } catch (_) {}
 
-    // 4. تحديد الصفحة المبدئية عند فتح آية معينة
+    // 2. تحديد الصفحة المبدئية عند فتح آية معينة
     int startPage = initialPage;
     final activePages = state.paginatedPages;
 
@@ -49,20 +55,22 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       startPage = 0;
     }
 
-    emit(state.copyWith(
-      isPageView: true,
-      fontSize: 20.0,
-      currentPage: startPage,
-      allSurahs: allSurahs,
-    ));
+    emit(
+      state.copyWith(
+        isPageView: true,
+        fontSize: 20.0,
+        currentPage: startPage,
+        allSurahs: allSurahs,
+      ),
+    );
 
-    // 5. إشعار سورة الكهف
+    // 3. إشعار سورة الكهف
     if (state.surah.number == 18) {
       InAppNotificationService.markCompleted('surah_kahf');
     }
 
-    // 6. حفظ الإجراء الحديث
-    await QuranReadingController.saveRecentAction(
+    // 4. حفظ الإجراء الحديث
+    await _saveRecentAction(
       surah: state.surah,
       currentPage: startPage,
       initialAyah: initialAyah,
@@ -70,42 +78,37 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     );
   }
 
-  /// تغيير نمط القراءة (صفحات مصحف vs قائمة متصلة)
-  Future<void> setReadingMode(bool isPage, {QuranAyah? currentVisibleAyah}) async {
-    if (state.isPageView == isPage) return;
+  /// حفظ آخر موضع قراءة
+  Future<void> _saveRecentAction({
+    required QuranSurah surah,
+    required int currentPage,
+    required int? initialAyah,
+    required bool isKhatmaSession,
+  }) async {
+    if (isKhatmaSession) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('quran_page_${surah.number}', currentPage);
+      await prefs.setInt('quran_last_read_surah_number', surah.number);
 
-    await QuranReadingController.setReadingMode(isPage ? 'page' : 'list');
+      final currentAyah = initialAyah ?? 1;
+      await prefs.setInt('quran_bookmark_surah', surah.number);
+      await prefs.setInt('quran_bookmark_ayah', currentAyah);
+      await prefs.setInt('quran_ayah_${surah.number}', currentAyah);
 
-    int newPage = 0;
-    if (currentVisibleAyah != null && isPage) {
-      for (int i = 0; i < state.paginatedPages.length; i++) {
-        if (state.paginatedPages[i].any((a) => a.verse == currentVisibleAyah.verse)) {
-          newPage = i;
-          break;
-        }
-      }
-    }
-
-    emit(state.copyWith(
-      isPageView: isPage,
-      currentPage: newPage,
-    ));
-  }
-
-  /// تغيير حجم الخط وحفظه تلقائياً
-  Future<void> setFontSize(double size) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('quran_font_size', size);
-    emit(state.copyWith(fontSize: size));
+      await RecentActionsManager.addAction(
+        category: 'quran',
+        title: 'سورة ${surah.nameArabic}',
+        subtitle: initialAyah != null ? 'الآية $initialAyah' : 'قراءة السورة',
+        extraData: {'surah_number': surah.number, 'ayah_number': currentAyah},
+      );
+    } catch (_) {}
   }
 
   /// الانتقال إلى صفحة أخرى
   void changePage(int index) {
     if (index >= 0 && index < state.totalPages) {
-      emit(state.copyWith(
-        currentPage: index,
-        hasChangedPage: true,
-      ));
+      emit(state.copyWith(currentPage: index, hasChangedPage: true));
     }
   }
 
@@ -119,30 +122,113 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       final targetSurah = surahs.firstWhere((s) => s.number == surahNumber);
       final ayahs = await QuranService.loadAyahs(surahNumber);
 
-      final paginated = QuranReadingController.splitIntoPages(ayahs);
-      final continuous = [ayahs];
+      final paginated = QuranReadingHelper.splitIntoPages(ayahs);
 
-      emit(state.copyWith(
-        surah: targetSurah,
-        ayahs: ayahs,
-        paginatedPages: paginated,
-        continuousPages: continuous,
-        currentPage: 0,
-        isLoading: false,
-        hasChangedPage: false,
-      ));
+      emit(
+        state.copyWith(
+          surah: targetSurah,
+          ayahs: ayahs,
+          paginatedPages: paginated,
+          currentPage: 0,
+          isLoading: false,
+          hasChangedPage: false,
+        ),
+      );
 
-      await QuranReadingController.saveRecentAction(
+      await _saveRecentAction(
         surah: targetSurah,
         currentPage: 0,
         initialAyah: null,
         isKhatmaSession: isKhatmaSession,
       );
     } catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        errorMessage: 'تعذر فتح السورة: $e',
-      ));
+      emit(
+        state.copyWith(isLoading: false, errorMessage: 'تعذر فتح السورة: $e'),
+      );
+    }
+  }
+
+  /// نسخ الآية للحافظة
+  Future<void> copyAyah(QuranAyah ayah) async {
+    await Clipboard.setData(
+      ClipboardData(
+        text:
+            'سورة ${state.surah.nameArabic} - الآية ${ayah.verse}\n\n${ayah.text}',
+      ),
+    );
+  }
+
+  /// إضافة أو إزالة الآية من المفضلة عبر FavoritesService الموحدة
+  Future<bool> toggleFavoriteAyah({
+    required QuranAyah ayah,
+    required String interpretation,
+  }) async {
+    final key = '${ayah.chapter}:${ayah.verse}';
+    return await FavoritesService.toggleFavorite(
+      type: 'quran',
+      key: key,
+      content: ayah.text,
+      title: 'سورة ${state.surah.nameArabic}',
+      description: interpretation,
+      extraData: {
+        'surahNumber': ayah.chapter,
+        'surahName': state.surah.nameArabic,
+        'ayahNumber': ayah.verse,
+        'ayahText': ayah.text,
+        'interpretation': interpretation,
+      },
+    );
+  }
+
+  /// تحديث موضع الختمة
+  Future<bool> updateKhatmaBookmark(QuranAyah ayah) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('khatma_last_read_surah', ayah.chapter);
+      await prefs.setInt('khatma_last_read_ayah', ayah.verse);
+
+      final absoluteAyah = await QuranService.getAbsoluteAyahOffset(
+        ayah.chapter,
+        ayah.verse,
+      );
+      final prevMaxReached = prefs.getInt('khatma_max_reached_ayah') ?? 0;
+      final previousTotalRead = prefs.getInt('khatma_ayahs_read') ?? 0;
+
+      if (absoluteAyah > prevMaxReached) {
+        final difference = absoluteAyah - prevMaxReached;
+        await prefs.setInt('khatma_max_reached_ayah', absoluteAyah);
+
+        final newTotalRead = (previousTotalRead + difference).clamp(0, 6236);
+        await prefs.setInt('khatma_ayahs_read', newTotalRead);
+
+        final now = DateTime.now();
+        final todayStr = '${now.year}-${now.month}-${now.day}';
+        var readToday = prefs.getInt('khatma_ayahs_read_today') ?? 0;
+        final lastReadStr = prefs.getString('khatma_last_read_date');
+        if (lastReadStr != null) {
+          final lastReadDate = DateTime.parse(lastReadStr);
+          final lastReadDayStr =
+              '${lastReadDate.year}-${lastReadDate.month}-${lastReadDate.day}';
+          if (todayStr != lastReadDayStr) {
+            readToday = 0;
+          }
+        }
+
+        final newReadToday = readToday + difference;
+        await prefs.setInt('khatma_ayahs_read_today', newReadToday);
+        await prefs.setString('khatma_last_read_date', now.toIso8601String());
+
+        await StatsService.recordAction('quran', amount: difference);
+
+        if (newTotalRead >= 6236) {
+          await StatsService.incrementCompletedKhatmas();
+        }
+      }
+
+      markBookmarkedInSession();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

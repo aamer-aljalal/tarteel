@@ -7,6 +7,7 @@ class FavoritesService {
   static String _storageKeyForType(String type) {
     if (type == 'azkar') return 'saved_azkar';
     if (type == 'hisn') return 'saved_hisn';
+    if (type == 'quran') return 'saved_quran_ayahs';
     return 'app_favorite_items_$type';
   }
 
@@ -38,6 +39,7 @@ class FavoritesService {
     String? title,
     String? description,
     String? reference,
+    Map<String, dynamic>? extraData,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final storageKey = _storageKeyForType(type);
@@ -60,7 +62,7 @@ class FavoritesService {
     if (exists) {
       isAdded = false;
     } else {
-      final newItem = {
+      final newItem = <String, dynamic>{
         'key': key,
         'type': type,
         'category': title ?? '',
@@ -69,6 +71,7 @@ class FavoritesService {
         'description': description ?? '',
         'reference': reference ?? '',
         'savedAt': DateTime.now().toIso8601String(),
+        if (extraData != null) ...extraData,
       };
       rawItems.add(jsonEncode(newItem));
       isAdded = true;

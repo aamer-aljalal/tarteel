@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/buttons/app_button.dart';
-import 'package:tarteel/features/quran/controllers/quran_reading_controller.dart';
+import 'package:tarteel/features/quran/widgets/quran_reading_helper.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_cubit.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
@@ -109,7 +109,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     if (state.hasBookmarkedInThisSession) return true;
 
     if (state.hasChangedPage) {
-      return await QuranReadingController.showKhatmaExitWarning(context);
+      return await QuranReadingHelper.showKhatmaExitWarning(context);
     }
     return true;
   }
@@ -289,7 +289,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
 
                   // 3. زر التفسير الميسر الرئيسي الفاخر
                   AppButton(
-                    text: 'عرض التفسير الميسر',
+                    text: 'عرض التفسير الآية',
                     leadingIcon: Icons.auto_stories_rounded,
                     variant: AppButtonVariant.primary,
                     size: AppButtonSize.medium,
@@ -314,10 +314,9 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                           borderRadius: 12.r,
                           onPressed: () {
                             Navigator.pop(ctx);
-                            QuranReadingController.copyAyah(
-                              context: context,
-                              surah: surah,
-                              ayah: ayah,
+                            context.read<QuranReaderCubit>().copyAyah(ayah);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم نسخ الآية')),
                             );
                           },
                         ),
@@ -330,14 +329,25 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                           variant: AppButtonVariant.outline,
                           size: AppButtonSize.medium,
                           borderRadius: 12.r,
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(ctx);
-                            QuranReadingController.saveAyahToFavorites(
-                              context: context,
-                              surah: surah,
-                              ayah: ayah,
-                              interpretation: interpretation,
-                            );
+                            final isAdded = await context
+                                .read<QuranReaderCubit>()
+                                .toggleFavoriteAyah(
+                                  ayah: ayah,
+                                  interpretation: interpretation,
+                                );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isAdded
+                                        ? 'تمت إضافة الآية للمفضلة'
+                                        : 'تمت إزالة الآية من المفضلة',
+                                  ),
+                                ),
+                              );
+                            }
                           },
                         ),
                       ),
@@ -356,15 +366,19 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                       borderRadius: 14.r,
                       onPressed: () async {
                         Navigator.pop(ctx);
-                        final success =
-                            await QuranReadingController.updateKhatmaBookmark(
-                              context: context,
-                              ayah: ayah,
-                            );
-                        if (success && mounted) {
-                          context
-                              .read<QuranReaderCubit>()
-                              .markBookmarkedInSession();
+                        final success = await context
+                            .read<QuranReaderCubit>()
+                            .updateKhatmaBookmark(ayah);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'تم تحديث موضع الختمة إلى آية ${ayah.verse} بنجاح'
+                                    : 'حدث خطأ أثناء حفظ موضع الختمة',
+                              ),
+                            ),
+                          );
                         }
                       },
                     ),
@@ -392,6 +406,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
       title: 'تفسير الآية (${ayah.verse}) من سورة ${surah.nameArabic}',
       subtitle: 'التفسير الميسر',
       heightFraction: 0.75,
+      wrapWithScrollView: false,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         child: Column(
