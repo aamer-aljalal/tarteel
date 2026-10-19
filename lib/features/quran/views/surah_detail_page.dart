@@ -569,37 +569,31 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                   ),
                   // 2. محتوى صفحة المصحف (قراءة مريحة بدون أي إطارات صور)
                   Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                      child: state.isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : state.isPageView
-                          ? QuranPageView(
-                              pageController: _pageController,
-                              totalPages: state.pages.length,
-                              initialPage: state.currentPage,
-                              showPageIndicator: false,
-                              buildPageSliver: (index) =>
-                                  _buildPageSliver(context, state, index),
-                              onPageChanged: (index) {
-                                context.read<QuranReaderCubit>().changePage(
-                                  index,
-                                );
-                              },
-                            )
-                          : QuranContinuousScrollView(
-                              scrollController: _scrollController,
-                              centerSliverKey: _centerSliverKey,
-                              centerPage: state.currentPage,
-                              totalPages: state.pages.length,
-                              buildPageSliver: (index) =>
-                                  _buildPageSliver(context, state, index),
-                              onScrollEnd: () => _saveCurrentVisibleAyah(state),
-                            ),
-                    ),
+                    child: state.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : state.isPageView
+                        ? QuranPageView(
+                            pageController: _pageController,
+                            totalPages: state.pages.length,
+                            initialPage: state.currentPage,
+                            showPageIndicator: false,
+                            buildPageSliver: (index) =>
+                                _buildPageSliver(context, state, index),
+                            onPageChanged: (index) {
+                              context.read<QuranReaderCubit>().changePage(
+                                index,
+                              );
+                            },
+                          )
+                        : QuranContinuousScrollView(
+                            scrollController: _scrollController,
+                            centerSliverKey: _centerSliverKey,
+                            centerPage: state.currentPage,
+                            totalPages: state.pages.length,
+                            buildPageSliver: (index) =>
+                                _buildPageSliver(context, state, index),
+                            onScrollEnd: () => _saveCurrentVisibleAyah(state),
+                          ),
                   ),
 
                   // 3. الشريط السفلي مع خلفية background.png
