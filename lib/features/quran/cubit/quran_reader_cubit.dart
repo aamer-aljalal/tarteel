@@ -63,12 +63,19 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       startPage = 0;
     }
 
+    int? savedBookmarkPage;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      savedBookmarkPage = prefs.getInt('quran_bookmark_page');
+    } catch (_) {}
+
     emit(
       state.copyWith(
         isPageView: true,
         fontSize: 20.0,
         currentPage: startPage,
         allSurahs: allSurahs,
+        savedBookmarkPage: savedBookmarkPage,
       ),
     );
 
@@ -77,7 +84,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       InAppNotificationService.markCompleted('surah_kahf');
     }
 
-    // 4. حفظ الإجراء الحديث
+    // 4. حفظ الإجراء الحديث (سجل التصفح الأخير)
     await _saveRecentAction(
       surah: state.surah,
       currentPage: startPage,
@@ -86,7 +93,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     );
   }
 
-  /// حفظ آخر موضع قراءة
+  /// حفظ آخر موضع قراءة في السجل
   Future<void> _saveRecentAction({
     required QuranSurah surah,
     required int currentPage,
@@ -100,8 +107,6 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       await prefs.setInt('quran_last_read_surah_number', surah.number);
 
       final currentAyah = initialAyah ?? 1;
-      await prefs.setInt('quran_bookmark_surah', surah.number);
-      await prefs.setInt('quran_bookmark_ayah', currentAyah);
       await prefs.setInt('quran_ayah_${surah.number}', currentAyah);
 
       await RecentActionsManager.addAction(
@@ -111,6 +116,28 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
         extraData: {'surah_number': surah.number, 'ayah_number': currentAyah},
       );
     } catch (_) {}
+  }
+
+  /// حفظ أو تحديث العلامة المرجعية للصفحة الحالية (يتحول الزر للون الأحمر عند الحفظ)
+  Future<bool> savePageBookmark() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pageNum = state.currentPageNumber;
+      final targetAyah = state.currentPageAyahs.isNotEmpty
+          ? state.currentPageAyahs.first
+          : (state.ayahs.isNotEmpty ? state.ayahs.first : null);
+
+      await prefs.setInt('quran_bookmark_page', pageNum);
+      await prefs.setInt('quran_bookmark_surah', state.surah.number);
+      if (targetAyah != null) {
+        await prefs.setInt('quran_bookmark_ayah', targetAyah.verse);
+      }
+
+      emit(state.copyWith(savedBookmarkPage: pageNum));
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// الانتقال إلى صفحة أخرى
@@ -188,16 +215,31 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     );
   }
 
-  /// تحديث موضع الختمة
-  Future<bool> updateKhatmaBookmark(QuranAyah ayah) async {
+  /// تحديث موضع الختمة بناءً على الصفحة الحالية (أو آية معينة)
+  Future<bool> updateKhatmaBookmark([QuranAyah? specificAyah]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('khatma_last_read_surah', ayah.chapter);
-      await prefs.setInt('khatma_last_read_ayah', ayah.verse);
 
+      // نحدد الآية المستهدفة (إما الممررة أو أول آية في الصفحة الحالية)
+      final pageAyahs = state.currentPageAyahs;
+      final targetAyah =
+          specificAyah ??
+          (pageAyahs.isNotEmpty
+              ? pageAyahs.first
+              : (state.ayahs.isNotEmpty ? state.ayahs.first : null));
+      if (targetAyah == null) return false;
+
+      final pageNumber = state.currentPageNumber;
+
+      // حفظ موضع السورة والصفحة ورقم الآية للتوافقية الكاملة
+      await prefs.setInt('khatma_last_read_surah', targetAyah.chapter);
+      await prefs.setInt('khatma_last_read_ayah', targetAyah.verse);
+      await prefs.setInt('khatma_last_read_page', pageNumber);
+
+      // احتساب التقدم بالنسبة لإجمالي صفحات أو آيات المصحف
       final absoluteAyah = await QuranService.getAbsoluteAyahOffset(
-        ayah.chapter,
-        ayah.verse,
+        targetAyah.chapter,
+        targetAyah.verse,
       );
       final prevMaxReached = prefs.getInt('khatma_max_reached_ayah') ?? 0;
       final previousTotalRead = prefs.getInt('khatma_ayahs_read') ?? 0;

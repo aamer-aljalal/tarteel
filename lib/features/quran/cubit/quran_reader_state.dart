@@ -13,6 +13,7 @@ class QuranReaderState {
   final List<QuranSurah> allSurahs;
   final bool hasBookmarkedInThisSession;
   final bool hasChangedPage;
+  final int? savedBookmarkPage;
 
   const QuranReaderState({
     required this.surah,
@@ -27,6 +28,7 @@ class QuranReaderState {
     this.allSurahs = const [],
     this.hasBookmarkedInThisSession = false,
     this.hasChangedPage = false,
+    this.savedBookmarkPage,
   });
 
   /// الصفحات بنمط صفحات المصحف الشريف
@@ -81,6 +83,15 @@ class QuranReaderState {
     return ayahs.isNotEmpty ? ayahs.first.hizb : 1;
   }
 
+  /// الآيات الموجودة في الصفحة الحالية
+  List<QuranAyah> get currentPageAyahs {
+    final currentPages = pages;
+    if (currentPage >= 0 && currentPage < currentPages.length) {
+      return currentPages[currentPage];
+    }
+    return const [];
+  }
+
   /// رقم الصفحة الحالية المعروضة بمصحف المدينة
   int get currentPageNumber {
     final currentPages = pages;
@@ -101,6 +112,12 @@ class QuranReaderState {
     return '${index + 1}';
   }
 
+  /// هل الصفحة المعروضة حالياً هي الصفحة المحفوظة في العلامة المرجعية؟
+  bool get isCurrentPageBookmarked {
+    if (savedBookmarkPage == null) return false;
+    return currentPageNumber == savedBookmarkPage;
+  }
+
   QuranReaderState copyWith({
     QuranSurah? surah,
     List<QuranAyah>? ayahs,
@@ -114,6 +131,7 @@ class QuranReaderState {
     List<QuranSurah>? allSurahs,
     bool? hasBookmarkedInThisSession,
     bool? hasChangedPage,
+    int? savedBookmarkPage,
   }) {
     return QuranReaderState(
       surah: surah ?? this.surah,
@@ -129,6 +147,7 @@ class QuranReaderState {
       hasBookmarkedInThisSession:
           hasBookmarkedInThisSession ?? this.hasBookmarkedInThisSession,
       hasChangedPage: hasChangedPage ?? this.hasChangedPage,
+      savedBookmarkPage: savedBookmarkPage ?? this.savedBookmarkPage,
     );
   }
 }

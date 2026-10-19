@@ -143,10 +143,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
       isLastPage: index == state.pages.length - 1,
       pageNumber: realMushafPage,
       onAyahLongPress: (ayah) => _showAyahActions(ayah, state.surah),
-      nextSurah: state.nextSurah,
-      prevSurah: state.prevSurah,
-      onNavigate: (surahNum) =>
-          context.read<QuranReaderCubit>().navigateToSurah(surahNum),
       pressedAyahNotifier: _pressedAyahNotifier,
       initialAyah: widget.initialAyah,
       initialAyahKey: _initialAyahKey,
@@ -365,7 +361,8 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                   if (widget.isKhatmaSession) ...[
                     SizedBox(height: 10.h),
                     AppButton(
-                      text: 'تحديث موضع الختمة',
+                      text:
+                          'حفظ موضع الختمة (صفحة ${context.read<QuranReaderCubit>().state.currentPageNumber})',
                       leadingIcon: Icons.bookmark_added_rounded,
                       variant: AppButtonVariant.gold,
                       size: AppButtonSize.medium,
@@ -373,15 +370,15 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                       borderRadius: 14.r,
                       onPressed: () async {
                         Navigator.pop(ctx);
-                        final success = await context
-                            .read<QuranReaderCubit>()
-                            .updateKhatmaBookmark(ayah);
+                        final cubit = context.read<QuranReaderCubit>();
+                        final pageNum = cubit.state.currentPageNumber;
+                        final success = await cubit.updateKhatmaBookmark(ayah);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
                                 success
-                                    ? 'تم تحديث موضع الختمة إلى آية ${ayah.verse} بنجاح'
+                                    ? 'تم حفظ موضع الختمة عند صفحة $pageNum بنجاح'
                                     : 'حدث خطأ أثناء حفظ موضع الختمة',
                               ),
                             ),
@@ -550,26 +547,169 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            // 2. زري فهرس السور والإعدادات على اليمين (أيقونات فقط)
+                            // 1. أزرار التنقل بين السور على الجانب الأيسر (أزرار أنيقة بحدود بيضاء وعرض متجاوب ثابت)
                             Positioned(
-                              right: 0,
+                              left: 8.w,
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(
-                                    onPressed: () =>
-                                        _showSurahSelector(context, state),
-                                    icon: Icon(
-                                      Icons.format_list_bulleted_rounded,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        252,
-                                        252,
-                                        252,
+                                  // زر السورة السابقة
+                                  if (state.prevSurah != null)
+                                    _buildBottomBarButton(
+                                      onTap: () {
+                                        context
+                                            .read<QuranReaderCubit>()
+                                            .navigateToSurah(
+                                              state.prevSurah!.number,
+                                            );
+                                      },
+                                      tooltip:
+                                          'السورة السابقة: ${state.prevSurah!.nameArabic}',
+                                      width: 76.w,
+                                      height: 30.h,
+                                      borderRadius: 6.r,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.arrow_back_ios_rounded,
+                                            color: Colors.white,
+                                            size: 11.sp,
+                                          ),
+                                          SizedBox(width: 3.w),
+                                          Text(
+                                            state.prevSurah!.nameArabic,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11.5.sp,
+                                              fontFamily: 'Cairo',
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      size: 24.sp,
                                     ),
+
+                                  if (state.prevSurah != null &&
+                                      state.nextSurah != null)
+                                    SizedBox(width: 6.w),
+
+                                  // زر السورة التالية
+                                  if (state.nextSurah != null)
+                                    _buildBottomBarButton(
+                                      onTap: () {
+                                        context
+                                            .read<QuranReaderCubit>()
+                                            .navigateToSurah(
+                                              state.nextSurah!.number,
+                                            );
+                                      },
+                                      tooltip:
+                                          'السورة التالية: ${state.nextSurah!.nameArabic}',
+                                      width: 76.w,
+                                      height: 30.h,
+                                      borderRadius: 6.r,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            state.nextSurah!.nameArabic,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11.5.sp,
+                                              fontFamily: 'Cairo',
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          SizedBox(width: 3.w),
+                                          Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            color: Colors.white,
+                                            size: 11.sp,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // 2. أزرار الشريط السفلي على اليمين: فهرس السور وزر حفظ العلامة المرجعية (أزرار دائرية أنيقة)
+                            Positioned(
+                              right: 8.w,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // زر فهرس السور (دائري بخلفية شفافة وحدود بيضاء)
+                                  _buildBottomBarButton(
+                                    onTap: () =>
+                                        _showSurahSelector(context, state),
                                     tooltip: 'فهرس السور',
+                                    isCircle: true,
+                                    width: 32.w,
+                                    height: 32.h,
+                                    child: Icon(
+                                      Icons.format_list_bulleted_rounded,
+                                      color: Colors.white,
+                                      size: 18.sp,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  // زر حفظ العلامة المرجعية للصفحة (دائري ويتحول للأحمر عند حفظها)
+                                  _buildBottomBarButton(
+                                    onTap: () async {
+                                      final cubit = context
+                                          .read<QuranReaderCubit>();
+                                      final pageNum =
+                                          cubit.state.currentPageNumber;
+
+                                      // حفظ العلامة المرجعية العامة للصفحة
+                                      final bmSuccess = await cubit
+                                          .savePageBookmark();
+
+                                      // إذا كانت الجلسة جلسة ختمة نقوم أيضاً بحفظ موضع الختمة
+                                      if (widget.isKhatmaSession) {
+                                        await cubit.updateKhatmaBookmark();
+                                      }
+
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              bmSuccess
+                                                  ? 'تم حفظ العلامة المرجعية عند صفحة $pageNum'
+                                                  : 'تعذر حفظ العلامة المرجعية',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    tooltip: 'حفظ العلامة المرجعية لهذه الصفحة',
+                                    isCircle: true,
+                                    width: 32.w,
+                                    height: 32.h,
+                                    borderColor: state.isCurrentPageBookmarked
+                                        ? Colors.redAccent.withValues(
+                                            alpha: 0.8,
+                                          )
+                                        : Colors.white.withValues(alpha: 0.5),
+                                    backgroundColor:
+                                        state.isCurrentPageBookmarked
+                                        ? Colors.redAccent.withValues(
+                                            alpha: 0.15,
+                                          )
+                                        : Colors.white.withValues(alpha: 0.08),
+                                    child: Icon(
+                                      state.isCurrentPageBookmarked
+                                          ? Icons.bookmark_rounded
+                                          : Icons.bookmark_outline_rounded,
+                                      color: state.isCurrentPageBookmarked
+                                          ? Colors.redAccent
+                                          : Colors.white,
+                                      size: 18.sp,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -586,5 +726,50 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
         );
       },
     );
+  }
+
+  /// دالة موحدة لبناء أزرار الشريط السفلي (تدعم الأزرار الدائرية والمستطيلة المقصوصة مع نص متجاوب)
+  Widget _buildBottomBarButton({
+    required VoidCallback onTap,
+    required Widget child,
+    String? tooltip,
+    required double width,
+    required double height,
+    bool isCircle = false,
+    double borderRadius = 6.0,
+    Color? borderColor,
+    Color? backgroundColor,
+  }) {
+    final effectiveBorderColor =
+        borderColor ?? Colors.white.withValues(alpha: 0.5);
+    final effectiveBgColor =
+        backgroundColor ?? Colors.white.withValues(alpha: 0.08);
+
+    Widget buttonBody = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        customBorder: isCircle ? const CircleBorder() : null,
+        borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
+        onTap: onTap,
+        child: Container(
+          width: width,
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          decoration: BoxDecoration(
+            color: effectiveBgColor,
+            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
+            border: Border.all(color: effectiveBorderColor, width: 1.0),
+          ),
+          alignment: Alignment.center,
+          child: FittedBox(fit: BoxFit.scaleDown, child: child),
+        ),
+      ),
+    );
+
+    if (tooltip != null) {
+      return Tooltip(message: tooltip, child: buttonBody);
+    }
+    return buttonBody;
   }
 }

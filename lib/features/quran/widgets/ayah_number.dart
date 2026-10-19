@@ -10,7 +10,7 @@ class AyahNumber extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 20.0 is the new default base font size
-    final scale = fontSize / 20.0;
+    final scale = fontSize / 19.0;
 
     return Container(
       width: (50 * scale).w,

@@ -596,7 +596,7 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
 
         // Start challenge button
         AppButton(
-          text: 'بدء تحدي الختمة والالتزام 🌟',
+          text: 'بدء تحدي الختمة والالتزام',
           onPressed: _startKhatmaPlan,
           isFullWidth: true,
           size: AppButtonSize.large,
@@ -903,13 +903,15 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
           future: () async {
             final prefs = await SharedPreferences.getInstance();
             final surahNumber = prefs.getInt('khatma_last_read_surah') ?? 1;
-            final page = prefs.getInt('khatma_last_read_ayah') ?? 1;
+            final page = prefs.getInt('khatma_last_read_page');
+            final ayah = prefs.getInt('khatma_last_read_ayah') ?? 1;
             final surahs = await QuranService.loadSurahs();
             final surah = surahs.firstWhere((s) => s.number == surahNumber);
             final hasStarted = prefs.getInt('khatma_last_read_surah') != null;
             return {
               'surahName': surah.nameArabic,
-              'ayah': page,
+              'page': page,
+              'ayah': ayah,
               'hasStarted': hasStarted,
             };
           }(),
@@ -917,8 +919,18 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
             if (!snapshot.hasData) return const SizedBox();
             final data = snapshot.data!;
             final surahName = data['surahName'] as String;
+            final page = data['page'] as int?;
             final ayah = data['ayah'] as int;
             final hasStarted = data['hasStarted'] as bool;
+
+            String positionText;
+            if (!hasStarted) {
+              positionText = 'لم تبدأ القراءة في هذه الختمة بعد (ستبدأ من الفاتحة)';
+            } else if (page != null) {
+              positionText = 'سورة $surahName (صفحة $page)';
+            } else {
+              positionText = 'سورة $surahName (الآية $ayah)';
+            }
 
             return Container(
               padding: EdgeInsets.all(16.w),
@@ -954,19 +966,15 @@ class _KhatmaPlannerScreenState extends State<KhatmaPlannerScreen> {
                           style: TextStyle(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w800,
-                            
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          hasStarted
-                              ? 'سورة $surahName (الآية $ayah)'
-                              : 'لم تبدأ القراءة في هذه الختمة بعد (ستبدأ من الفاتحة)',
+                          positionText,
                           style: TextStyle(
                             fontSize: 11.sp,
                             fontWeight: FontWeight.bold,
-                            
                             color: hasStarted
                                 ? AppColors.primary
                                 : Colors.grey.shade500,

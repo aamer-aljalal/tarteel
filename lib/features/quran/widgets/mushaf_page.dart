@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/widgets/ayah_number.dart';
-import 'package:tarteel/features/quran/widgets/surah_navigation_card.dart';
 
 class MushafPage extends StatefulWidget {
   const MushafPage({
@@ -16,9 +15,6 @@ class MushafPage extends StatefulWidget {
     required this.isLastPage,
     required this.pageNumber,
     required this.onAyahLongPress,
-    required this.nextSurah,
-    required this.prevSurah,
-    required this.onNavigate,
     required this.pressedAyahNotifier,
     required this.ayahKeys,
     required this.fontSize,
@@ -32,9 +28,6 @@ class MushafPage extends StatefulWidget {
   final bool isLastPage;
   final int pageNumber;
   final ValueChanged<QuranAyah> onAyahLongPress;
-  final QuranSurah? nextSurah;
-  final QuranSurah? prevSurah;
-  final ValueChanged<int> onNavigate;
   final ValueNotifier<QuranAyah?> pressedAyahNotifier;
   final Map<int, GlobalKey> ayahKeys;
   final double fontSize;
@@ -126,10 +119,6 @@ class _MushafPageState extends State<MushafPage> {
           if (widget.isFirstPage && _showBasmala) {
             reservedHeight += 44.h;
           }
-          if (widget.isLastPage &&
-              (widget.prevSurah != null || widget.nextSurah != null)) {
-            reservedHeight += 95.h;
-          }
 
           final targetHeight = (availableHeight - reservedHeight).clamp(
             100.0,
@@ -200,51 +189,6 @@ class _MushafPageState extends State<MushafPage> {
                         );
                       },
                     ),
-                    if (widget.isLastPage &&
-                        (widget.prevSurah != null ||
-                            widget.nextSurah != null)) ...[
-                      SizedBox(height: 24.h),
-                      Container(
-                        width: 120.w,
-                        height: 1.h,
-                        color: const Color(0xFF1E1A12).withValues(alpha: 0.15),
-                      ),
-                      SizedBox(height: 16.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          if (widget.prevSurah != null)
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w),
-                                child: SurahNavigationCard(
-                                  title: 'السورة السابقة',
-                                  surahName: widget.prevSurah!.nameArabic,
-                                  isNext: false,
-                                  onTap: () => widget.onNavigate(
-                                    widget.prevSurah!.number,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (widget.nextSurah != null)
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w),
-                                child: SurahNavigationCard(
-                                  title: 'السورة التالية',
-                                  surahName: widget.nextSurah!.nameArabic,
-                                  isNext: true,
-                                  onTap: () => widget.onNavigate(
-                                    widget.nextSurah!.number,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-                    ],
                   ],
                 ),
               ),
