@@ -24,10 +24,8 @@ class KhatmaHistorySheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => KhatmaHistorySheet(
-        history: history,
-        onSelectKhatma: onSelectKhatma,
-      ),
+      builder: (_) =>
+          KhatmaHistorySheet(history: history, onSelectKhatma: onSelectKhatma),
     );
   }
 
@@ -218,8 +216,9 @@ class KhatmaHistorySheet extends StatelessWidget {
         break;
     }
 
-    final formattedCompletedDate =
-        DateFormat('yyyy/MM/dd').format(item.completedDate);
+    final formattedCompletedDate = DateFormat(
+      'yyyy/MM/dd',
+    ).format(item.completedDate);
 
     return Material(
       color: Colors.transparent,
