@@ -99,6 +99,25 @@ class _MushafPageState extends State<MushafPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final textColor = isDark
+        ? const Color(0xFFFAF7EE)
+        : const Color(0xFF1A1710);
+    final basmalaColor = isDark
+        ? const Color(0xFFFAF7EE)
+        : const Color(0xFF1E1A12);
+    final pageNumberColor = isDark
+        ? const Color(0xFFE2B755)
+        : const Color(0xFF8A6D2B);
+    final outerBorderColor = isDark
+        ? const Color(0xFFE2B755).withValues(alpha: 0.9)
+        : const Color(0xFFC89933).withValues(alpha: 0.85);
+    final innerBorderColor = isDark
+        ? const Color(0xFFD4AF37).withValues(alpha: 0.7)
+        : const Color(0xFFD4AF37).withValues(alpha: 0.6);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isContinuous = constraints.maxHeight.isInfinite;
@@ -153,7 +172,7 @@ class _MushafPageState extends State<MushafPage> {
                             'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: const Color(0xFF1E1A12),
+                              color: basmalaColor,
                               fontSize: 20.sp,
                               fontWeight: FontWeight.w900,
                               height: 2.5.h,
@@ -172,7 +191,7 @@ class _MushafPageState extends State<MushafPage> {
                           textAlign: TextAlign.justify,
                           text: TextSpan(
                             style: TextStyle(
-                              color: const Color(0xFF1A1710),
+                              color: textColor,
                               fontSize: calculatedFontSize,
                               height: calculatedLineHeight,
                               fontWeight: FontWeight.w500,
@@ -199,17 +218,11 @@ class _MushafPageState extends State<MushafPage> {
           margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
           padding: const EdgeInsets.all(2.5),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: const Color(0xFFC89933).withValues(alpha: 0.85),
-              width: 1.5,
-            ),
+            border: Border.all(color: outerBorderColor, width: 1.5),
           ),
           child: Container(
             decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.6),
-                width: 1.0,
-              ),
+              border: Border.all(color: innerBorderColor, width: 1.0),
             ),
             padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
             child: Column(
@@ -228,7 +241,7 @@ class _MushafPageState extends State<MushafPage> {
                   child: Text(
                     '${widget.pageNumber}',
                     style: TextStyle(
-                      color: const Color(0xFF8A6D2B),
+                      color: pageNumberColor,
                       fontSize: 12.sp,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Amiri',

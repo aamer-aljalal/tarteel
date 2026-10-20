@@ -62,12 +62,12 @@
     "icon": "qibla",
     "isEnabled": true
   },
-       {
+  {
     "id": "islamic_quiz",
     "title": "المسابقات",
     "route": "/islamic-quiz",
     "icon": "quiz",
-    "isEnabled": true
+    "isEnabled": false
   },
   {
     "id": "bookmarks",
@@ -84,11 +84,11 @@
     "icon": "stats",
     "isEnabled": true
   },
-    {
+  {
     "id": "settings",
     "title": "الإعدادات",
     "route": "/settings",
     "icon": "settings",
-    "isEnabled": false
+    "isEnabled": true
   }
 ]
