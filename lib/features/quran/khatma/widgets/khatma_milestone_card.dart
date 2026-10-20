@@ -37,7 +37,7 @@ class KhatmaMilestonesSection extends StatelessWidget {
                 ),
                 SizedBox(width: 8.w),
                 Text(
-                  'المحطات والأوسمة القرآنية',
+                  'الأوسمة',
                   style: TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 16.sp,
@@ -93,18 +93,14 @@ class KhatmaMilestonesSection extends StatelessWidget {
     final isUnlocked = badge.isUnlocked;
 
     final cardBg = isDark
-        ? (isUnlocked
-            ? const Color(0xFF13382B)
-            : const Color(0xFF161E1B))
-        : (isUnlocked
-            ? const Color(0xFFF3F9F6)
-            : const Color(0xFFF8F9FA));
+        ? (isUnlocked ? const Color(0xFF13382B) : const Color(0xFF161E1B))
+        : (isUnlocked ? const Color(0xFFF3F9F6) : const Color(0xFFF8F9FA));
 
     final borderColor = isUnlocked
         ? accentGold.withValues(alpha: 0.45)
         : (isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.black.withValues(alpha: 0.08));
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.08));
 
     final pagesRemaining = (badge.targetPage - currentPage).clamp(0, 604);
     final progress = (currentPage / badge.targetPage).clamp(0.0, 1.0);
@@ -130,11 +126,11 @@ class KhatmaMilestonesSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.r),
           onTap: isUnlocked
               ? () => KhatmaShareCardDialog.show(
-                    context,
-                    badge: badge,
-                    totalPages: 604,
-                    streakDays: streakDays,
-                  )
+                  context,
+                  badge: badge,
+                  totalPages: 604,
+                  streakDays: streakDays,
+                )
               : null,
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
@@ -156,8 +152,8 @@ class KhatmaMilestonesSection extends StatelessWidget {
                     color: isUnlocked
                         ? null
                         : (isDark
-                            ? Colors.white.withValues(alpha: 0.06)
-                            : Colors.black.withValues(alpha: 0.06)),
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.06)),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
@@ -186,9 +182,11 @@ class KhatmaMilestonesSection extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: isUnlocked
                                     ? (isDark
-                                        ? AppColors.darkPrimaryText
-                                        : AppColors.lightPrimaryText)
-                                    : (isDark ? Colors.white54 : Colors.black54),
+                                          ? AppColors.darkPrimaryText
+                                          : AppColors.lightPrimaryText)
+                                    : (isDark
+                                          ? Colors.white54
+                                          : Colors.black54),
                               ),
                             ),
                           ),
@@ -251,11 +249,15 @@ class KhatmaMilestonesSection extends StatelessWidget {
                             if (badge.unlockedAt != null) ...[
                               const Spacer(),
                               Text(
-                                DateFormat('yyyy/MM/dd').format(badge.unlockedAt!),
+                                DateFormat(
+                                  'yyyy/MM/dd',
+                                ).format(badge.unlockedAt!),
                                 style: TextStyle(
                                   fontFamily: 'Cairo',
                                   fontSize: 10.sp,
-                                  color: isDark ? Colors.white38 : Colors.black38,
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.black38,
                                 ),
                               ),
                             ],

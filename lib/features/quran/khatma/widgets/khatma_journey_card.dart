@@ -37,22 +37,6 @@ class KhatmaJourneyCard extends StatelessWidget {
         : const Color(0xFF1B634E);
     const accentGold = Color(0xFFE2B755);
 
-    String planTypeName;
-    switch (plan.type) {
-      case KhatmaPlanType.prayers:
-        planTypeName = 'مسار الصلوات الخمس';
-        break;
-      case KhatmaPlanType.dailyPages:
-        planTypeName = 'مسار الورد اليومي';
-        break;
-      case KhatmaPlanType.durationDays:
-        planTypeName = 'مسار المدة المحددة';
-        break;
-      case KhatmaPlanType.freeReading:
-        planTypeName = 'مسار القراءة الحرة';
-        break;
-    }
-
     final progress = plan.progressPercentage;
     final isCompleted = isArchivedPreview || plan.isCompleted;
 
@@ -79,70 +63,23 @@ class KhatmaJourneyCard extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
       child: Column(
         children: [
-          // Header: Plan Title + Type Chip (Right) & Options Menu (Left)
+          // Header: Plan Title (Right) & Options Menu (Left)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plan.title,
-                      style: TextStyle(
-                        fontFamily: 'Amiri',
-                        fontSize: 14.5.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 3.h),
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6.r),
-                            border: Border.all(
-                              color: accentGold.withValues(alpha: 0.4),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Text(
-                            planTypeName,
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w600,
-                              color: accentGold,
-                            ),
-                          ),
-                        ),
-                        if (isArchivedPreview &&
-                            plan.completedDate != null) ...[
-                          SizedBox(width: 8.w),
-                          Text(
-                            DateFormat(
-                              'yyyy/MM/dd',
-                            ).format(plan.completedDate!),
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 10.sp,
-                              color: Colors.white60,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  plan.title,
+                  style: TextStyle(
+                    fontFamily: 'Amiri',
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (!isArchivedPreview)
@@ -218,7 +155,6 @@ class KhatmaJourneyCard extends StatelessWidget {
             progress: progress,
             isCompleted: isCompleted,
             accentGold: accentGold,
-            planTypeName: planTypeName,
           ),
           SizedBox(height: 18.h),
 
@@ -305,63 +241,65 @@ class KhatmaJourneyCard extends StatelessWidget {
     required double progress,
     required bool isCompleted,
     required Color accentGold,
-    required String planTypeName,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // العمود الأيمن (الزاويتان اليمينيتان: أعلى اليمين وأسفل اليمين)
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (isArchivedPreview) ...[
-                _buildCornerTile(
-                  icon: Icons.calendar_month_outlined,
-                  iconColor: const Color(0xFF38BDF8),
-                  title: 'تاريخ البدء',
-                  value: DateFormat('yyyy/MM/dd').format(plan.startDate),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
-                  child: Divider(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    thickness: 0.8,
-                    height: 1,
+          child: SizedBox(
+            height: 126.w,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (isArchivedPreview) ...[
+                  _buildCornerTile(
+                    icon: Icons.calendar_month_outlined,
+                    iconColor: const Color(0xFF38BDF8),
+                    title: 'تاريخ البدء',
+                    value: DateFormat('yyyy/MM/dd').format(plan.startDate),
                   ),
-                ),
-                _buildCornerTile(
-                  icon: Icons.timer_outlined,
-                  iconColor: accentGold,
-                  title: 'المدة',
-                  value: '${plan.targetDays} يوماً',
-                ),
-              ] else ...[
-                _buildCornerTile(
-                  icon: Icons.whatshot_rounded,
-                  iconColor: const Color(0xFFFF9800),
-                  title: 'الالتزام',
-                  value: streakDays > 0 ? '$streakDays يوم' : 'ابدأ اليوم',
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
-                  child: Divider(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    thickness: 0.8,
-                    height: 1,
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Divider(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      thickness: 0.8,
+                      height: 1,
+                    ),
                   ),
-                ),
-                _buildCornerTile(
-                  icon: Icons.menu_book_rounded,
-                  iconColor: const Color(0xFF4ADE80),
-                  title: 'ورد اليوم',
-                  value: plan.type == KhatmaPlanType.freeReading
-                      ? '${plan.pagesReadToday} ص'
-                      : '${plan.pagesReadToday} / ${plan.targetPagesPerDay} ص',
-                ),
+                  _buildCornerTile(
+                    icon: Icons.timer_outlined,
+                    iconColor: accentGold,
+                    title: 'المدة',
+                    value: '${plan.targetDays} يوماً',
+                  ),
+                ] else ...[
+                  _buildCornerTile(
+                    icon: Icons.whatshot_rounded,
+                    iconColor: const Color(0xFFFF9800),
+                    title: 'الالتزام',
+                    value: streakDays > 0 ? '$streakDays يوم' : 'ابدأ اليوم',
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Divider(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      thickness: 0.8,
+                      height: 1,
+                    ),
+                  ),
+                  _buildCornerTile(
+                    icon: Icons.menu_book_rounded,
+                    iconColor: const Color(0xFF4ADE80),
+                    title: 'ورد اليوم',
+                    value: plan.type == KhatmaPlanType.freeReading
+                        ? '${plan.pagesReadToday} ص'
+                        : '${plan.pagesReadToday} / ${plan.targetPagesPerDay} ص',
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
         SizedBox(width: 6.w),
@@ -445,58 +383,61 @@ class KhatmaJourneyCard extends StatelessWidget {
 
         // العمود الأيسر (الزاويتان اليساريتان: أعلى اليسار وأسفل اليسار)
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (isArchivedPreview) ...[
-                _buildCornerTile(
-                  icon: Icons.event_available_rounded,
-                  iconColor: const Color(0xFF4ADE80),
-                  title: 'تاريخ الختم',
-                  value: DateFormat(
-                    'yyyy/MM/dd',
-                  ).format(plan.completedDate ?? DateTime.now()),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
-                  child: Divider(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    thickness: 0.8,
-                    height: 1,
+          child: SizedBox(
+            height: 126.w,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (isArchivedPreview) ...[
+                  _buildCornerTile(
+                    icon: Icons.event_available_rounded,
+                    iconColor: const Color(0xFF4ADE80),
+                    title: 'تاريخ الختم',
+                    value: DateFormat(
+                      'yyyy/MM/dd',
+                    ).format(plan.completedDate ?? DateTime.now()),
                   ),
-                ),
-                _buildCornerTile(
-                  icon: Icons.alt_route_rounded,
-                  iconColor: const Color(0xFFFFB74D),
-                  title: 'المسار',
-                  value: _getShortPlanType(plan.type),
-                ),
-              ] else ...[
-                _buildCornerTile(
-                  icon: Icons.flag_rounded,
-                  iconColor: accentGold,
-                  title: 'المتبقي',
-                  value: plan.type == KhatmaPlanType.freeReading
-                      ? '${plan.remainingPages} ص'
-                      : '${plan.daysRemaining} يوم',
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
-                  child: Divider(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    thickness: 0.8,
-                    height: 1,
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Divider(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      thickness: 0.8,
+                      height: 1,
+                    ),
                   ),
-                ),
-                _buildCornerTile(
-                  icon: Icons.calendar_today_rounded,
-                  iconColor: const Color(0xFF38BDF8),
-                  title: 'المدة',
-                  value: '${plan.targetDays} يوماً',
-                ),
+                  _buildCornerTile(
+                    icon: Icons.alt_route_rounded,
+                    iconColor: const Color(0xFFFFB74D),
+                    title: 'المسار',
+                    value: _getShortPlanType(plan.type),
+                  ),
+                ] else ...[
+                  _buildCornerTile(
+                    icon: Icons.flag_rounded,
+                    iconColor: accentGold,
+                    title: 'المتبقي',
+                    value: plan.type == KhatmaPlanType.freeReading
+                        ? '${plan.remainingPages} ص'
+                        : '${plan.daysRemaining} يوم',
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Divider(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      thickness: 0.8,
+                      height: 1,
+                    ),
+                  ),
+                  _buildCornerTile(
+                    icon: Icons.alt_route_rounded,
+                    iconColor: const Color(0xFFFFB74D),
+                    title: 'المسار',
+                    value: _getShortPlanType(plan.type),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ],
@@ -582,7 +523,7 @@ class KhatmaJourneyCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'أوسمة ومحطات هذه الختمة',
+              'الأوسمة',
               style: TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 12.sp,
