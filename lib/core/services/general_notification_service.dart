@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:adhan/adhan.dart';
 import 'package:tarteel/features/quran/views/surah_detail_page.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/azkar/zkar_details.dart';
@@ -29,6 +30,7 @@ class GeneralNotificationService {
   static const int idQiyam = 8007;
   static const int idDailyContent = 8008;
   static const int idKhatmaReminder = 8020;
+  static const List<int> idsKhatmaPrayers = [8021, 8022, 8023, 8024, 8025];
 
   // Legacy Periodic Dhikr IDs
   static const List<int> idsPeriodicDhikr = [8009, 8010, 8011, 8012, 8013, 8014];
@@ -328,7 +330,7 @@ class GeneralNotificationService {
 
   static Future<void> scheduleKhatmaReminder(int hour, int minute) async {
     await initialize();
-    await _notifications.cancel(id: idKhatmaReminder);
+    await cancelKhatmaReminder();
 
     const androidDetails = AndroidNotificationDetails(
       'khatma_reminders_channel',
@@ -357,8 +359,74 @@ class GeneralNotificationService {
     );
   }
 
+  static Future<void> scheduleKhatmaPrayerReminders() async {
+    await initialize();
+    await cancelKhatmaReminder();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lat = prefs.getDouble('prayer_lat') ?? 21.4225;
+      final lng = prefs.getDouble('prayer_lng') ?? 39.8262;
+      final calcMethodIndex = prefs.getInt('prayer_calc_method_index');
+
+      final calculationMethod = (calcMethodIndex != null &&
+              calcMethodIndex >= 0 &&
+              calcMethodIndex < CalculationMethod.values.length)
+          ? CalculationMethod.values[calcMethodIndex]
+          : CalculationMethod.umm_al_qura;
+
+      final coordinates = Coordinates(lat, lng);
+      final params = calculationMethod.getParameters();
+      final prayerTimes = PrayerTimes.today(coordinates, params);
+
+      const androidDetails = AndroidNotificationDetails(
+        'khatma_reminders_channel',
+        'تذكير ورد الصلوات',
+        channelDescription: 'تنبيهات في رحاب الصلوات الخمس لتذكيرك بقراءة وردك القرآني',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        category: AndroidNotificationCategory.reminder,
+      );
+
+      const darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      final prayers = [
+        {'id': idsKhatmaPrayers[0], 'name': 'الفجر', 'time': prayerTimes.fajr},
+        {'id': idsKhatmaPrayers[1], 'name': 'الظهر', 'time': prayerTimes.dhuhr},
+        {'id': idsKhatmaPrayers[2], 'name': 'العصر', 'time': prayerTimes.asr},
+        {'id': idsKhatmaPrayers[3], 'name': 'المغرب', 'time': prayerTimes.maghrib},
+        {'id': idsKhatmaPrayers[4], 'name': 'العشاء', 'time': prayerTimes.isha},
+      ];
+
+      for (final p in prayers) {
+        final prayerTime = p['time'] as DateTime;
+        final reminderTime = prayerTime.add(const Duration(minutes: 15));
+
+        await _scheduleDailyTime(
+          id: p['id'] as int,
+          title: 'ورد القرآن - بعد صلاة ${p['name']}',
+          body: 'تقبل الله صلاتك. حان وقت قراءة وردك في رحاب صلاة ${p['name']}.',
+          hour: reminderTime.hour,
+          minute: reminderTime.minute,
+          details: const NotificationDetails(android: androidDetails, iOS: darwinDetails),
+          payload: 'khatma_planner',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error scheduling Khatma prayer reminders: $e');
+    }
+  }
+
   static Future<void> cancelKhatmaReminder() async {
     await initialize();
     await _notifications.cancel(id: idKhatmaReminder);
+    for (final id in idsKhatmaPrayers) {
+      await _notifications.cancel(id: id);
+    }
   }
 }

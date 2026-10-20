@@ -83,6 +83,63 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
   Future<void> _handleChangeReminder() async {
     if (_activePlan == null) return;
 
+    if (_activePlan!.type == KhatmaPlanType.prayers) {
+      await GeneralNotificationService.scheduleKhatmaPrayerReminders();
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.mosque_rounded,
+                    color: const Color(0xFFC5953C),
+                    size: 22.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'تنبيهات الصلوات الخمس',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(
+                'أنت في مسار الصلوات الخمس، ويتم التذكير تلقائياً بعد كل صلاة مكتوبة (الفجر، الظهر، العصر، المغرب، العشاء) استناداً إلى مواقيت الصلاة في موقعك.\n\nتمت إعادة مزامنة التنبيهات مع أحدث المواقيت بنجاح.',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12.5.sp,
+                  height: 1.5,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'حسناً',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFC5953C),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     final initialTime = TimeOfDay(
       hour: _activePlan!.reminderHour,
       minute: _activePlan!.reminderMinute,
@@ -240,8 +297,10 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
                 onRefresh: _loadData,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 14.h,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

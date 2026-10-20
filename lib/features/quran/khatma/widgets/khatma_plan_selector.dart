@@ -57,6 +57,59 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     }
   }
 
+  void _showPrayersInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.mosque_rounded,
+                color: const Color(0xFFC5953C),
+                size: 22.sp,
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'تنبيهات الصلوات الخمس',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'في هذا المسار، يتم تذكيرك تلقائياً بقراءة وردك في رحاب كل صلاة مكتوبة (الفجر، الظهر، العصر، المغرب، العشاء) بعد انقضاء وقت الصلاة بـ 15 دقيقة، استناداً إلى مواقيت الصلاة الدقيقة لموقعك.',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 12.5.sp,
+              height: 1.6,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'فهمت ذلك',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFC5953C),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _submit() async {
     setState(() => _isSubmitting = true);
     try {
@@ -107,55 +160,11 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Intro Banner
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF0F3A2E), const Color(0xFF175241)]
-                  : [const Color(0xFF144D3E), const Color(0xFF227E67)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(color: accentGold.withValues(alpha: 0.3)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.auto_stories_rounded,
-                    color: accentGold,
-                    size: 22.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'اختر مسار ختمتك المناسب',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 6.h),
-              Text(
-                'اختر الطريقة التي تلائم وقتك وروتينك اليومي لبناء ورد قرآني مستمر ومتدرج، ونحن نرافقك بالمتابعة والأوسمة.',
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 12.sp,
-                  color: Colors.white70,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
+        // حقل عنوان الخطة + زر التذكير بجانبه في نفس الصف
+        _buildTitleAndReminderRow(
+          theme: theme,
+          isDark: isDark,
+          accentGold: accentGold,
         ),
         SizedBox(height: 18.h),
 
@@ -200,18 +209,14 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
           type: KhatmaPlanType.freeReading,
           title: 'مسار القراءة الحرة',
           subtitle: 'قراءة ميسرة بدون قيود زمنية مع تسجيل الإنجازات',
-          icon: Icons.emoji_events_rounded,
+          icon: Icons.workspace_premium_rounded,
           isDark: isDark,
         ),
         SizedBox(height: 16.h),
 
         // Dynamic Configuration Settings based on chosen plan
         _buildConfigurationBox(isDark),
-        SizedBox(height: 16.h),
-
-        // Khatma Title & Reminder Settings Card
-        _buildSettingsCard(isDark),
-        SizedBox(height: 22.h),
+        SizedBox(height: 20.h),
 
         // Submit Button
         SizedBox(
@@ -370,7 +375,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 Text(
                   'عدد الصفحات بعد كل صلاة:',
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 13.sp,
                     fontWeight: FontWeight.bold,
                   ),
@@ -378,7 +382,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 Text(
                   '$_pagesPerPrayer صفحات',
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                     color: accentGold,
@@ -387,26 +390,23 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
               ],
             ),
             SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              spacing: 8.w,
               children: [2, 4, 6, 8].map((val) {
                 final isCurrent = _pagesPerPrayer == val;
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                  child: ChoiceChip(
-                    label: Text(
-                      '$val صفحات',
-                      style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 8.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isCurrent ? Colors.white : null,
-                      ),
+                return ChoiceChip(
+                  label: Text(
+                    '$val ص',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isCurrent ? Colors.white : null,
                     ),
-                    selected: isCurrent,
-                    selectedColor: AppColors.primary,
-                    onSelected: (_) => setState(() => _pagesPerPrayer = val),
                   ),
+                  selected: isCurrent,
+                  selectedColor: AppColors.primary,
+                  onSelected: (_) => setState(() => _pagesPerPrayer = val),
                 );
               }).toList(),
             ),
@@ -431,8 +431,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                     child: Text(
                       'المعدل: $totalPerDay صفحة يومياً • إتمام المصحف خلال $days يوماً بإذن الله',
                       style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 11.sp,
+                        fontSize: 10.sp,
                         color: isDark ? Colors.white70 : Colors.black87,
                       ),
                     ),
@@ -461,7 +460,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 Text(
                   'عدد الصفحات اليومية:',
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 13.sp,
                     fontWeight: FontWeight.bold,
                   ),
@@ -469,7 +467,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 Text(
                   '$_dailyPages صفحة / يوم',
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                     color: accentGold,
@@ -487,7 +484,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                     '$val ص',
                     style: TextStyle(
                       fontFamily: 'Cairo',
-                      fontSize: 11.sp,
+                      fontSize: 9.sp,
                       fontWeight: FontWeight.bold,
                       color: isCurrent ? Colors.white : null,
                     ),
@@ -519,7 +516,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                     child: Text(
                       'ستتم الختمة المباركة بإذن الله خلال $days يوماً',
                       style: TextStyle(
-                        fontFamily: 'Cairo',
                         fontSize: 11.sp,
                         color: isDark ? Colors.white70 : Colors.black87,
                       ),
@@ -549,7 +545,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 Text(
                   'المدة المستهدفة بالأيام:',
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 13.sp,
                     fontWeight: FontWeight.bold,
                   ),
@@ -557,7 +552,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 Text(
                   '$_targetDays يوماً',
                   style: TextStyle(
-                    fontFamily: 'Cairo',
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                     color: accentGold,
@@ -575,7 +569,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                     '$val يوم',
                     style: TextStyle(
                       fontFamily: 'Cairo',
-                      fontSize: 11.sp,
+                      fontSize: 10.sp,
                       fontWeight: FontWeight.bold,
                       color: isCurrent ? Colors.white : null,
                     ),
@@ -607,8 +601,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                     child: Text(
                       'المطلوب قراءة $pagesPerDay صفحة يومياً لإتمام الختمة في الموعد',
                       style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 11.sp,
+                        fontSize: 10.sp,
                         color: isDark ? Colors.white70 : Colors.black87,
                       ),
                     ),
@@ -640,8 +633,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
               child: Text(
                 'مسار مفتوح بدون ضغوط، تقدم حسب استطاعتك وتتبع صفحاتك وأوسمتك وسلسلة التزامك.',
                 style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 11.sp,
+                  fontSize: 10.sp,
                   color: isDark ? Colors.white70 : Colors.black87,
                   height: 1.4,
                 ),
@@ -653,9 +645,12 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     }
   }
 
-  Widget _buildSettingsCard(bool isDark) {
-    const accentGold = Color(0xFFE2B755);
-    final cardBg = isDark ? const Color(0xFF161F1C) : Colors.white;
+  Widget _buildTitleAndReminderRow({
+    required ThemeData theme,
+    required bool isDark,
+    required Color accentGold,
+  }) {
+    final isPrayers = _selectedType == KhatmaPlanType.prayers;
 
     final hour = _reminderTime.hourOfPeriod == 0
         ? 12
@@ -665,100 +660,183 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     final formattedTime = '$hour:$minuteStr $period';
 
     return Container(
-      padding: EdgeInsets.all(14.w),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12.r),
+        color: isDark ? const Color(0xFF16241E) : Colors.white,
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
+              ? Colors.white.withValues(alpha: 0.1)
               : Colors.black.withValues(alpha: 0.08),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Plan Name Field
-          Text(
-            'عنوان الخطة:',
-            style: TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 12.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 6.h),
-          TextField(
-            controller: _titleController,
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13.sp),
-            decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12.w,
-                vertical: 10.h,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              hintText: 'مثلاً: ختمة القرآن الكريم',
-            ),
-          ),
-          SizedBox(height: 14.h),
-
-          // Daily Reminder Picker
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.notifications_active_outlined,
-                    color: accentGold,
-                    size: 18.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'التذكير اليومي:',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
+          // حقل عنوان الخطة
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 17.sp,
+                      color: accentGold,
                     ),
-                  ),
-                ],
-              ),
-              InkWell(
-                onTap: _pickReminderTime,
-                borderRadius: BorderRadius.circular(8.r),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentGold.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(
-                      color: accentGold.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        formattedTime,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          color: accentGold,
-                        ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      'عنوان الخطة',
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white70 : Colors.black54,
                       ),
-                      SizedBox(width: 6.w),
-                      Icon(Icons.edit_outlined, size: 14.sp, color: accentGold),
-                    ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2.h),
+                TextField(
+                  controller: _titleController,
+                  style: TextStyle(
+                    fontFamily: 'Amiri',
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.primary,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 4.h),
+                    border: InputBorder.none,
+                    hintText: 'ختمة القرآن الكريم',
+                    hintStyle: TextStyle(
+                      fontFamily: 'Amiri',
+                      fontSize: 14.sp,
+                      color: isDark ? Colors.white30 : Colors.black26,
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
+
+          // فاصل رأسي
+          Container(
+            height: 40.h,
+            width: 1.w,
+            margin: EdgeInsets.symmetric(horizontal: 10.w),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.08),
+          ),
+
+          // زر التذكير اليومي أو تنبيه الصلوات الخمس
+          InkWell(
+            onTap: isPrayers ? _showPrayersInfoDialog : _pickReminderTime,
+            borderRadius: BorderRadius.circular(10.r),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+              decoration: BoxDecoration(
+                color: accentGold.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(
+                  color: accentGold.withValues(alpha: 0.35),
+                  width: 1.w,
+                ),
               ),
-            ],
+              child: isPrayers
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.mosque_rounded,
+                          size: 18.sp,
+                          color: accentGold,
+                        ),
+                        SizedBox(width: 6.w),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'مع كل صلاة',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.bold,
+                                color: accentGold,
+                              ),
+                            ),
+                            Text(
+                              'تنبيه بالمواقيت',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 9.sp,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(width: 4.w),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 13.sp,
+                          color: accentGold,
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.notifications_active_rounded,
+                          size: 18.sp,
+                          color: accentGold,
+                        ),
+                        SizedBox(width: 6.w),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'تذكير يومي',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 9.sp,
+                                color: isDark ? Colors.white60 : Colors.black45,
+                              ),
+                            ),
+                            Text(
+                              formattedTime,
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.bold,
+                                color: accentGold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(width: 4.w),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 13.sp,
+                          color: accentGold,
+                        ),
+                      ],
+                    ),
+            ),
           ),
         ],
       ),

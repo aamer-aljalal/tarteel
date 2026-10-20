@@ -106,11 +106,15 @@ class KhatmaService {
 
     await saveActivePlan(newPlan);
 
-    // جدولة التنبيه اليومي
-    await GeneralNotificationService.scheduleKhatmaReminder(
-      reminderTime.hour,
-      reminderTime.minute,
-    );
+    // جدولة التنبيه المناسب لمسار الختمة
+    if (type == KhatmaPlanType.prayers) {
+      await GeneralNotificationService.scheduleKhatmaPrayerReminders();
+    } else {
+      await GeneralNotificationService.scheduleKhatmaReminder(
+        reminderTime.hour,
+        reminderTime.minute,
+      );
+    }
 
     return newPlan;
   }
