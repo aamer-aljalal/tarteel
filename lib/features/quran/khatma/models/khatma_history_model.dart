@@ -1,4 +1,5 @@
 import 'khatma_plan_model.dart';
+import 'khatma_badge_model.dart';
 
 class KhatmaHistoryModel {
   final String id;
@@ -8,6 +9,7 @@ class KhatmaHistoryModel {
   final DateTime completedDate;
   final int daysTaken;
   final int totalPages;
+  final List<KhatmaBadgeModel> badges;
 
   const KhatmaHistoryModel({
     required this.id,
@@ -17,6 +19,7 @@ class KhatmaHistoryModel {
     required this.completedDate,
     required this.daysTaken,
     this.totalPages = 604,
+    this.badges = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -28,10 +31,19 @@ class KhatmaHistoryModel {
       'completedDate': completedDate.toIso8601String(),
       'daysTaken': daysTaken,
       'totalPages': totalPages,
+      'badges': badges.map((b) => b.toJson()).toList(),
     };
   }
 
   factory KhatmaHistoryModel.fromJson(Map<String, dynamic> json) {
+    final rawBadges = json['badges'] as List<dynamic>?;
+    final badgesList = rawBadges != null
+        ? rawBadges
+            .map((b) =>
+                KhatmaBadgeModel.fromJson(b as Map<String, dynamic>))
+            .toList()
+        : KhatmaBadgeModel.defaultBadges();
+
     return KhatmaHistoryModel(
       id: json['id'] as String,
       title: json['title'] as String,
@@ -43,6 +55,7 @@ class KhatmaHistoryModel {
       completedDate: DateTime.parse(json['completedDate'] as String),
       daysTaken: json['daysTaken'] as int? ?? 30,
       totalPages: json['totalPages'] as int? ?? 604,
+      badges: badgesList,
     );
   }
 }

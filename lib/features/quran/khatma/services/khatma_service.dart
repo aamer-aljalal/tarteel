@@ -9,7 +9,6 @@ import '../models/khatma_history_model.dart';
 
 class KhatmaService {
   static const String _activePlanKey = 'khatma_active_plan_v2';
-  static const String _badgesKey = 'khatma_badges_v2';
   static const String _historyKey = 'khatma_history_v2';
   static const String _streakKey = 'khatma_reading_streak';
   static const String _streakLastDateKey = 'khatma_streak_last_date';
@@ -44,6 +43,7 @@ class KhatmaService {
     final rMin = prefs.getInt('khatma_reminder_minute') ?? 0;
 
     final targetPages = (604 / days).ceil();
+    final currentP = lastPage.clamp(1, 604);
     final migrated = KhatmaPlanModel(
       id: 'khatma_${DateTime.now().millisecondsSinceEpoch}',
       title: 'ختمة المصحف الشريف',
@@ -51,10 +51,16 @@ class KhatmaService {
       targetPagesPerDay: targetPages,
       targetDays: days,
       startDate: startStr != null ? DateTime.parse(startStr) : DateTime.now(),
-      currentPage: lastPage.clamp(1, 604),
+      currentPage: currentP,
       pagesReadToday: (readToday / 15).round().clamp(0, 604),
       reminderHour: rHour,
       reminderMinute: rMin,
+      badges: KhatmaBadgeModel.defaultBadges().map((b) {
+        if (currentP >= b.targetPage) {
+          return b.copyWith(isUnlocked: true, unlockedAt: DateTime.now());
+        }
+        return b;
+      }).toList(),
     );
 
     await saveActivePlan(migrated);
@@ -95,6 +101,7 @@ class KhatmaService {
       reminderHour: reminderTime.hour,
       reminderMinute: reminderTime.minute,
       isCompleted: false,
+      badges: KhatmaBadgeModel.defaultBadges(),
     );
 
     await saveActivePlan(newPlan);
@@ -136,6 +143,26 @@ class KhatmaService {
     // تحديث سلسلة الالتزام اليومي (Streak)
     await _updateStreakOnReading();
 
+    // فحص وتحديث الأوسمة التابعة لهذه الختمة المحددة
+    final currentBadges = plan.badges.isEmpty
+        ? KhatmaBadgeModel.defaultBadges()
+        : plan.badges;
+    KhatmaBadgeModel? newlyUnlocked;
+    final updatedBadges = <KhatmaBadgeModel>[];
+
+    for (final badge in currentBadges) {
+      if (!badge.isUnlocked && clampedPage >= badge.targetPage) {
+        final unlocked = badge.copyWith(
+          isUnlocked: true,
+          unlockedAt: DateTime.now(),
+        );
+        updatedBadges.add(unlocked);
+        newlyUnlocked = unlocked;
+      } else {
+        updatedBadges.add(badge);
+      }
+    }
+
     // فحص اكتمال الختمة (عند بلوغ صفحة 604)
     final bool isJustCompleted = clampedPage >= 604 && !plan.isCompleted;
 
@@ -145,6 +172,7 @@ class KhatmaService {
       lastReadDate: now,
       isCompleted: isJustCompleted,
       completedDate: isJustCompleted ? now : plan.completedDate,
+      badges: updatedBadges,
     );
 
     await saveActivePlan(updatedPlan);
@@ -155,8 +183,7 @@ class KhatmaService {
       await StatsService.incrementCompletedKhatmas();
     }
 
-    // فحص فتح الأوسمة والمحطات
-    return await _checkAndUnlockBadges(clampedPage);
+    return newlyUnlocked;
   }
 
   /// تحديث سلسلة القراءة اليومية المستمرة (Reading Streak)
@@ -208,70 +235,16 @@ class KhatmaService {
     return prefs.getInt(_streakKey) ?? 0;
   }
 
-  /// فحص الأوسمة والمحطات
-  static Future<KhatmaBadgeModel?> _checkAndUnlockBadges(int currentPage) async {
-    final allBadges = await getAllBadges();
-    KhatmaBadgeModel? newlyUnlocked;
-
-    final updatedBadges = <KhatmaBadgeModel>[];
-    for (final badge in allBadges) {
-      if (!badge.isUnlocked && currentPage >= badge.targetPage) {
-        final unlocked = badge.copyWith(
-          isUnlocked: true,
-          unlockedAt: DateTime.now(),
-        );
-        updatedBadges.add(unlocked);
-        newlyUnlocked = unlocked;
-      } else {
-        updatedBadges.add(badge);
-      }
-    }
-
-    if (newlyUnlocked != null) {
-      await _saveBadges(updatedBadges);
-    }
-    return newlyUnlocked;
-  }
-
-  /// استرجاع جميع الأوسمة مع حالتها
+  /// استرجاع أوسمة الخطة النشطة الحالية
   static Future<List<KhatmaBadgeModel>> getAllBadges() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_badgesKey);
-    final defaultList = KhatmaBadgeModel.defaultBadges();
-
-    if (jsonStr == null) return defaultList;
-
-    try {
-      final List<dynamic> list = jsonDecode(jsonStr);
-      final mapList = list.cast<Map<String, dynamic>>();
-
-      return defaultList.map((defaultBadge) {
-        final match = mapList.firstWhere(
-          (m) => m['id'] == defaultBadge.id,
-          orElse: () => {},
-        );
-        if (match.isNotEmpty) {
-          return defaultBadge.copyWith(
-            isUnlocked: match['isUnlocked'] as bool? ?? false,
-            unlockedAt: match['unlockedAt'] != null
-                ? DateTime.parse(match['unlockedAt'] as String)
-                : null,
-          );
-        }
-        return defaultBadge;
-      }).toList();
-    } catch (_) {
-      return defaultList;
+    final plan = await getActivePlan();
+    if (plan != null && plan.badges.isNotEmpty) {
+      return plan.badges;
     }
+    return KhatmaBadgeModel.defaultBadges();
   }
 
-  static Future<void> _saveBadges(List<KhatmaBadgeModel> badges) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = badges.map((b) => b.toJson()).toList();
-    await prefs.setString(_badgesKey, jsonEncode(list));
-  }
-
-  /// أرشفة الخطة المكتملة في سجل الختمات السابقة
+  /// أرشفة الخطة المكتملة في سجل الختمات السابقة مع أوسمتها الخاصة
   static Future<void> _archiveCompletedPlan(KhatmaPlanModel plan) async {
     final history = await getHistory();
     final daysTaken = (plan.completedDate ?? DateTime.now())
@@ -287,6 +260,7 @@ class KhatmaService {
       completedDate: plan.completedDate ?? DateTime.now(),
       daysTaken: daysTaken,
       totalPages: 604,
+      badges: plan.badges,
     );
 
     history.insert(0, historyItem);

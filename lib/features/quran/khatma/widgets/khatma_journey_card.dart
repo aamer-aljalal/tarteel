@@ -1,11 +1,16 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import '../models/khatma_plan_model.dart';
+import '../models/khatma_badge_model.dart';
+import 'khatma_share_card.dart';
 
 class KhatmaJourneyCard extends StatelessWidget {
   final KhatmaPlanModel plan;
   final int streakDays;
+  final bool isArchivedPreview;
+  final VoidCallback? onReturnToActive;
   final VoidCallback onContinueReading;
   final VoidCallback onChangeReminder;
   final VoidCallback onCancelPlan;
@@ -14,6 +19,8 @@ class KhatmaJourneyCard extends StatelessWidget {
     super.key,
     required this.plan,
     required this.streakDays,
+    this.isArchivedPreview = false,
+    this.onReturnToActive,
     required this.onContinueReading,
     required this.onChangeReminder,
     required this.onCancelPlan,
@@ -57,12 +64,12 @@ class KhatmaJourneyCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: accentGold.withValues(alpha: 0.35),
-          width: 1.2.w,
+          color: accentGold.withValues(alpha: isArchivedPreview ? 0.6 : 0.35),
+          width: 1.4.w,
         ),
         boxShadow: [
           BoxShadow(
-            color: emeraldDeep.withValues(alpha: 0.3),
+            color: emeraldDeep.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -71,6 +78,69 @@ class KhatmaJourneyCard extends StatelessWidget {
       padding: EdgeInsets.all(16.w),
       child: Column(
         children: [
+          // Banner if viewing archived past Khatma
+          if (isArchivedPreview) ...[
+            Container(
+              margin: EdgeInsets.only(bottom: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+              decoration: BoxDecoration(
+                color: accentGold.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(
+                  color: accentGold.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.history_edu_rounded,
+                        color: accentGold,
+                        size: 16.sp,
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        'عرض بيانات ختمة سابقة أُنجزت',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (onReturnToActive != null)
+                    InkWell(
+                      onTap: onReturnToActive,
+                      borderRadius: BorderRadius.circular(6.r),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Text(
+                          'العودة للحالية',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+
           // Header: Plan Title + Type Chip + Options Menu
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -91,104 +161,120 @@ class KhatmaJourneyCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 2.h),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 2.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6.r),
-                        border: Border.all(
-                          color: accentGold.withValues(alpha: 0.4),
-                          width: 0.8,
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6.r),
+                            border: Border.all(
+                              color: accentGold.withValues(alpha: 0.4),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            planTypeName,
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w600,
+                              color: accentGold,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        planTypeName,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                          color: accentGold,
-                        ),
-                      ),
+                        if (isArchivedPreview && plan.completedDate != null) ...[
+                          SizedBox(width: 8.w),
+                          Text(
+                            DateFormat('yyyy/MM/dd').format(plan.completedDate!),
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 10.sp,
+                              color: Colors.white60,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_vert_rounded,
-                  color: Colors.white70,
-                  size: 22.sp,
-                ),
-                color: isDark ? const Color(0xFF182923) : Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                onSelected: (value) {
-                  if (value == 'reminder') {
-                    onChangeReminder();
-                  } else if (value == 'cancel') {
-                    onCancelPlan();
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  PopupMenuItem(
-                    value: 'reminder',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.notifications_active_outlined,
-                          size: 18.sp,
-                          color: accentGold,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'تعديل موعد التذكير',
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ],
-                    ),
+              if (!isArchivedPreview)
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white70,
+                    size: 22.sp,
                   ),
-                  PopupMenuItem(
-                    value: 'cancel',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.cancel_outlined,
-                          size: 18.sp,
-                          color: Colors.redAccent,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'إنهاء الخطة الحالية',
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 12.sp,
+                  color: isDark ? const Color(0xFF182923) : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'reminder') {
+                      onChangeReminder();
+                    } else if (value == 'cancel') {
+                      onCancelPlan();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'reminder',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.notifications_active_outlined,
+                            size: 18.sp,
+                            color: accentGold,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'تعديل موعد التذكير',
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'cancel',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.cancel_outlined,
+                            size: 18.sp,
                             color: Colors.redAccent,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 8.w),
+                          Text(
+                            'إنهاء الخطة الحالية',
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 12.sp,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
           SizedBox(height: 16.h),
 
           // Circular Radial Progress Indicator
           SizedBox(
-            width: 140.w,
-            height: 140.w,
+            width: 135.w,
+            height: 135.w,
             child: CustomPaint(
               painter: _RadialProgressPainter(
-                progress: progress,
+                progress: isArchivedPreview ? 1.0 : progress,
                 trackColor: Colors.white.withValues(alpha: 0.1),
                 progressColor: accentGold,
               ),
@@ -197,7 +283,9 @@ class KhatmaJourneyCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${(progress * 100).toStringAsFixed(1)}%',
+                      isArchivedPreview
+                          ? '100%'
+                          : '${(progress * 100).toStringAsFixed(1)}%',
                       style: TextStyle(
                         fontFamily: 'Cairo',
                         fontSize: 22.sp,
@@ -207,7 +295,9 @@ class KhatmaJourneyCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      'الصفحة ${plan.currentPage} من 604',
+                      isArchivedPreview
+                          ? 'أُتمت 604 صفحة'
+                          : 'الصفحة ${plan.currentPage} من 604',
                       style: TextStyle(
                         fontFamily: 'Cairo',
                         fontSize: 10.sp,
@@ -219,79 +309,328 @@ class KhatmaJourneyCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: 18.h),
 
           // 3 Metric Cards
           Row(
             children: [
-              // 1. Streak
               Expanded(
                 child: _buildMetricTile(
-                  icon: Icons.whatshot_rounded,
-                  iconColor: const Color(0xFFFF9800),
-                  title: 'سلسلة الالتزام',
-                  value: streakDays > 0 ? '$streakDays يوم' : 'ابدأ اليوم',
+                  icon: isArchivedPreview
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.whatshot_rounded,
+                  iconColor: isArchivedPreview
+                      ? const Color(0xFF4CAF50)
+                      : const Color(0xFFFF9800),
+                  title: isArchivedPreview ? 'حالة الختمة' : 'سلسلة الالتزام',
+                  value: isArchivedPreview
+                      ? 'مكتملة'
+                      : (streakDays > 0 ? '$streakDays يوم' : 'ابدأ اليوم'),
                 ),
               ),
               SizedBox(width: 8.w),
-
-              // 2. Today's Reading
               Expanded(
                 child: _buildMetricTile(
                   icon: Icons.menu_book_rounded,
                   iconColor: const Color(0xFF4CAF50),
-                  title: 'إنجاز اليوم',
-                  value: plan.type == KhatmaPlanType.freeReading
-                      ? '${plan.pagesReadToday} ص'
-                      : '${plan.pagesReadToday} / ${plan.targetPagesPerDay} ص',
+                  title: isArchivedPreview ? 'إجمالي الصفحات' : 'إنجاز اليوم',
+                  value: isArchivedPreview
+                      ? '604 صفحة'
+                      : (plan.type == KhatmaPlanType.freeReading
+                          ? '${plan.pagesReadToday} ص'
+                          : '${plan.pagesReadToday} / ${plan.targetPagesPerDay} ص'),
                 ),
               ),
               SizedBox(width: 8.w),
-
-              // 3. Remaining
               Expanded(
                 child: _buildMetricTile(
                   icon: Icons.flag_rounded,
                   iconColor: accentGold,
-                  title: 'المتبقي',
-                  value: plan.type == KhatmaPlanType.freeReading
-                      ? '${plan.remainingPages} ص'
-                      : '${plan.daysRemaining} يوم',
+                  title: isArchivedPreview ? 'المدة المستغرقة' : 'المتبقي',
+                  value: isArchivedPreview
+                      ? '${plan.targetDays} يوماً'
+                      : (plan.type == KhatmaPlanType.freeReading
+                          ? '${plan.remainingPages} ص'
+                          : '${plan.daysRemaining} يوم'),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 18.h),
 
-          // Continue Reading Action Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onContinueReading,
-              icon: Icon(
-                Icons.arrow_back_rounded,
-                size: 20.sp,
-              ),
-              label: Text(
-                'متابعة القراءة من صفحة ${plan.currentPage}',
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
+          // ==========================================
+          // 4 Square Milestones (الأوسمة الأربعة المربعة داخل البطاقة)
+          // ==========================================
+          _buildSquareMilestonesRow(context),
+          SizedBox(height: 18.h),
+
+          // Bottom Action Button
+          if (isArchivedPreview) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final badges = plan.badges.isNotEmpty
+                      ? plan.badges
+                      : KhatmaBadgeModel.defaultBadges();
+                  final completeBadge = badges.firstWhere(
+                    (b) => b.milestoneType == MilestoneType.complete,
+                    orElse: () => badges.last,
+                  );
+                  KhatmaShareCardDialog.show(
+                    context,
+                    badge: completeBadge,
+                    totalPages: 604,
+                    streakDays: streakDays,
+                  );
+                },
+                icon: Icon(Icons.workspace_premium_rounded, size: 20.sp),
+                label: Text(
+                  'عرض شهادة ختم المصحف',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC5953C),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 13.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC5953C),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
                 ),
-                elevation: 4,
               ),
             ),
-          ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onContinueReading,
+                icon: Icon(
+                  Icons.arrow_back_rounded,
+                  size: 20.sp,
+                ),
+                label: Text(
+                  'متابعة القراءة من صفحة ${plan.currentPage}',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC5953C),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 13.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  elevation: 4,
+                ),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSquareMilestonesRow(BuildContext context) {
+    const accentGold = Color(0xFFE2B755);
+    final badges = plan.badges.isNotEmpty
+        ? plan.badges
+        : KhatmaBadgeModel.defaultBadges();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'أوسمة ومحطات هذه الختمة',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+            Text(
+              '${badges.where((b) => b.isUnlocked).length} / 4 مكتملة',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 11.sp,
+                fontWeight: FontWeight.bold,
+                color: accentGold,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        Row(
+          children: badges.map((badge) {
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 3.5.w),
+                child: _buildSquareMilestoneTile(context, badge),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSquareMilestoneTile(BuildContext context, KhatmaBadgeModel badge) {
+    const accentGold = Color(0xFFE2B755);
+    final isUnlocked = badge.isUnlocked;
+
+    String shortLabel;
+    switch (badge.milestoneType) {
+      case MilestoneType.quarter:
+        shortLabel = 'الربع';
+        break;
+      case MilestoneType.half:
+        shortLabel = 'النصف';
+        break;
+      case MilestoneType.threeQuarters:
+        shortLabel = '3 أرباع';
+        break;
+      case MilestoneType.complete:
+        shortLabel = 'الختام';
+        break;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10.r),
+        onTap: () {
+          if (isUnlocked) {
+            KhatmaShareCardDialog.show(
+              context,
+              badge: badge,
+              totalPages: 604,
+              streakDays: streakDays,
+            );
+          } else {
+            final remaining = (badge.targetPage - plan.currentPage).clamp(0, 604);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'يُفتح هذا الوسام عند بلوغ صفحة ${badge.targetPage} (متبقي $remaining صفحة)',
+                  style: const TextStyle(fontFamily: 'Cairo'),
+                ),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 2.w),
+          decoration: BoxDecoration(
+            color: isUnlocked
+                ? accentGold.withValues(alpha: 0.22)
+                : Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color: isUnlocked
+                  ? accentGold.withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.14),
+              width: isUnlocked ? 1.4.w : 1.w,
+            ),
+            boxShadow: isUnlocked
+                ? [
+                    BoxShadow(
+                      color: accentGold.withValues(alpha: 0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon with status badge
+              Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 32.w,
+                    height: 32.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isUnlocked
+                          ? accentGold.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.05),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      badge.icon,
+                      size: 16.sp,
+                      color: isUnlocked ? accentGold : Colors.white38,
+                    ),
+                  ),
+                  if (isUnlocked)
+                    Positioned(
+                      top: -2.h,
+                      right: -2.w,
+                      child: Container(
+                        padding: EdgeInsets.all(1.w),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF0F3A2E),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle_rounded,
+                          size: 11.sp,
+                          color: accentGold,
+                        ),
+                      ),
+                    )
+                  else
+                    Positioned(
+                      top: -2.h,
+                      right: -2.w,
+                      child: Icon(
+                        Icons.lock_rounded,
+                        size: 10.sp,
+                        color: Colors.white24,
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 5.h),
+
+              // Title
+              Text(
+                shortLabel,
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.bold,
+                  color: isUnlocked ? Colors.white : Colors.white60,
+                ),
+                maxLines: 1,
+              ),
+
+              // Page target
+              Text(
+                'ص ${badge.targetPage}',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 9.sp,
+                  color: isUnlocked ? accentGold : Colors.white38,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'khatma_badge_model.dart';
+
 enum KhatmaPlanType {
   prayers, // مسار الصلوات الخمس
   dailyPages, // مسار الورد اليومي الثابت بالصفحات
@@ -19,6 +21,7 @@ class KhatmaPlanModel {
   final int reminderHour;
   final int reminderMinute;
   final bool isCompleted;
+  final List<KhatmaBadgeModel> badges;
 
   const KhatmaPlanModel({
     required this.id,
@@ -34,6 +37,7 @@ class KhatmaPlanModel {
     this.reminderHour = 20,
     this.reminderMinute = 0,
     this.isCompleted = false,
+    this.badges = const [],
   });
 
   static const int totalQuranPages = 604;
@@ -71,10 +75,19 @@ class KhatmaPlanModel {
       'reminderHour': reminderHour,
       'reminderMinute': reminderMinute,
       'isCompleted': isCompleted,
+      'badges': badges.map((b) => b.toJson()).toList(),
     };
   }
 
   factory KhatmaPlanModel.fromJson(Map<String, dynamic> json) {
+    final rawBadges = json['badges'] as List<dynamic>?;
+    final badgesList = rawBadges != null
+        ? rawBadges
+            .map((b) =>
+                KhatmaBadgeModel.fromJson(b as Map<String, dynamic>))
+            .toList()
+        : KhatmaBadgeModel.defaultBadges();
+
     return KhatmaPlanModel(
       id: json['id'] as String? ?? 'khatma_1',
       title: json['title'] as String? ?? 'ختمة القرآن الكريم',
@@ -98,6 +111,7 @@ class KhatmaPlanModel {
       reminderHour: json['reminderHour'] as int? ?? 20,
       reminderMinute: json['reminderMinute'] as int? ?? 0,
       isCompleted: json['isCompleted'] as bool? ?? false,
+      badges: badgesList,
     );
   }
 
@@ -115,6 +129,7 @@ class KhatmaPlanModel {
     int? reminderHour,
     int? reminderMinute,
     bool? isCompleted,
+    List<KhatmaBadgeModel>? badges,
   }) {
     return KhatmaPlanModel(
       id: id ?? this.id,
@@ -130,6 +145,7 @@ class KhatmaPlanModel {
       reminderHour: reminderHour ?? this.reminderHour,
       reminderMinute: reminderMinute ?? this.reminderMinute,
       isCompleted: isCompleted ?? this.isCompleted,
+      badges: badges ?? this.badges,
     );
   }
 }

@@ -7,15 +7,27 @@ import '../models/khatma_plan_model.dart';
 
 class KhatmaHistorySheet extends StatelessWidget {
   final List<KhatmaHistoryModel> history;
+  final ValueChanged<KhatmaHistoryModel>? onSelectKhatma;
 
-  const KhatmaHistorySheet({super.key, required this.history});
+  const KhatmaHistorySheet({
+    super.key,
+    required this.history,
+    this.onSelectKhatma,
+  });
 
-  static void show(BuildContext context, List<KhatmaHistoryModel> history) {
+  static void show(
+    BuildContext context, {
+    required List<KhatmaHistoryModel> history,
+    ValueChanged<KhatmaHistoryModel>? onSelectKhatma,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => KhatmaHistorySheet(history: history),
+      builder: (_) => KhatmaHistorySheet(
+        history: history,
+        onSelectKhatma: onSelectKhatma,
+      ),
     );
   }
 
@@ -117,7 +129,12 @@ class KhatmaHistorySheet extends StatelessWidget {
                     separatorBuilder: (_, __) => SizedBox(height: 10.h),
                     itemBuilder: (context, index) {
                       final item = history[index];
-                      return _buildHistoryItem(item, isDark, history.length - index);
+                      return _buildHistoryItem(
+                        context,
+                        item,
+                        isDark,
+                        history.length - index,
+                      );
                     },
                   ),
           ),
@@ -159,7 +176,7 @@ class KhatmaHistorySheet extends StatelessWidget {
           ),
           SizedBox(height: 6.h),
           Text(
-            'عند إتمامك لأي خطة ختمة جديدة، ستُحفظ تفاصيلها وتاريخها هنا في سجلك الذهبي المبارك دون أن تفقد أي وسام.',
+            'عند إتمامك لأي ختمة، ستُحفظ تفاصيلها وأوسمتها وتاريخها هنا في سجلك الذهبي المبارك دون أن تفقد أي وسام.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Cairo',
@@ -173,7 +190,12 @@ class KhatmaHistorySheet extends StatelessWidget {
     );
   }
 
-  Widget _buildHistoryItem(KhatmaHistoryModel item, bool isDark, int khatmaIndex) {
+  Widget _buildHistoryItem(
+    BuildContext context,
+    KhatmaHistoryModel item,
+    bool isDark,
+    int khatmaIndex,
+  ) {
     const accentGold = Color(0xFFE2B755);
     final cardBg = isDark ? const Color(0xFF1B2923) : const Color(0xFFF7FAF8);
     final borderColor = isDark
@@ -199,108 +221,156 @@ class KhatmaHistorySheet extends StatelessWidget {
     final formattedCompletedDate =
         DateFormat('yyyy/MM/dd').format(item.completedDate);
 
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: cardBg,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          // Index Badge
-          Container(
-            width: 44.w,
-            height: 44.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE2B755), Color(0xFF9E7728)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.workspace_premium_rounded,
-              color: Colors.white,
-              size: 24.sp,
-            ),
+        onTap: () {
+          Navigator.pop(context);
+          onSelectKhatma?.call(item);
+        },
+        child: Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: borderColor),
           ),
-          SizedBox(width: 12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  // Index Badge
+                  Container(
+                    width: 44.w,
+                    height: 44.w,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFE2B755), Color(0xFF9E7728)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.workspace_premium_rounded,
+                      color: Colors.white,
+                      size: 24.sp,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
 
-          // Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'الختمة رقم $khatmaIndex',
-                      style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.darkPrimaryText
-                            : AppColors.lightPrimaryText,
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 6.w,
-                        vertical: 2.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accentGold.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: Text(
-                        planTypeName,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                          color: accentGold,
+                  // Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'الختمة رقم $khatmaIndex',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.darkPrimaryText
+                                    : AppColors.lightPrimaryText,
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6.w,
+                                vertical: 2.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: accentGold.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                              child: Text(
+                                planTypeName,
+                                style: TextStyle(
+                                  fontFamily: 'Cairo',
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: accentGold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        SizedBox(height: 4.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 13.sp,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              'أُنجزت خلال ${item.daysTaken} يوماً (${item.totalPages} صفحة)',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 11.sp,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 3.h),
+                        Text(
+                          'تاريخ الختم: $formattedCompletedDate',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 10.sp,
+                            color: isDark ? Colors.white38 : Colors.black45,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              // Action hint
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.black.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(6.r),
                 ),
-                SizedBox(height: 4.h),
-                Row(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.check_circle_outline_rounded,
-                      size: 13.sp,
-                      color: AppColors.primary,
+                      Icons.touch_app_rounded,
+                      size: 12.sp,
+                      color: accentGold,
                     ),
-                    SizedBox(width: 4.w),
+                    SizedBox(width: 6.w),
                     Text(
-                      'أُنجزت خلال ${item.daysTaken} يوماً (${item.totalPages} صفحة)',
+                      'اضغط لعرض تفاصيل الختمة وأوسمتها في البطاقة الرئيسية',
                       style: TextStyle(
                         fontFamily: 'Cairo',
-                        fontSize: 11.sp,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        fontSize: 10.sp,
+                        color: accentGold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 3.h),
-                Text(
-                  'تاريخ الختم: $formattedCompletedDate',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 10.sp,
-                    color: isDark ? Colors.white38 : Colors.black45,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

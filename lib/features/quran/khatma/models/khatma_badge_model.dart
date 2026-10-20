@@ -43,18 +43,32 @@ class KhatmaBadgeModel {
     };
   }
 
-  factory KhatmaBadgeModel.fromJson(Map<String, dynamic> json, IconData icon) {
+  static IconData iconForType(MilestoneType type) {
+    switch (type) {
+      case MilestoneType.quarter:
+        return Icons.menu_book_rounded;
+      case MilestoneType.half:
+        return Icons.star_half_rounded;
+      case MilestoneType.threeQuarters:
+        return Icons.auto_awesome_rounded;
+      case MilestoneType.complete:
+        return Icons.workspace_premium_rounded;
+    }
+  }
+
+  factory KhatmaBadgeModel.fromJson(Map<String, dynamic> json, [IconData? icon]) {
+    final milestoneType = MilestoneType.values.firstWhere(
+      (m) => m.name == json['milestoneType'],
+      orElse: () => MilestoneType.quarter,
+    );
     return KhatmaBadgeModel(
       id: json['id'] as String,
       title: json['title'] as String,
       subtitle: json['subtitle'] as String,
       description: json['description'] as String,
       targetPage: json['targetPage'] as int,
-      milestoneType: MilestoneType.values.firstWhere(
-        (m) => m.name == json['milestoneType'],
-        orElse: () => MilestoneType.quarter,
-      ),
-      icon: icon,
+      milestoneType: milestoneType,
+      icon: icon ?? iconForType(milestoneType),
       isUnlocked: json['isUnlocked'] as bool? ?? false,
       unlockedAt: json['unlockedAt'] != null
           ? DateTime.parse(json['unlockedAt'] as String)
