@@ -227,8 +227,11 @@ class AdhanNotificationService {
     // 1. لا نقوم بجدولة الأذان إذا لم يتم حفظ موقع المستخدم الفعلي بعد (لتجنب الأذان بتوقيت مكة لمستخدم في بلد آخر).
     // 2. لا نقوم بجدولة الأذان إذا لم يقم المستخدم بالموافقة على تفعيل الأذان التلقائي أو إذا كان معطلاً.
     if (!isLocationSaved || !hasPromptedAdhan || !enabled) {
-      await cancelPrayerAdhan();
-      await prefs.remove('last_adhan_schedule_hash');
+      final bool alreadyCancelled =
+          prefs.getBool('adhan_already_cancelled') ?? false;
+      if (!alreadyCancelled) {
+        await cancelPrayerAdhan();
+      }
       return;
     }
 
@@ -248,6 +251,27 @@ class AdhanNotificationService {
     ]) {
       final isPrayerEnabled = await isSinglePrayerAdhanEnabled(p);
       if (isPrayerEnabled) enabledPrayersList.add(p.name);
+    }
+
+    // التحقق من بصمة الجدولة لتجنب التكرار غير الضروري عند التنقل بين الشاشات
+    final currentHash = '${coordinates.latitude.toStringAsFixed(3)}_'
+        '${coordinates.longitude.toStringAsFixed(3)}_'
+        '${selected.id}_${isShortAdhan}_${advanceMinutes}_'
+        '${enabledPrayersList.join(",")}_'
+        '${calculationParameters.method.name}';
+
+    final lastHash = prefs.getString('last_adhan_schedule_hash');
+    final lastTime = prefs.getInt('last_adhan_schedule_time') ?? 0;
+    final hoursSinceLastSchedule =
+        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(lastTime)).inHours;
+
+    if (!forceReschedule &&
+        lastHash == currentHash &&
+        hoursSinceLastSchedule < 24) {
+      debugPrint(
+        'تم تخطي جدولة الأذان: الإعدادات لم تتغير والجدولة سارية المفعول ($hoursSinceLastSchedule ساعة مضت)',
+      );
+      return;
     }
 
     debugPrint('بدء جدولة مواعيد الأذان بشكل كامل ومباشر...');
@@ -303,10 +327,12 @@ class AdhanNotificationService {
       }
     }
 
+    await prefs.setString('last_adhan_schedule_hash', currentHash);
     await prefs.setInt(
       'last_adhan_schedule_time',
       DateTime.now().millisecondsSinceEpoch,
     );
+    await prefs.setBool('adhan_already_cancelled', false);
     debugPrint(
       'Adhan successfully scheduled for $notificationOffset prayer times.',
     );
@@ -325,6 +351,10 @@ class AdhanNotificationService {
     if (Platform.isAndroid) {
       await NativeAlarmService.cancelAllAlarms();
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('adhan_already_cancelled', true);
+    await prefs.remove('last_adhan_schedule_hash');
   }
 
   /// دالة مخصصة لاختبار المنبه بعد عدد من الثواني بأمان
@@ -392,8 +422,8 @@ class AdhanNotificationService {
         audioFile: audioResourceName,
         audioSource: 'RAW_RESOURCE',
         // لتجربة الأذان المجدول بعد 10 ثوانٍ (للصلاة الأولى id == 9000)
-        // scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
-        scheduledTime: scheduledTime,
+        scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
+        // scheduledTime: scheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,
         volume: volumeLevel,

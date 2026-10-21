@@ -327,6 +327,11 @@ class AlarmForegroundService : Service() {
                     stopAlarm()
                 }
             }
+            player.setOnErrorListener { _, what, extra ->
+                Log.e(TAG, "خطأ في تشغيل مشغل الصوت MediaPlayer ($what, $extra)، إيقاف المنبه بأمان")
+                stopAlarm()
+                true
+            }
             mediaPlayer = player
         } catch (e: Exception) {
             Log.e(TAG, "فشل كامل في تشغيل مشغل الصوت: ${e.message}", e)
@@ -405,14 +410,31 @@ class AlarmForegroundService : Service() {
         }
 
         try {
-            val stoppedIntent = Intent(ACTION_ALARM_STOPPED)
+            val stoppedIntent = Intent(ACTION_ALARM_STOPPED).apply {
+                setPackage(packageName)
+            }
             sendBroadcast(stoppedIntent)
+            Log.d(TAG, "تم إرسال بث توقف الأذان ACTION_ALARM_STOPPED بحزمة: $packageName")
         } catch (e: Exception) {
             Log.e(TAG, "خطأ أثناء إرسال بث توقف الأذان: ${e.message}")
         }
 
-        // إيقاف نمط الخدمة الخلفية ومسح الإشعار
-        stopForeground(true)
+        // إلغاء الإشعار صراحة من مدير الإشعارات لمسح أيقونة الإشعار فوراً
+        try {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(NOTIFICATION_ID)
+            Log.d(TAG, "تم مسح إشعار الأذان من لوحة الإشعارات بنجاح")
+        } catch (e: Exception) {
+            Log.e(TAG, "خطأ أثناء مسح إشعار الأذان: ${e.message}")
+        }
+
+        // إيقاف نمط الخدمة الخلفية ومسح الإشعار بشكل متوافق مع كافة إصدارات أندرويد
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
         // إيقاف الخدمة الحالية
         stopSelf()
     }

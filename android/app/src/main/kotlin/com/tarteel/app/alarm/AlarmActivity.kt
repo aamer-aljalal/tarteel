@@ -33,6 +33,12 @@ class AlarmActivity : Activity() {
 
     private var alarmId: String? = null
     private var alarmStoppedReceiver: android.content.BroadcastReceiver? = null
+    private val safetyHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val safetyTimeoutRunnable = Runnable {
+        Log.w("AlarmActivity", "انتهت المهلة القصوى للأمان (5 دقائق)، جاري إغلاق شاشة الأذان لحماية البطارية")
+        sendActionToService(AlarmForegroundService.ACTION_STOP)
+        closeAlarmScreen()
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -55,7 +61,10 @@ class AlarmActivity : Activity() {
         setupLockScreenFlags()
         super.onCreate(savedInstanceState)
         
-        // 0. تسجيل مراقب توقف المنبه لإغلاق الشاشة تلقائياً
+        // 0. تفعيل مؤقت أمان احتياطي لإغلاق الشاشة بعد 5 دقائق كحد أقصى لحماية البطارية
+        safetyHandler.postDelayed(safetyTimeoutRunnable, 5 * 60 * 1000L)
+
+        // 1. تسجيل مراقب توقف المنبه لإغلاق الشاشة تلقائياً
         registerAlarmStoppedReceiver()
         
         // 2. استخراج معرف المنبه القادم مع النية
@@ -275,7 +284,7 @@ class AlarmActivity : Activity() {
         val stopButtonContainer = createControlButton("إيقاف الأذان", "ic_stop", "#EF5350") {
             Log.d("AlarmActivity", "تم الضغط على زر إيقاف الأذان")
             sendActionToService(AlarmForegroundService.ACTION_STOP)
-            finish()
+            closeAlarmScreen()
         }
 
         buttonsContainer.addView(muteButtonContainer)
@@ -441,7 +450,7 @@ class AlarmActivity : Activity() {
                 keyCode == android.view.KeyEvent.KEYCODE_HEADSETHOOK) {
                 Log.d("AlarmActivity", "تم رصد ضغطة زر الجانب/الصوت ($keyCode)، جاري إيقاف الأذان وإغلاق الواجهة...")
                 sendActionToService(AlarmForegroundService.ACTION_STOP)
-                finish()
+                closeAlarmScreen()
                 return true
             }
         }
@@ -458,7 +467,7 @@ class AlarmActivity : Activity() {
             android.view.KeyEvent.KEYCODE_HEADSETHOOK -> {
                 Log.d("AlarmActivity", "تم رصد ضغطة زر في onKeyDown ($keyCode)، جاري إيقاف الأذان فوراً...")
                 sendActionToService(AlarmForegroundService.ACTION_STOP)
-                finish()
+                closeAlarmScreen()
                 return true
             }
         }
@@ -469,7 +478,7 @@ class AlarmActivity : Activity() {
         super.onUserLeaveHint()
         Log.d("AlarmActivity", "المستخدم يغادر واجهة الرنين (onUserLeaveHint)، إيقاف الأذان فوراً...")
         sendActionToService(AlarmForegroundService.ACTION_STOP)
-        finish()
+        closeAlarmScreen()
     }
 
     override fun onStop() {
@@ -481,12 +490,26 @@ class AlarmActivity : Activity() {
         // لا نفعل شيئاً؛ إجباري التفاعل مع الأزرار للسلامة
     }
 
+    private fun closeAlarmScreen() {
+        try {
+            safetyHandler.removeCallbacks(safetyTimeoutRunnable)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                finishAndRemoveTask()
+            } else {
+                finish()
+            }
+        } catch (e: Exception) {
+            finish()
+        }
+    }
+
     private fun registerAlarmStoppedReceiver() {
         try {
             alarmStoppedReceiver = object : android.content.BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
                     Log.d("AlarmActivity", "تم استقبال إشعار توقف الأذان تلقائياً من الخدمة، جاري إغلاق الشاشة...")
-                    finish()
+                    closeAlarmScreen()
                 }
             }
             val filter = android.content.IntentFilter(AlarmForegroundService.ACTION_ALARM_STOPPED)
@@ -516,6 +539,7 @@ class AlarmActivity : Activity() {
     }
 
     override fun onDestroy() {
+        safetyHandler.removeCallbacks(safetyTimeoutRunnable)
         unregisterAlarmStoppedReceiver()
         super.onDestroy()
     }
