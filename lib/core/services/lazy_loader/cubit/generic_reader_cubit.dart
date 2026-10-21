@@ -50,21 +50,42 @@ abstract class ReaderCubitContract {
   void zoomOut();
 }
 
+/// غلاف معياري لتمرير الكيوبت في شجرة الـ Widgets بسرعة O(1) وبأمان تام
+class ReaderScope extends InheritedWidget {
+  final ReaderCubitContract cubit;
+
+  const ReaderScope({
+    super.key,
+    required this.cubit,
+    required super.child,
+  });
+
+  @override
+  bool updateShouldNotify(covariant ReaderScope oldWidget) =>
+      cubit != oldWidget.cubit;
+
+  static ReaderCubitContract? maybeOf(BuildContext context) {
+    return context.getInheritedWidgetOfExactType<ReaderScope>()?.cubit;
+  }
+}
+
 /// دالة عامة وذكية للوصول إلى ReaderCubit من أي مكون في الشجرة دون الحاجة لتحديد Generics
 ReaderCubitContract? findReaderCubit(BuildContext context) {
+  // 1. الفحص المباشر والسريع عبر ReaderScope المخصص O(1)
+  final scope = context.getInheritedWidgetOfExactType<ReaderScope>();
+  if (scope != null) return scope.cubit;
+
+  // 2. الفحص التلقائي الذكي لعناصر الشجرة للأجداد (InheritedProviderScope وغيرها)
   try {
     ReaderCubitContract? found;
     context.visitAncestorElements((element) {
-      if (element is InheritedElement) {
-        final widget = element.widget;
-        if (widget is InheritedProvider) {
-          final val = (element as dynamic).value;
-          if (val is ReaderCubitContract) {
-            found = val;
-            return false;
-          }
+      try {
+        final dynamic val = (element as dynamic).value;
+        if (val is ReaderCubitContract) {
+          found = val;
+          return false;
         }
-      }
+      } catch (_) {}
       return true;
     });
     return found;

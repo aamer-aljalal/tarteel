@@ -21,7 +21,7 @@ class HisnDetailsScreen extends StatelessWidget {
   final String? categoryTitle;
 
   const HisnDetailsScreen({super.key, this.category, this.categoryTitle})
-      : assert(category != null || categoryTitle != null);
+    : assert(category != null || categoryTitle != null);
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +99,10 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocConsumer<GenericReaderCubit<HisnCategory, String>,
-        GenericReaderState<HisnCategory, String>>(
+    return BlocConsumer<
+      GenericReaderCubit<HisnCategory, String>,
+      GenericReaderState<HisnCategory, String>
+    >(
       listener: (context, state) {
         if (_pageController.hasClients &&
             _pageController.page?.round() != state.currentIndex) {
@@ -155,92 +157,96 @@ class _HisnDetailsViewState extends State<_HisnDetailsView> {
         }
 
         final category = state.detail!;
+        final cubit = context.read<GenericReaderCubit<HisnCategory, String>>();
 
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: tarteelAppBar(
-            titleText: state.title,
-            elevation: 0,
-            toolbarHeight: 90,
-          ),
-          body: AnimatedSkyBackground(
-            categoryTitle: state.title,
-            child: SafeArea(
-              child: Column(
-                children: [
-                  SizedBox(height: 16.h),
-                  SectionProgressBar(
-                    currentIndex: state.currentIndex,
-                    totalCount: category.texts.length,
-                    isZeroBasedIndex: true,
-                  ),
-
-                  Expanded(
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: category.texts.length,
-                      onPageChanged: (index) {
-                        context
-                            .read<GenericReaderCubit<HisnCategory, String>>()
-                            .changePage(index);
-                      },
-                      itemBuilder: (context, index) {
-                        final text = category.texts[index];
-                        String? footnote;
-                        if (category.footnotes.length > index) {
-                          footnote = category.footnotes[index];
-                        }
-
-                        return AnimatedPadding(
-                          duration: const Duration(milliseconds: 200),
-                          padding: EdgeInsets.only(
-                            left: 20.w,
-                            right: 20.w,
-                            top: 20.h,
-                          ),
-                          child: InteractiveContentCard(
-                            content: text,
-                            indexLabel: 'الدعاء ${index + 1}',
-                            showFavorite: true,
-                            favoriteType: 'hisn',
-                            description: footnote,
-                            showCounterBadge: false,
-                          ),
-                        );
-                      },
+        return ReaderScope(
+          cubit: cubit,
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.title,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: AnimatedSkyBackground(
+              categoryTitle: state.title,
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    SizedBox(height: 16.h),
+                    SectionProgressBar(
+                      currentIndex: state.currentIndex,
+                      totalCount: category.texts.length,
+                      isZeroBasedIndex: true,
                     ),
-                  ),
 
-                  SizedBox(height: 60.h),
-                  InteractiveCounterControl(
-                    pageController: _pageController,
-                    autoNextOnComplete: true,
-                    allowOvercount: false,
-                    showResetButton: true,
-                    resetConfirmTitle: 'إعادة تعيين الأدعية',
-                    resetConfirmMessage:
-                        'هل تريد إعادة تعيين عداد القراءة لكافة الأدعية في هذا القسم والبدء من جديد؟',
-                    resetConfirmActionText: 'نعم، تصفير',
-                    resetColor: Colors.redAccent,
-                    cornerAction: CounterSideAction(
-                      icon: Icons.format_list_bulleted_rounded,
-                      tooltip: 'أبواب حصن المسلم',
-                      onTap: () => _showCategoriesBottomSheet(context),
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: category.texts.length,
+                        onPageChanged: (index) {
+                          context
+                              .read<GenericReaderCubit<HisnCategory, String>>()
+                              .changePage(index);
+                        },
+                        itemBuilder: (context, index) {
+                          final text = category.texts[index];
+                          String? footnote;
+                          if (category.footnotes.length > index) {
+                            footnote = category.footnotes[index];
+                          }
+
+                          return AnimatedPadding(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.only(
+                              left: 20.w,
+                              right: 20.w,
+                              top: 20.h,
+                            ),
+                            child: InteractiveContentCard(
+                              content: text,
+                              indexLabel: 'الدعاء ${index + 1}',
+                              showFavorite: true,
+                              favoriteType: 'hisn',
+                              description: footnote,
+                              showCounterBadge: false,
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    leftCornerAction: CounterSideAction(
-                      icon: Icons.home_rounded,
-                      tooltip: 'الصفحة الرئيسية',
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          AppRoutes.homePage,
-                          (route) => false,
-                        );
-                      },
+
+                    SizedBox(height: 60.h),
+                    InteractiveCounterControl(
+                      pageController: _pageController,
+                      autoNextOnComplete: true,
+                      allowOvercount: false,
+                      showResetButton: true,
+                      resetConfirmTitle: 'إعادة تعيين الأدعية',
+                      resetConfirmMessage:
+                          'هل تريد إعادة تعيين عداد القراءة لكافة الأدعية في هذا القسم والبدء من جديد؟',
+                      resetConfirmActionText: 'نعم، تصفير',
+                      resetColor: Colors.redAccent,
+                      cornerAction: CounterSideAction(
+                        icon: Icons.format_list_bulleted_rounded,
+                        tooltip: 'أبواب حصن المسلم',
+                        onTap: () => _showCategoriesBottomSheet(context),
+                      ),
+                      leftCornerAction: CounterSideAction(
+                        icon: Icons.home_rounded,
+                        tooltip: 'الصفحة الرئيسية',
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.homePage,
+                            (route) => false,
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

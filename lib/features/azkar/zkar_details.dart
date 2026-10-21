@@ -253,84 +253,89 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
           );
         }
 
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: tarteelAppBar(
-            titleText: state.title,
-            elevation: 0,
-            toolbarHeight: 90,
-          ),
-          body: AnimatedSkyBackground(
-            categoryTitle: state.title,
-            child: SafeArea(
-              child: Column(
-                children: [
-                  SizedBox(height: 16.h),
-                  SectionProgressBar(
-                    currentIndex: state.currentIndex,
-                    totalCount: state.totalCount,
-                    isZeroBasedIndex: true,
-                  ),
+        final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
 
-                  Expanded(
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: state.totalCount,
-                      onPageChanged: (index) {
-                        context
-                            .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
-                            .changePage(index);
-                      },
-                      itemBuilder: (context, index) {
-                        final zekr = state.items[index];
+        return ReaderScope(
+          cubit: cubit,
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: tarteelAppBar(
+              titleText: state.title,
+              elevation: 0,
+              toolbarHeight: 90,
+            ),
+            body: AnimatedSkyBackground(
+              categoryTitle: state.title,
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    SizedBox(height: 16.h),
+                    SectionProgressBar(
+                      currentIndex: state.currentIndex,
+                      totalCount: state.totalCount,
+                      isZeroBasedIndex: true,
+                    ),
 
-                        return AnimatedPadding(
-                          duration: const Duration(milliseconds: 200),
-                          padding: EdgeInsets.only(
-                            left: 20.w,
-                            right: 20.w,
-                            top: 20.h,
-                          ),
-                          child: InteractiveContentCard(
-                            content: zekr.content,
-                            indexLabel: 'الذكر ${index + 1}',
-                            showFavorite: true,
-                            favoriteType: 'azkar',
-                            description: zekr.description,
-                            reference: zekr.reference,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(height: 60.h),
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: state.totalCount,
+                        onPageChanged: (index) {
+                          context
+                              .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                              .changePage(index);
+                        },
+                        itemBuilder: (context, index) {
+                          final zekr = state.items[index];
 
-                  InteractiveCounterControl(
-                    pageController: _pageController,
-                    autoNextOnComplete: true,
-                    allowOvercount: false,
-                    showNavigationButtons: true,
-                    showResetButton: true,
-                    onAllCompleted: () => _showCompletionSheet(context),
-                    cornerAction: CounterSideAction(
-                      icon: Icons.format_list_bulleted_rounded,
-                      tooltip: 'أقسام الأذكار',
-                      onTap: () => _showCategoriesBottomSheet(context),
+                          return AnimatedPadding(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.only(
+                              left: 20.w,
+                              right: 20.w,
+                              top: 20.h,
+                            ),
+                            child: InteractiveContentCard(
+                              content: zekr.content,
+                              indexLabel: 'الذكر ${index + 1}',
+                              showFavorite: true,
+                              favoriteType: 'azkar',
+                              description: zekr.description,
+                              reference: zekr.reference,
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    leftCornerAction: CounterSideAction(
-                      icon: Icons.home_rounded,
-                      tooltip: 'الصفحة الرئيسية',
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          AppRoutes.homePage,
-                          (route) => false,
-                        );
-                      },
+                    SizedBox(height: 60.h),
+
+                    InteractiveCounterControl(
+                      pageController: _pageController,
+                      autoNextOnComplete: true,
+                      allowOvercount: false,
+                      showNavigationButtons: true,
+                      showResetButton: true,
+                      onAllCompleted: () => _showCompletionSheet(context),
+                      cornerAction: CounterSideAction(
+                        icon: Icons.format_list_bulleted_rounded,
+                        tooltip: 'أقسام الأذكار',
+                        onTap: () => _showCategoriesBottomSheet(context),
+                      ),
+                      leftCornerAction: CounterSideAction(
+                        icon: Icons.home_rounded,
+                        tooltip: 'الصفحة الرئيسية',
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.homePage,
+                            (route) => false,
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
