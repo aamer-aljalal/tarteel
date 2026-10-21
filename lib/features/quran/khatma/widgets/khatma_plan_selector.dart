@@ -172,7 +172,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
         Text(
           'مسارات الختمة المتاحة',
           style: TextStyle(
-            fontFamily: 'Cairo',
             fontSize: 15.sp,
             fontWeight: FontWeight.bold,
             color: theme.textTheme.titleMedium?.color,
@@ -180,37 +179,53 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
         ),
         SizedBox(height: 10.h),
 
-        // 4 Path Cards
-        _buildPlanTypeOption(
-          type: KhatmaPlanType.prayers,
-          title: 'مسار الصلوات الخمس',
-          subtitle: 'قراءة ورد يسير في رحاب كل صلاة مكتوبة',
-          icon: Icons.access_time_filled_rounded,
-          isDark: isDark,
+        // 4 Path Cards in 2x2 Grid
+        Row(
+          children: [
+            Expanded(
+              child: _buildPlanTypeGridOption(
+                type: KhatmaPlanType.prayers,
+                title: 'مسار الصلوات الخمس',
+                subtitle: 'ورد في رحاب كل صلاة',
+                icon: Icons.access_time_filled_rounded,
+                isDark: isDark,
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _buildPlanTypeGridOption(
+                type: KhatmaPlanType.dailyPages,
+                title: 'مسار الورد اليومي',
+                subtitle: 'تحديد صفحات يومية',
+                icon: Icons.menu_book_rounded,
+                isDark: isDark,
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 8.h),
-        _buildPlanTypeOption(
-          type: KhatmaPlanType.dailyPages,
-          title: 'مسار الورد اليومي الثابت',
-          subtitle: 'تحديد عدد الصفحات التي ترغب بقراءتها كل يوم',
-          icon: Icons.menu_book_rounded,
-          isDark: isDark,
-        ),
-        SizedBox(height: 8.h),
-        _buildPlanTypeOption(
-          type: KhatmaPlanType.durationDays,
-          title: 'مسار المدة المحددة بالأيام',
-          subtitle: 'تحديد مدة زمنية لختم المصحف (مثل 30 يوماً)',
-          icon: Icons.calendar_month_rounded,
-          isDark: isDark,
-        ),
-        SizedBox(height: 8.h),
-        _buildPlanTypeOption(
-          type: KhatmaPlanType.freeReading,
-          title: 'مسار القراءة الحرة',
-          subtitle: 'قراءة ميسرة بدون قيود زمنية مع تسجيل الإنجازات',
-          icon: Icons.workspace_premium_rounded,
-          isDark: isDark,
+        Row(
+          children: [
+            Expanded(
+              child: _buildPlanTypeGridOption(
+                type: KhatmaPlanType.durationDays,
+                title: 'المدة بالأيام',
+                subtitle: 'مدة محددة للختم',
+                icon: Icons.calendar_month_rounded,
+                isDark: isDark,
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _buildPlanTypeGridOption(
+                type: KhatmaPlanType.freeReading,
+                title: 'القراءة الحرة',
+                subtitle: 'قراءة ميسرة بلا قيود',
+                icon: Icons.workspace_premium_rounded,
+                isDark: isDark,
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 16.h),
 
@@ -256,7 +271,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     );
   }
 
-  Widget _buildPlanTypeOption({
+  Widget _buildPlanTypeGridOption({
     required KhatmaPlanType type,
     required String title,
     required String subtitle,
@@ -280,7 +295,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
       onTap: () => setState(() => _selectedType = type),
       borderRadius: BorderRadius.circular(12.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(12.r),
@@ -288,62 +303,73 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
             color: borderColor,
             width: isSelected ? 1.6.w : 1.w,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              width: 38.w,
-              height: 38.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 32.w,
+                  height: 32.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? accentGold.withValues(alpha: 0.2)
+                        : (isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.04)),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18.sp,
+                    color: isSelected
+                        ? accentGold
+                        : (isDark ? Colors.white60 : Colors.black54),
+                  ),
+                ),
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_off_rounded,
+                  color: isSelected ? accentGold : Colors.grey,
+                  size: 18.sp,
+                ),
+              ],
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 9.sp,
+                fontWeight: FontWeight.bold,
                 color: isSelected
-                    ? accentGold.withValues(alpha: 0.2)
-                    : (isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : Colors.black.withValues(alpha: 0.04)),
-              ),
-              child: Icon(
-                icon,
-                size: 20.sp,
-                color: isSelected
-                    ? accentGold
-                    : (isDark ? Colors.white60 : Colors.black54),
+                    ? (isDark ? Colors.white : AppColors.primary)
+                    : null,
               ),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? (isDark ? Colors.white : AppColors.primary)
-                          : null,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 11.sp,
-                      color: isDark ? Colors.white54 : Colors.black45,
-                    ),
-                  ),
-                ],
+            SizedBox(height: 2.h),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 9.sp,
+                color: isDark ? Colors.white54 : Colors.black45,
               ),
-            ),
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_off_rounded,
-              color: isSelected ? accentGold : Colors.grey,
-              size: 20.sp,
             ),
           ],
         ),
@@ -351,271 +377,28 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     );
   }
 
-  Widget _buildConfigurationBox(bool isDark) {
-    const accentGold = Color(0xFFE2B755);
+  /// دالة عامة موحدة وقابلة لإعادة الاستخدام لبطاقة إعدادات المسار السفلية
+  Widget _buildConfigCard({
+    required bool isDark,
+    required Color accentGold,
+    String? title,
+    String? valueText,
+    List<int>? options,
+    int? selectedOption,
+    String unit = '',
+    double chipFontSize = 9.0,
+    double chipSpacing = 6.0,
+    ValueChanged<int>? onOptionSelected,
+    String? infoText,
+    double? infoFontSize,
+    String? freeReadingText,
+  }) {
     final cardBg = isDark ? const Color(0xFF16241E) : const Color(0xFFF7FAF8);
 
-    if (_selectedType == KhatmaPlanType.prayers) {
-      final totalPerDay = _pagesPerPrayer * 5;
-      final days = (604 / totalPerDay).ceil();
-
+    if (freeReadingText != null) {
       return Container(
+        width: double.infinity,
         padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: accentGold.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'عدد الصفحات بعد كل صلاة:',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '$_pagesPerPrayer صفحات',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    color: accentGold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 8.w,
-              children: [2, 4, 6, 8].map((val) {
-                final isCurrent = _pagesPerPrayer == val;
-                return ChoiceChip(
-                  label: Text(
-                    '$val ص',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 9.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isCurrent ? Colors.white : null,
-                    ),
-                  ),
-                  selected: isCurrent,
-                  selectedColor: AppColors.primary,
-                  onSelected: (_) => setState(() => _pagesPerPrayer = val),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 10.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: accentGold,
-                    size: 16.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      'المعدل: $totalPerDay صفحة يومياً • إتمام المصحف خلال $days يوماً بإذن الله',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (_selectedType == KhatmaPlanType.dailyPages) {
-      final days = (604 / _dailyPages).ceil();
-      return Container(
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: accentGold.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'عدد الصفحات اليومية:',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '$_dailyPages صفحة / يوم',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    color: accentGold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 6.w,
-              children: [5, 10, 20, 30, 40].map((val) {
-                final isCurrent = _dailyPages == val;
-                return ChoiceChip(
-                  label: Text(
-                    '$val ص',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 9.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isCurrent ? Colors.white : null,
-                    ),
-                  ),
-                  selected: isCurrent,
-                  selectedColor: AppColors.primary,
-                  onSelected: (_) => setState(() => _dailyPages = val),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 10.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: accentGold,
-                    size: 16.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      'ستتم الختمة المباركة بإذن الله خلال $days يوماً',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (_selectedType == KhatmaPlanType.durationDays) {
-      final pagesPerDay = (604 / _targetDays).ceil();
-      return Container(
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: accentGold.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'المدة المستهدفة بالأيام:',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '$_targetDays يوماً',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    color: accentGold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 6.w,
-              children: [15, 30, 60, 90].map((val) {
-                final isCurrent = _targetDays == val;
-                return ChoiceChip(
-                  label: Text(
-                    '$val يوم',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isCurrent ? Colors.white : null,
-                    ),
-                  ),
-                  selected: isCurrent,
-                  selectedColor: AppColors.primary,
-                  onSelected: (_) => setState(() => _targetDays = val),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 10.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: accentGold,
-                    size: 16.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      'المطلوب قراءة $pagesPerDay صفحة يومياً لإتمام الختمة في الموعد',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // Free Reading
-      return Container(
-        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(12.r),
@@ -631,7 +414,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
             SizedBox(width: 10.w),
             Expanded(
               child: Text(
-                'مسار مفتوح بدون ضغوط، تقدم حسب استطاعتك وتتبع صفحاتك وأوسمتك وسلسلة التزامك.',
+                freeReadingText,
                 style: TextStyle(
                   fontSize: 10.sp,
                   color: isDark ? Colors.white70 : Colors.black87,
@@ -642,6 +425,165 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
           ],
         ),
       );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: accentGold.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (title != null || valueText != null) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (title != null)
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                if (valueText != null)
+                  Text(
+                    valueText,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      color: accentGold,
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+          ],
+          if (options != null && options.isNotEmpty) ...[
+            Wrap(
+              spacing: chipSpacing.w,
+              children: options.map((val) {
+                final isCurrent = selectedOption == val;
+                return ChoiceChip(
+                  label: Text(
+                    '$val $unit',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: chipFontSize.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isCurrent ? Colors.white : null,
+                    ),
+                  ),
+                  selected: isCurrent,
+                  selectedColor: AppColors.primary,
+                  onSelected: onOptionSelected != null
+                      ? (_) => onOptionSelected(val)
+                      : null,
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 10.h),
+          ],
+          if (infoText != null)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: accentGold,
+                    size: 16.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      infoText,
+                      style: TextStyle(
+                        fontSize: (infoFontSize ?? 10.sp),
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigurationBox(bool isDark) {
+    const accentGold = Color(0xFFE2B755);
+
+    switch (_selectedType) {
+      case KhatmaPlanType.prayers:
+        final totalPerDay = _pagesPerPrayer * 5;
+        final days = (604 / totalPerDay).ceil();
+        return _buildConfigCard(
+          isDark: isDark,
+          accentGold: accentGold,
+          title: 'عدد الصفحات بعد كل صلاة:',
+          valueText: '$_pagesPerPrayer صفحات',
+          options: const [2, 4, 6, 8],
+          selectedOption: _pagesPerPrayer,
+          unit: 'ص',
+          chipSpacing: 8,
+          onOptionSelected: (val) => setState(() => _pagesPerPrayer = val),
+          infoText:
+              'المعدل: $totalPerDay صفحة يومياً • إتمام المصحف خلال $days يوماً بإذن الله',
+          infoFontSize: 10.sp,
+        );
+
+      case KhatmaPlanType.dailyPages:
+        final days = (604 / _dailyPages).ceil();
+        return _buildConfigCard(
+          isDark: isDark,
+          accentGold: accentGold,
+          title: 'عدد الصفحات اليومية:',
+          valueText: '$_dailyPages صفحة / يوم',
+          options: const [5, 10, 20, 30, 40],
+          selectedOption: _dailyPages,
+          unit: 'ص',
+          onOptionSelected: (val) => setState(() => _dailyPages = val),
+          infoText: 'ستتم الختمة المباركة بإذن الله خلال $days يوماً',
+          infoFontSize: 11.sp,
+        );
+
+      case KhatmaPlanType.durationDays:
+        final pagesPerDay = (604 / _targetDays).ceil();
+        return _buildConfigCard(
+          isDark: isDark,
+          accentGold: accentGold,
+          title: 'المدة المستهدفة بالأيام:',
+          valueText: '$_targetDays يوماً',
+          options: const [15, 30, 60, 90],
+          selectedOption: _targetDays,
+          unit: 'يوم',
+          chipFontSize: 10,
+          onOptionSelected: (val) => setState(() => _targetDays = val),
+          infoText:
+              'المطلوب قراءة $pagesPerDay صفحة يومياً لإتمام الختمة في الموعد',
+          infoFontSize: 10.sp,
+        );
+
+      case KhatmaPlanType.freeReading:
+        return _buildConfigCard(
+          isDark: isDark,
+          accentGold: accentGold,
+          freeReadingText:
+              'مسار مفتوح بدون ضغوط، تقدم حسب استطاعتك وتتبع صفحاتك وأوسمتك وسلسلة التزامك.',
+        );
     }
   }
 

@@ -66,7 +66,8 @@ class _MuezzinSelectionSheetState extends State<MuezzinSelectionSheet> {
     setState(() => _playingMuezzinId = muezzin.id);
     try {
       await _player.stop();
-      await _player.setAsset(muezzin.assetPath);
+      final isShort = await AdhanNotificationService.isShortAdhanEnabled();
+      await _player.setAsset(muezzin.getAssetPath(isShort: isShort));
       await _player.play();
     } catch (_) {
       if (!mounted) return;

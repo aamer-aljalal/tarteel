@@ -28,9 +28,10 @@ class AdhanPlayerService {
 
     _activePrayerName = prayerName;
     final muezzin = await AdhanNotificationService.selectedMuezzin();
+    final isShort = await AdhanNotificationService.isShortAdhanEnabled();
 
     try {
-      await _player.setAsset(muezzin.assetPath);
+      await _player.setAsset(muezzin.getAssetPath(isShort: isShort));
       await _player.setVolume(_isMuted ? 0.0 : 1.0);
       _isPlaying = true;
 

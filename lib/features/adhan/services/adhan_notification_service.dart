@@ -27,6 +27,7 @@ class AdhanNotificationService {
   static const String _selectedMuezzinKey = 'selected_adhan_muezzin';
   static const String _notificationsEnabledKey = 'prayer_notifications_enabled';
   static const String _advanceTimeKey = 'adhan_advance_minutes';
+  static const String _shortAdhanKey = 'adhan_is_short';
 
   // رقم أساسي تبدأ منه معرفات الإشعارات (ID) لتجنب التداخل مع إشعارات أخرى في التطبيق
   static const int _notificationBaseId = 9000;
@@ -144,6 +145,18 @@ class AdhanNotificationService {
     await prefs.setInt(_advanceTimeKey, minutes);
   }
 
+  /// التحقق مما إذا كان خيار الأذان القصير (تكبيرتان فقط) مفعّلاً
+  static Future<bool> isShortAdhanEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_shortAdhanKey) ?? false;
+  }
+
+  /// تفعيل أو تعطيل خيار الأذان القصير (تكبيرتان فقط)
+  static Future<void> setShortAdhanEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_shortAdhanKey, enabled);
+  }
+
   /// التحقق من حالة تفعيل إشعارات الأذان من إعدادات التطبيق
   static Future<bool> arePrayerNotificationsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
@@ -220,6 +233,7 @@ class AdhanNotificationService {
     }
 
     final selected = await selectedMuezzin();
+    final isShortAdhan = await isShortAdhanEnabled();
     final advanceMinutes = await getAdhanAdvanceMinutes();
     final now = DateTime.now();
 
@@ -282,6 +296,7 @@ class AdhanNotificationService {
           prayerName: _prayerName(prayer),
           scheduledTime: scheduledTime,
           muezzin: selected,
+          isShort: isShortAdhan,
           advanceMinutes: advanceMinutes,
         );
         notificationOffset++;
@@ -318,6 +333,7 @@ class AdhanNotificationService {
     String prayerName = 'المغرب',
   }) async {
     final selected = await selectedMuezzin();
+    final isShort = await isShortAdhanEnabled();
     final targetTime = DateTime.now().add(Duration(seconds: seconds));
 
     final prefs = await SharedPreferences.getInstance();
@@ -330,8 +346,10 @@ class AdhanNotificationService {
       id: 'adhan_test_timer',
       type: 'ADHAN',
       title: 'حان الآن موعد صلاة $prayerName',
-      subtitle: 'أذان بصوت المؤذن ${selected.name} (تجريب)',
-      audioFile: selected.rawResourceName,
+      subtitle: isShort
+          ? 'أذان قصير بصوت المؤذن ${selected.name} (تجريب)'
+          : 'أذان بصوت المؤذن ${selected.name} (تجريب)',
+      audioFile: selected.getRawResourceName(isShort: isShort),
       audioSource: 'RAW_RESOURCE',
       scheduledTime: targetTime,
       vibrate: vibrateEnabled,
@@ -347,14 +365,18 @@ class AdhanNotificationService {
     required String prayerName,
     required DateTime scheduledTime,
     required AdhanMuezzin muezzin,
+    bool isShort = false,
     int advanceMinutes = 0,
   }) async {
+    final adhanLabel = isShort ? ' (تكبيرات)' : '';
     final alarmTitle = advanceMinutes > 0
         ? 'اقترب موعد صلاة $prayerName'
         : 'حان الآن موعد صلاة $prayerName';
     final alarmSubtitle = advanceMinutes > 0
-        ? 'أذان بصوت المؤذن ${muezzin.name} (قبل الصلاة بـ $advanceMinutes دقيقة)'
-        : 'أذان بصوت المؤذن ${muezzin.name}';
+        ? 'أذان بصوت المؤذن ${muezzin.name}$adhanLabel (قبل الصلاة بـ $advanceMinutes دقيقة)'
+        : 'أذان بصوت المؤذن ${muezzin.name}$adhanLabel';
+
+    final audioResourceName = muezzin.getRawResourceName(isShort: isShort);
 
     // 1. جدولة المنبه الأصلي لنظام الأندرويد فوراً (الخدمة الأساسية الحصرية للتطبيق)
     if (Platform.isAndroid) {
@@ -367,7 +389,7 @@ class AdhanNotificationService {
         type: 'ADHAN',
         title: alarmTitle,
         subtitle: alarmSubtitle,
-        audioFile: muezzin.rawResourceName,
+        audioFile: audioResourceName,
         audioSource: 'RAW_RESOURCE',
         // لتجربة الأذان المجدول بعد 10 ثوانٍ (للصلاة الأولى id == 9000)
         // scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
@@ -380,7 +402,7 @@ class AdhanNotificationService {
 
       if (success) {
         debugPrint(
-          'Native Adhan scheduled successfully for $prayerName at $scheduledTime (Advance: $advanceMinutes m)',
+          'Native Adhan scheduled successfully for $prayerName at $scheduledTime (Advance: $advanceMinutes m, Short: $isShort)',
         );
         return; // ننهي الدالة لكي لا تتم جدولة إشعار مكرر عبر flutter_local_notifications
       } else {
@@ -391,16 +413,18 @@ class AdhanNotificationService {
     }
 
     // 2. الدعم البديل في حال تعذر تشغيل المنبه الأصلي
-    final channelId = 'adhan_${muezzin.rawResourceName}_channel_v4';
+    final channelId = isShort
+        ? 'adhan_${muezzin.rawResourceName}_short_channel_v4'
+        : 'adhan_${muezzin.rawResourceName}_channel_v4';
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      'أذان بصوت ${muezzin.name}',
+      'أذان بصوت ${muezzin.name}${isShort ? ' (قصير)' : ''}',
       channelDescription: 'إشعارات الأذان المجدولة للصلوات',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
-      sound: RawResourceAndroidNotificationSound(muezzin.rawResourceName),
+      sound: RawResourceAndroidNotificationSound(audioResourceName),
       audioAttributesUsage: AudioAttributesUsage.alarm,
       fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,

@@ -27,6 +27,7 @@ class AdhanMuezzinScreen extends StatefulWidget {
 class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     with WidgetsBindingObserver {
   bool _soundEnabled = true;
+  bool _shortAdhanEnabled = false;
   AdhanMuezzin _selectedMuezzin = AdhanNotificationService.defaultMuezzin;
   bool _hapticFeedback = true;
   double _adhanVolume = 1.0;
@@ -76,6 +77,8 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
   Future<void> _loadSettings() async {
     final notificationsEnabled =
         await AdhanNotificationService.arePrayerNotificationsEnabled();
+    final shortAdhan =
+        await AdhanNotificationService.isShortAdhanEnabled();
     final activeMuezzin = await AdhanNotificationService.selectedMuezzin();
     final advanceMinutes =
         await AdhanNotificationService.getAdhanAdvanceMinutes();
@@ -100,6 +103,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     if (!mounted) return;
     setState(() {
       _soundEnabled = notificationsEnabled;
+      _shortAdhanEnabled = shortAdhan;
       _selectedMuezzin = activeMuezzin;
       _advanceMinutes = advanceMinutes;
       _hapticFeedback = prefs.getBool('haptic_feedback') ?? true;
@@ -144,6 +148,22 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
       await prayerProvider.scheduleAdhanNotifications(force: true);
     } else {
       await AdhanNotificationService.cancelPrayerAdhan();
+    }
+  }
+
+  Future<void> _updateShortAdhanEnabled(bool val) async {
+    if (_hapticFeedback) HapticFeedback.lightImpact();
+    setState(() {
+      _shortAdhanEnabled = val;
+    });
+    await AdhanNotificationService.setShortAdhanEnabled(val);
+    if (_isTestingAdhan) {
+      await NativeAlarmService.stopActiveAlarm();
+      if (mounted) setState(() => _isTestingAdhan = false);
+    }
+    if (mounted) {
+      final prayerProvider = context.read<PrayerProvider>();
+      await prayerProvider.scheduleAdhanNotifications(force: true);
     }
   }
 
@@ -197,7 +217,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
       });
 
       final success = await NativeAlarmService.playTestAdhan(
-        audioFile: _selectedMuezzin.rawResourceName,
+        audioFile: _selectedMuezzin.getRawResourceName(isShort: _shortAdhanEnabled),
         volume: _adhanVolume,
         vibrate: _vibrationEnabled,
       );
@@ -223,7 +243,7 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
     });
 
     final success = await NativeAlarmService.playTestAdhan(
-      audioFile: _selectedMuezzin.rawResourceName,
+      audioFile: _selectedMuezzin.getRawResourceName(isShort: _shortAdhanEnabled),
       volume: val,
       vibrate: _vibrationEnabled,
     );
@@ -426,6 +446,14 @@ class _AdhanMuezzinScreenState extends State<AdhanMuezzinScreen>
                 //   ),
                 // ),
                 if (_soundEnabled) ...[
+                  _buildSwitchTile(
+                    title: 'الأذان القصير (تكبيرتان فقط)',
+                    subtitle: 'الاكتفاء بأول تكبيرتين بصوت المؤذن المختار عند دخول الوقت',
+                    value: _shortAdhanEnabled,
+                    icon: Icons.timelapse_rounded,
+                    onChanged: (value) => _updateShortAdhanEnabled(value),
+                    iconColor: Colors.amber.shade800,
+                  ),
                   _buildSwitchTile(
                     title: 'الاهتزاز مع الأذان',
                     subtitle: 'تفعيل الاهتزاز أثناء رفع الأذان',
