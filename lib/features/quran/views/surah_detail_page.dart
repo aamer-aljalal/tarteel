@@ -8,6 +8,7 @@ import 'package:tarteel/core/widgets/buttons/app_glass_button.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_cubit.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
+import 'package:tarteel/features/quran/khatma/models/khatma_badge_model.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/widgets/ayah_top_bar.dart';
 import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
@@ -62,12 +63,14 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
 
   late Map<int, GlobalKey> _ayahKeys;
   late List<GlobalKey> _pageKeys;
+  int? _initialPageNumber;
 
   @override
   void initState() {
     super.initState();
     final cubit = context.read<QuranReaderCubit>();
     _pageController = PageController(initialPage: cubit.state.currentPage);
+    _initialPageNumber = cubit.state.currentPageNumber;
     _initKeys(cubit.state);
   }
 
@@ -90,13 +93,19 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     // إذا كان قد قام بحفظ موضع الصفحة في هذه الجلسة مسبقاً، يخرج مباشرة
     if (state.hasBookmarkedInThisSession) return true;
 
-    // إذا غير الصفحة دون أن يقوم بحفظها
-    if (state.hasChangedPage) {
+    // فحص ما إذا تقدم القارئ في الصفحات
+    final currentPage = state.currentPageNumber;
+    final hasActuallyMoved = state.hasChangedPage ||
+        (_initialPageNumber != null && currentPage != _initialPageNumber) ||
+        (state.savedBookmarkPage != null &&
+            currentPage != state.savedBookmarkPage);
+
+    if (hasActuallyMoved) {
       final shouldSaveCurrentPage = await AppConfirmDialog.show(
         context,
         title: 'موضع الختمة',
         message:
-            'لقد تقدمت في القراءة إلى صفحة ${state.currentPageNumber}. هل تود حفظ هذه الصفحة كموضع جديد لختمتك أم البقاء على الموضع السابق؟',
+            'لقد تقدمت في القراءة إلى صفحة $currentPage. هل تود حفظ هذه الصفحة كموضع جديد لختمتك أم البقاء على الموضع السابق؟',
         confirmText: 'حفظ الصفحة الحالية',
         cancelText: 'البقاء على الموضع السابق',
         confirmColor: AppColors.primary,
@@ -626,10 +635,12 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                           cubit.state.currentPageNumber;
 
                                       bool success = false;
+                                      KhatmaBadgeModel? unlockedBadge;
                                       if (widget.isKhatmaSession) {
                                         // إذا كانت الجلسة جلسة ختمة يحفظ فقط موضع الختمة
-                                        success = await cubit
+                                        unlockedBadge = await cubit
                                             .updateKhatmaBookmark();
+                                        success = true;
                                       } else {
                                         // إذا كانت جلسة عادية يحفظ فقط العلامة المرجعية العادية
                                         success = await cubit
@@ -637,16 +648,23 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                       }
 
                                       if (context.mounted) {
+                                        final msg = success
+                                            ? (widget.isKhatmaSession
+                                                  ? (unlockedBadge != null
+                                                        ? 'تم حفظ موضع الختمة عند صفحة $pageNum • مبارك نيل ${unlockedBadge.title}'
+                                                        : 'تم حفظ موضع الختمة عند صفحة $pageNum')
+                                                  : 'تم حفظ العلامة المرجعية عند صفحة $pageNum')
+                                            : 'تعذر حفظ العلامة المرجعية';
+
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              success
-                                                  ? (widget.isKhatmaSession
-                                                        ? 'تم حفظ موضع الختمة عند صفحة $pageNum'
-                                                        : 'تم حفظ العلامة المرجعية عند صفحة $pageNum')
-                                                  : 'تعذر حفظ العلامة المرجعية',
+                                              msg,
+                                              style: const TextStyle(
+                                                fontFamily: 'Cairo',
+                                              ),
                                             ),
                                           ),
                                         );

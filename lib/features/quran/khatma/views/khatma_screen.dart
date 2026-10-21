@@ -26,6 +26,7 @@ class KhatmaScreen extends StatefulWidget {
 
 class _KhatmaScreenState extends State<KhatmaScreen> {
   bool _isLoading = true;
+  bool _isCelebrating = false;
   KhatmaPlanModel? _activePlan;
   List<KhatmaBadgeModel> _badges = [];
   List<KhatmaHistoryModel> _history = [];
@@ -35,7 +36,38 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData().then((_) {
+      if (mounted) {
+        _checkAndCelebratePendingBadges();
+      }
+    });
+  }
+
+  /// فحص وعرض أي أوسمة جديدة تم تحقيقها أثناء القراءة لتهنئة المستخدم بها فور عودته
+  Future<void> _checkAndCelebratePendingBadges() async {
+    if (_isCelebrating || !mounted) return;
+    _isCelebrating = true;
+    try {
+      final pendingBadges =
+          await KhatmaService.consumePendingCelebrationBadges();
+      if (pendingBadges.isEmpty || !mounted) return;
+
+      // مهلة وجيزة لضمان استقرار واجهة الشاشة بعد الرجوع
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+
+      for (final badge in pendingBadges) {
+        if (!mounted) break;
+        await KhatmaShareCardDialog.show(
+          context,
+          badge: badge,
+          totalPages: 604,
+          streakDays: _streakDays,
+        );
+      }
+    } finally {
+      _isCelebrating = false;
+    }
   }
 
   Future<void> _loadData() async {
@@ -237,8 +269,9 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
           ),
         );
 
-        // Reload data after reading session
+        // Reload data after reading session and celebrate newly unlocked badge(s)
         await _loadData();
+        await _checkAndCelebratePendingBadges();
       }
     } catch (e) {
       if (mounted) {

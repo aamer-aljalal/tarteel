@@ -5,6 +5,7 @@ import 'package:tarteel/core/services/favorites_service.dart';
 import 'package:tarteel/core/services/in_app_notification_service.dart';
 import 'package:tarteel/core/services/recent_actions_service.dart';
 import 'package:tarteel/core/services/stats_service.dart';
+import 'package:tarteel/features/quran/khatma/models/khatma_badge_model.dart';
 import 'package:tarteel/features/quran/khatma/services/khatma_service.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'quran_reader_state.dart';
@@ -219,7 +220,8 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
   }
 
   /// تحديث موضع الختمة بناءً على الصفحة الحالية (أو آية معينة)
-  Future<bool> updateKhatmaBookmark([QuranAyah? specificAyah]) async {
+  /// يعيد الوسام الجديد إن كان قد فُتح وسام جديد في هذه اللحظة
+  Future<KhatmaBadgeModel?> updateKhatmaBookmark([QuranAyah? specificAyah]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -230,7 +232,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
           (pageAyahs.isNotEmpty
               ? pageAyahs.first
               : (state.ayahs.isNotEmpty ? state.ayahs.first : null));
-      if (targetAyah == null) return false;
+      if (targetAyah == null) return null;
 
       final pageNumber = state.currentPageNumber;
 
@@ -240,7 +242,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       await prefs.setInt('khatma_last_read_page', pageNumber);
 
       // تحديث الخطة المتقدمة (KhatmaService) المبنية على الصفحات وحساب الإنجاز وسلسلة الالتزام
-      await KhatmaService.updateReadingProgress(newPage: pageNumber);
+      final newlyUnlocked = await KhatmaService.updateReadingProgress(newPage: pageNumber);
 
       // احتساب التقدم القديم للتوافقية
       final absoluteAyah = await QuranService.getAbsoluteAyahOffset(
@@ -279,9 +281,9 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
 
       emit(state.copyWith(savedBookmarkPage: pageNumber));
       markBookmarkedInSession();
-      return true;
+      return newlyUnlocked;
     } catch (_) {
-      return false;
+      return null;
     }
   }
 

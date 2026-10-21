@@ -175,6 +175,13 @@ class AccessListModel {
       case 'mosque':
         return Icons.mosque_outlined;
 
+      // يوميات المسلم وسجل العبادات
+      case 'habit_tracker':
+      case 'habits':
+      case 'tracker':
+      case 'daily_worship':
+        return Icons.task_alt_rounded;
+
       // الأيقونة الافتراضية إذا لم يتم التعرف على الاسم
       default:
         return Icons.widgets_outlined;

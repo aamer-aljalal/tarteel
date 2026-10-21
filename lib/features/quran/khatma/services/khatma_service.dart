@@ -12,6 +12,7 @@ class KhatmaService {
   static const String _historyKey = 'khatma_history_v2';
   static const String _streakKey = 'khatma_reading_streak';
   static const String _streakLastDateKey = 'khatma_streak_last_date';
+  static const String _pendingBadgesKey = 'khatma_pending_celebration_badge_ids';
 
   /// تحميل الخطة النشطة
   static Future<KhatmaPlanModel?> getActivePlan() async {
@@ -152,6 +153,7 @@ class KhatmaService {
         ? KhatmaBadgeModel.defaultBadges()
         : plan.badges;
     KhatmaBadgeModel? newlyUnlocked;
+    final newlyUnlockedList = <KhatmaBadgeModel>[];
     final updatedBadges = <KhatmaBadgeModel>[];
 
     for (final badge in currentBadges) {
@@ -162,8 +164,16 @@ class KhatmaService {
         );
         updatedBadges.add(unlocked);
         newlyUnlocked = unlocked;
+        newlyUnlockedList.add(unlocked);
       } else {
         updatedBadges.add(badge);
+      }
+    }
+
+    // حفظ أي أوسمة جديدة معلقة ليتم الاحتفال بها وعرضها فور رجوع المستخدم
+    if (newlyUnlockedList.isNotEmpty) {
+      for (final b in newlyUnlockedList) {
+        await addPendingCelebrationBadge(b.id);
       }
     }
 
@@ -188,6 +198,36 @@ class KhatmaService {
     }
 
     return newlyUnlocked;
+  }
+
+  /// حفظ وسام جديد في قائمة الانتظار لعرضه وتهنئة المستخدم به عند العودة
+  static Future<void> addPendingCelebrationBadge(String badgeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_pendingBadgesKey) ?? [];
+    if (!list.contains(badgeId)) {
+      list.add(badgeId);
+      await prefs.setStringList(_pendingBadgesKey, list);
+    }
+  }
+
+  /// استرجاع ومسح الأوسمة المعلقة للاحتفال بها
+  static Future<List<KhatmaBadgeModel>> consumePendingCelebrationBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_pendingBadgesKey) ?? [];
+    if (list.isEmpty) return [];
+    await prefs.remove(_pendingBadgesKey);
+
+    final allBadges = await getAllBadges();
+    final result = <KhatmaBadgeModel>[];
+    for (final id in list) {
+      final found = allBadges.firstWhere(
+        (b) => b.id == id,
+        orElse: () =>
+            KhatmaBadgeModel.defaultBadges().firstWhere((b) => b.id == id),
+      );
+      result.add(found);
+    }
+    return result;
   }
 
   /// تحديث سلسلة القراءة اليومية المستمرة (Reading Streak)

@@ -38,6 +38,9 @@ class AppRoutes {
   // ========================= التحديات والمسابقات =========================
   static const islamicQuiz = '/islamic-quiz';
 
+  // ========================= يوميات المسلم وسجل العبادات =========================
+  static const habitTracker = '/habit-tracker';
+
   // ========================= الصفحات والقوالب الديناميكية =========================
   static const dynamicPage = '/dynamic-page';
 }
