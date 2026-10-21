@@ -29,6 +29,15 @@ class AdhanNotificationService {
   static const String _advanceTimeKey = 'adhan_advance_minutes';
   static const String _shortAdhanKey = 'adhan_is_short';
 
+  // ===========================================================================
+  // ⚠️ تحذير مهم جداً للمطور: وضع اختبار الأذان المجدول (ممنوع الحذف نهائياً)
+  // ---------------------------------------------------------------------------
+  // عند تفعيل هذا الخيار (true): يتم جدولة أول صلاة فوراً بعد 10 ثوانٍ لاختبار
+  // منبه الأذان الحقيقي في نظام أندرويد والتأكد من عمله بالخلفية وفوق القفل.
+  // عند الانتهاء من الاختبار وبناء النسخة النهائية، اجعلها فقط (false).
+  // ===========================================================================
+  static const bool isTestAdhan10SecondsEnabled = false;
+
   // رقم أساسي تبدأ منه معرفات الإشعارات (ID) لتجنب التداخل مع إشعارات أخرى في التطبيق
   static const int _notificationBaseId = 9000;
 
@@ -254,7 +263,8 @@ class AdhanNotificationService {
     }
 
     // التحقق من بصمة الجدولة لتجنب التكرار غير الضروري عند التنقل بين الشاشات
-    final currentHash = '${coordinates.latitude.toStringAsFixed(3)}_'
+    final currentHash =
+        '${coordinates.latitude.toStringAsFixed(3)}_'
         '${coordinates.longitude.toStringAsFixed(3)}_'
         '${selected.id}_${isShortAdhan}_${advanceMinutes}_'
         '${enabledPrayersList.join(",")}_'
@@ -262,10 +272,15 @@ class AdhanNotificationService {
 
     final lastHash = prefs.getString('last_adhan_schedule_hash');
     final lastTime = prefs.getInt('last_adhan_schedule_time') ?? 0;
-    final hoursSinceLastSchedule =
-        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(lastTime)).inHours;
+    final hoursSinceLastSchedule = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(lastTime))
+        .inHours;
+
+    // تجاوز فحص الكاش إذا كان وضع الاختبار مفعلاً لضمان جدولة الأذان التجريبي دائماً
+    final bool bypassCacheForTesting = isTestAdhan10SecondsEnabled;
 
     if (!forceReschedule &&
+        !bypassCacheForTesting &&
         lastHash == currentHash &&
         hoursSinceLastSchedule < 24) {
       debugPrint(
@@ -408,6 +423,18 @@ class AdhanNotificationService {
 
     final audioResourceName = muezzin.getRawResourceName(isShort: isShort);
 
+    // =========================================================================
+    // ⚠️ كود اختبار الأذان بعد 10 ثوانٍ (ممنوع الحذف نهائياً - مرتبط بـ isTestAdhan10SecondsEnabled)
+    // -------------------------------------------------------------------------
+    // إذا كان خيار الاختبار مفعلاً (isTestAdhan10SecondsEnabled = true)، يتم
+    // تحويل موعد أول صلاة (id == 9000) إلى 10 ثوانٍ لاختبار المنبه الحقيقي
+    // في الخلفية وفوق شاشة القفل ومحاكاته واقعياً بنسبة 100%.
+    // =========================================================================
+    final DateTime effectiveScheduledTime =
+        (isTestAdhan10SecondsEnabled && id == _notificationBaseId)
+        ? DateTime.now().add(const Duration(seconds: 10))
+        : scheduledTime;
+
     // 1. جدولة المنبه الأصلي لنظام الأندرويد فوراً (الخدمة الأساسية الحصرية للتطبيق)
     if (Platform.isAndroid) {
       final prefs = await SharedPreferences.getInstance();
@@ -421,9 +448,7 @@ class AdhanNotificationService {
         subtitle: alarmSubtitle,
         audioFile: audioResourceName,
         audioSource: 'RAW_RESOURCE',
-        // لتجربة الأذان المجدول بعد 10 ثوانٍ (للصلاة الأولى id == 9000)
-        scheduledTime: id == 9000 ? DateTime.now().add(const Duration(seconds: 10)) : scheduledTime,
-        // scheduledTime: scheduledTime,
+        scheduledTime: effectiveScheduledTime,
         vibrate: vibrateEnabled,
         fullScreen: true,
         volume: volumeLevel,
@@ -432,7 +457,7 @@ class AdhanNotificationService {
 
       if (success) {
         debugPrint(
-          'Native Adhan scheduled successfully for $prayerName at $scheduledTime (Advance: $advanceMinutes m, Short: $isShort)',
+          'Native Adhan scheduled successfully for $prayerName at $effectiveScheduledTime (Advance: $advanceMinutes m, Short: $isShort)',
         );
         return; // ننهي الدالة لكي لا تتم جدولة إشعار مكرر عبر flutter_local_notifications
       } else {
@@ -468,7 +493,7 @@ class AdhanNotificationService {
         body: advanceMinutes > 0
             ? 'أذان بصوت ${muezzin.name} قبل الصلاة بـ $advanceMinutes دقيقة'
             : 'الله أكبر',
-        scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+        scheduledDate: tz.TZDateTime.from(effectiveScheduledTime, tz.local),
         notificationDetails: NotificationDetails(android: androidDetails),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
@@ -479,7 +504,7 @@ class AdhanNotificationService {
           id: id,
           title: 'حان الآن موعد صلاة $prayerName',
           body: 'الله أكبر',
-          scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+          scheduledDate: tz.TZDateTime.from(effectiveScheduledTime, tz.local),
           notificationDetails: NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
