@@ -7,6 +7,35 @@ enum MilestoneType {
   complete, // ختم القرآن كاملاً (صفحة 604)
 }
 
+/// فئة بيانات تعريفية مخصصة لكل رتبة من رتب الأوسمة
+class MilestoneBadgeStyle {
+  final String tierTitle;
+  final String tierSubtitle;
+  final String quote;
+  final Color primaryColor;
+  final Color secondaryColor;
+  final List<Color> cardGradient;
+  final List<Color> emblemGradient;
+  final Color glowColor;
+  final Color badgeBg;
+  final Color chipBg;
+  final IconData icon;
+
+  const MilestoneBadgeStyle({
+    required this.tierTitle,
+    required this.tierSubtitle,
+    required this.quote,
+    required this.primaryColor,
+    required this.secondaryColor,
+    required this.cardGradient,
+    required this.emblemGradient,
+    required this.glowColor,
+    required this.badgeBg,
+    required this.chipBg,
+    required this.icon,
+  });
+}
+
 class KhatmaBadgeModel {
   final String id;
   final String title;
@@ -30,6 +59,8 @@ class KhatmaBadgeModel {
     this.unlockedAt,
   });
 
+  MilestoneBadgeStyle get style => styleForType(milestoneType);
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -43,18 +74,68 @@ class KhatmaBadgeModel {
     };
   }
 
-  static IconData iconForType(MilestoneType type) {
+  static MilestoneBadgeStyle styleForType(MilestoneType type) {
     switch (type) {
       case MilestoneType.quarter:
-        return Icons.menu_book_rounded;
+        return const MilestoneBadgeStyle(
+          tierTitle: 'الرتبة البرونزية',
+          tierSubtitle: 'نور البدايات • سورة الأنعام',
+          quote: '« خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ »',
+          primaryColor: Color(0xFFD48B46),
+          secondaryColor: Color(0xFF8A4F1D),
+          cardGradient: [Color(0xFF142B20), Color(0xFF091711)],
+          emblemGradient: [Color(0xFFE5A162), Color(0xFF8A4F1D)],
+          glowColor: Color(0x55D48B46),
+          badgeBg: Color(0xFF18221B),
+          chipBg: Color(0x33D48B46),
+          icon: Icons.menu_book_rounded,
+        );
       case MilestoneType.half:
-        return Icons.star_half_rounded;
+        return const MilestoneBadgeStyle(
+          tierTitle: 'الرتبة الفضية',
+          tierSubtitle: 'نور الانتصاف • سورة الكهف',
+          quote: '« مَنْ قَرَأَ سُورَةَ الْكَهْفِ كَانَتْ لَهُ نُوراً يَوْمَ الْقِيَامَةِ »',
+          primaryColor: Color(0xFFCDE1EE),
+          secondaryColor: Color(0xFF67899F),
+          cardGradient: [Color(0xFF0F2636), Color(0xFF07141E)],
+          emblemGradient: [Color(0xFFEAF5FC), Color(0xFF6B8FA7)],
+          glowColor: Color(0x55A8CEE8),
+          badgeBg: Color(0xFF0F202C),
+          chipBg: Color(0x33CDE1EE),
+          icon: Icons.brightness_medium_rounded,
+        );
       case MilestoneType.threeQuarters:
-        return Icons.auto_awesome_rounded;
+        return const MilestoneBadgeStyle(
+          tierTitle: 'الرتبة الذهبية',
+          tierSubtitle: 'شرف الارتقاء • سورة يس',
+          quote: '« إِنَّ لِكُلِّ شَيْءٍ قَلْباً، وَقَلْبُ الْقُرْآنِ يس »',
+          primaryColor: Color(0xFFFFD13B),
+          secondaryColor: Color(0xFFB57C14),
+          cardGradient: [Color(0xFF261E0E), Color(0xFF130E05)],
+          emblemGradient: [Color(0xFFFFE07A), Color(0xFFB57C14)],
+          glowColor: Color(0x55FFD13B),
+          badgeBg: Color(0xFF1F170A),
+          chipBg: Color(0x33FFD13B),
+          icon: Icons.auto_awesome_rounded,
+        );
       case MilestoneType.complete:
-        return Icons.workspace_premium_rounded;
+        return const MilestoneBadgeStyle(
+          tierTitle: 'التاج الملكي الألماسي',
+          tierSubtitle: 'ذروة الإنجاز • ختام المصحف الشريف',
+          quote: '« يُقَالُ لِصَاحِبِ الْقُرْآنِ: اقْرَأْ وَارْتَقِ وَرَتِّلْ كَمَا كُنْتَ تُرَتِّلُ فِي الدُّنْيَا، فَإِنَّ مَنْزِلَتَكَ عِنْدَ آخِرِ آيَةٍ تَقْرَؤُهَا »',
+          primaryColor: Color(0xFFFEE180),
+          secondaryColor: Color(0xFF10B981),
+          cardGradient: [Color(0xFF0D3325), Color(0xFF04150E)],
+          emblemGradient: [Color(0xFFFFF7CF), Color(0xFFE2B755), Color(0xFF9E7728)],
+          glowColor: Color(0x66FEE180),
+          badgeBg: Color(0xFF08241A),
+          chipBg: Color(0x33FEE180),
+          icon: Icons.workspace_premium_rounded,
+        );
     }
   }
+
+  static IconData iconForType(MilestoneType type) => styleForType(type).icon;
 
   factory KhatmaBadgeModel.fromJson(Map<String, dynamic> json, [IconData? icon]) {
     final milestoneType = MilestoneType.values.firstWhere(

@@ -561,7 +561,6 @@ class KhatmaJourneyCard extends StatelessWidget {
     BuildContext context,
     KhatmaBadgeModel badge,
   ) {
-    const accentGold = Color(0xFFE2B755);
     final isUnlocked = badge.isUnlocked;
 
     String shortLabel;
@@ -612,19 +611,19 @@ class KhatmaJourneyCard extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 2.w),
           decoration: BoxDecoration(
             color: isUnlocked
-                ? accentGold.withValues(alpha: 0.22)
+                ? badge.style.primaryColor.withValues(alpha: 0.2)
                 : Colors.white.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
               color: isUnlocked
-                  ? accentGold.withValues(alpha: 0.8)
+                  ? badge.style.primaryColor.withValues(alpha: 0.8)
                   : Colors.white.withValues(alpha: 0.14),
               width: isUnlocked ? 1.4.w : 1.w,
             ),
             boxShadow: isUnlocked
                 ? [
                     BoxShadow(
-                      color: accentGold.withValues(alpha: 0.2),
+                      color: badge.style.glowColor,
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -644,14 +643,14 @@ class KhatmaJourneyCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isUnlocked
-                          ? accentGold.withValues(alpha: 0.3)
+                          ? badge.style.primaryColor.withValues(alpha: 0.3)
                           : Colors.white.withValues(alpha: 0.05),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
                       badge.icon,
                       size: 16.sp,
-                      color: isUnlocked ? accentGold : Colors.white38,
+                      color: isUnlocked ? badge.style.primaryColor : Colors.white38,
                     ),
                   ),
                   if (isUnlocked)
@@ -660,14 +659,14 @@ class KhatmaJourneyCard extends StatelessWidget {
                       right: -2.w,
                       child: Container(
                         padding: EdgeInsets.all(1.w),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0F3A2E),
+                        decoration: BoxDecoration(
+                          color: badge.style.badgeBg,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.check_circle_rounded,
                           size: 11.sp,
-                          color: accentGold,
+                          color: badge.style.primaryColor,
                         ),
                       ),
                     )
@@ -699,7 +698,7 @@ class KhatmaJourneyCard extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'Cairo',
                   fontSize: 9.sp,
-                  color: isUnlocked ? accentGold : Colors.white38,
+                  color: isUnlocked ? badge.style.primaryColor : Colors.white38,
                 ),
               ),
             ],

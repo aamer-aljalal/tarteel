@@ -89,15 +89,15 @@ class KhatmaMilestonesSection extends StatelessWidget {
     KhatmaBadgeModel badge,
     bool isDark,
   ) {
-    const accentGold = Color(0xFFE2B755);
+    final style = badge.style;
     final isUnlocked = badge.isUnlocked;
 
     final cardBg = isDark
-        ? (isUnlocked ? const Color(0xFF13382B) : const Color(0xFF161E1B))
-        : (isUnlocked ? const Color(0xFFF3F9F6) : const Color(0xFFF8F9FA));
+        ? (isUnlocked ? style.badgeBg.withValues(alpha: 0.85) : const Color(0xFF161E1B))
+        : (isUnlocked ? style.primaryColor.withValues(alpha: 0.08) : const Color(0xFFF8F9FA));
 
     final borderColor = isUnlocked
-        ? accentGold.withValues(alpha: 0.45)
+        ? style.primaryColor.withValues(alpha: 0.55)
         : (isDark
               ? Colors.white.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.08));
@@ -113,7 +113,7 @@ class KhatmaMilestonesSection extends StatelessWidget {
         boxShadow: isUnlocked
             ? [
                 BoxShadow(
-                  color: accentGold.withValues(alpha: 0.08),
+                  color: style.glowColor,
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -143,8 +143,8 @@ class KhatmaMilestonesSection extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: isUnlocked
-                        ? const LinearGradient(
-                            colors: [Color(0xFFE2B755), Color(0xFF9E7728)],
+                        ? LinearGradient(
+                            colors: style.emblemGradient,
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           )
@@ -160,7 +160,9 @@ class KhatmaMilestonesSection extends StatelessWidget {
                     badge.icon,
                     size: 22.sp,
                     color: isUnlocked
-                        ? Colors.white
+                        ? (style.primaryColor.computeLuminance() > 0.65
+                            ? const Color(0xFF14201A)
+                            : Colors.white)
                         : (isDark ? Colors.white38 : Colors.black38),
                   ),
                 ),
@@ -193,24 +195,24 @@ class KhatmaMilestonesSection extends StatelessWidget {
                           if (isUnlocked)
                             Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 6.w,
+                                horizontal: 7.w,
                                 vertical: 2.h,
                               ),
                               decoration: BoxDecoration(
-                                color: accentGold.withValues(alpha: 0.18),
+                                color: style.chipBg,
                                 borderRadius: BorderRadius.circular(6.r),
                                 border: Border.all(
-                                  color: accentGold.withValues(alpha: 0.5),
+                                  color: style.primaryColor.withValues(alpha: 0.5),
                                   width: 0.8,
                                 ),
                               ),
                               child: Text(
-                                'تم الإنجاز',
+                                style.tierTitle,
                                 style: TextStyle(
                                   fontFamily: 'Cairo',
                                   fontSize: 10.sp,
                                   fontWeight: FontWeight.bold,
-                                  color: accentGold,
+                                  color: style.primaryColor,
                                 ),
                               ),
                             ),
@@ -234,7 +236,7 @@ class KhatmaMilestonesSection extends StatelessWidget {
                             Icon(
                               Icons.visibility_rounded,
                               size: 13.sp,
-                              color: accentGold,
+                              color: style.primaryColor,
                             ),
                             SizedBox(width: 4.w),
                             Text(
@@ -243,7 +245,7 @@ class KhatmaMilestonesSection extends StatelessWidget {
                                 fontFamily: 'Cairo',
                                 fontSize: 11.sp,
                                 fontWeight: FontWeight.w600,
-                                color: accentGold,
+                                color: style.primaryColor,
                               ),
                             ),
                             if (badge.unlockedAt != null) ...[
@@ -272,8 +274,8 @@ class KhatmaMilestonesSection extends StatelessWidget {
                             backgroundColor: isDark
                                 ? Colors.white.withValues(alpha: 0.08)
                                 : Colors.black.withValues(alpha: 0.06),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFF227E67),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              style.primaryColor.withValues(alpha: 0.7),
                             ),
                           ),
                         ),
