@@ -32,7 +32,8 @@ class HomePrayerCard extends StatelessWidget {
       margin: EdgeInsets.only(top: 17.h, bottom: 4.h),
       decoration: BoxDecoration(
         // استخدام ألوان الثيم للبطاقة الشفافة
-        color: colorScheme.surface.withOpacity(0.15),
+        // color: colorScheme.surface.withOpacity(0.15),
+        color: Colors.black.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: colorScheme.onSurface.withOpacity(0.1)),
       ),
@@ -148,7 +149,8 @@ class HomePrayerCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: isNext ? 4 : 0),
                   decoration: BoxDecoration(
                     color: isNext
-                        ? colorScheme.surface.withOpacity(0.3)
+                        // ? colorScheme.surface.withOpacity(0.3)
+                        ? Colors.black.withOpacity(0.15)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8.r),
                   ),

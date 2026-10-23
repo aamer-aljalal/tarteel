@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
-import '../models/prayer_station_model.dart';
 import 'habit_achievement_card.dart';
-import 'prayer_station_swiper_card.dart';
+import 'habit_highlights_swiper_card.dart';
 
 /// ==============================================================================
-/// رأس الصفحة الثابت ليوميات المسلم (بخلفية TopBar/2.jpg وبطاقات شفافة تفاعلية)
+/// رأس الصفحة الثابت ليوميات المسلم (بخلفية TopBar/2.jpg وبطاقة الأوراد المستقلة)
 /// ==============================================================================
 class HabitTrackerFixedHeader extends StatelessWidget {
   final DateTime selectedDate;
@@ -15,13 +14,9 @@ class HabitTrackerFixedHeader extends StatelessWidget {
   final int completedCount;
   final int totalCount;
   final int streak;
-  final List<PrayerStationModel> stations;
-  final String selectedStationId;
-  final Set<String> completedIds;
   final VoidCallback onPreviousDay;
   final VoidCallback onNextDay;
   final VoidCallback onOpenStats;
-  final Function(String) onStationChanged;
 
   const HabitTrackerFixedHeader({
     super.key,
@@ -30,13 +25,9 @@ class HabitTrackerFixedHeader extends StatelessWidget {
     required this.completedCount,
     required this.totalCount,
     required this.streak,
-    required this.stations,
-    required this.selectedStationId,
-    required this.completedIds,
     required this.onPreviousDay,
     required this.onNextDay,
     required this.onOpenStats,
-    required this.onStationChanged,
   });
 
   @override
@@ -107,7 +98,7 @@ class HabitTrackerFixedHeader extends StatelessWidget {
 
                 SizedBox(height: 2.h),
 
-                // 2. بطاقة نسبة الإنجاز والتاريخ الشفافة الطويلة (تقليب يدوي بالسحب)
+                // 2. بطاقة نسبة الإنجاز والتقويم الموحدة الشفافة (تقليب يدوي بالسحب)
                 HabitAchievementCard(
                   selectedDate: selectedDate,
                   percentage: percentage,
@@ -121,12 +112,9 @@ class HabitTrackerFixedHeader extends StatelessWidget {
 
                 SizedBox(height: 8.h),
 
-                // 3. بطاقة محطة الصلاة الشفافة بالكامل مع تقليب البطاقة كلياً
-                PrayerStationSwiperCard(
-                  stations: stations,
-                  selectedStationId: selectedStationId,
-                  completedIds: completedIds,
-                  onStationChanged: onStationChanged,
+                // 3. بطاقة الأوراد والمناسبات والتنبيهات المستقلة الشفافة (بالتقليب الأوتوماتيكي واليدوي)
+                HabitHighlightsSwiperCard(
+                  selectedDate: selectedDate,
                 ),
               ],
             ),

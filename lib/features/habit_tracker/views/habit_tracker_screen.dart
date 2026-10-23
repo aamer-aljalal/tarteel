@@ -8,9 +8,10 @@ import '../cubit/habit_tracker_state.dart';
 import '../widgets/habit_tracker_fixed_header.dart';
 import '../widgets/habit_weekly_chart_sheet.dart';
 import '../widgets/prayer_station_action_list.dart';
+import '../widgets/prayer_station_body_card.dart';
 
 /// ==============================================================================
-/// الشاشة الرئيسية ليوميات المسلم (تصميم فخم، رأس ثابت يحوي بطاقة الإنجاز والمسار بالسحب)
+/// الشاشة الرئيسية ليوميات المسلم (الشريط العلوي للأوراد المستقلة، والمحراب للصلوات)
 /// ==============================================================================
 class HabitTrackerScreen extends StatelessWidget {
   const HabitTrackerScreen({super.key});
@@ -50,16 +51,13 @@ class _HabitTrackerView extends StatelessWidget {
 
             return Column(
               children: [
-                // 1. رأس الصفحة الثابت في الأعلى (يحوي بطاقة الإنجاز الموحدة + بطاقة المسار البارزة بالسحب)
+                // 1. رأس الصفحة الثابت في الأعلى (بطاقة الإنجاز + بطاقة الأوراد والمناسبات المستقلة)
                 HabitTrackerFixedHeader(
                   selectedDate: state.selectedDate,
                   percentage: state.dailyCompletionPercentage,
                   completedCount: state.totalCompletedCount,
                   totalCount: state.totalItemsCount,
                   streak: state.streak,
-                  stations: state.stations,
-                  selectedStationId: state.selectedStationId,
-                  completedIds: state.completedIds,
                   onPreviousDay: () {
                     cubit.changeDate(
                       state.selectedDate.subtract(const Duration(days: 1)),
@@ -78,17 +76,30 @@ class _HabitTrackerView extends StatelessWidget {
                       );
                     }
                   },
-                  onStationChanged: (id) => cubit.selectStation(id),
                 ),
 
-                // 2. الجزء التفاعلي تحت الرأس مباشرة: قائمة كبسولات العبادات التفاعلية
+                // 2. الجزء التفاعلي تحت الرأس مباشرة: محطة الصلاة والسنن في محراب الصلاة
                 Expanded(
                   child: IslamicPatternBackground(
-                    child: PrayerStationActionList(
-                      station: currentStation,
-                      completedIds: state.completedIds,
-                      selectedDate: state.selectedDate,
-                      onToggleItem: (id) => cubit.toggleItem(id),
+                    child: Column(
+                      children: [
+                        // بطاقة محطة الصلاة بالسحب والأنميشن الكامل في موقعها الجديد بالأسفل
+                        PrayerStationBodyCard(
+                          stations: state.stations,
+                          selectedStationId: state.selectedStationId,
+                          completedIds: state.completedIds,
+                          onStationChanged: (id) => cubit.selectStation(id),
+                        ),
+
+                        // قائمة كبسولات العبادات التفاعلية الخاصة بالمحطة
+                        Expanded(
+                          child: PrayerStationActionList(
+                            station: currentStation,
+                            completedIds: state.completedIds,
+                            onToggleItem: (id) => cubit.toggleItem(id),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

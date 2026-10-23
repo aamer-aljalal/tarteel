@@ -31,7 +31,8 @@ class HomeHeaderQuickActions extends StatelessWidget {
       margin: EdgeInsets.only(top: 2.h, bottom: 2.h),
       padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 5.h),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.15),
+        // color: colorScheme.surface.withValues(alpha: 0.15),
+        color: Colors.black.withOpacity(0.15),
         borderRadius: BorderRadius.circular(7.r),
         border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1)),
       ),

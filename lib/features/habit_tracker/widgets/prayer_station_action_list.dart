@@ -3,22 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import '../models/prayer_station_model.dart';
-import 'habit_special_banner.dart';
 
 /// ==============================================================================
-/// قائمة أزرار العبادات التفاعلية للمحطة المختارة (بدون أي إيموجي)
+/// قائمة أزرار العبادات التفاعلية للمحطة المختارة (السنن والفرائض وأذكار الصلاة)
 /// ==============================================================================
 class PrayerStationActionList extends StatelessWidget {
   final PrayerStationModel station;
   final Set<String> completedIds;
-  final DateTime selectedDate;
   final Function(String) onToggleItem;
 
   const PrayerStationActionList({
     super.key,
     required this.station,
     required this.completedIds,
-    required this.selectedDate,
     required this.onToggleItem,
   });
 
@@ -32,13 +29,10 @@ class PrayerStationActionList extends StatelessWidget {
       padding: EdgeInsets.only(
         left: 14.w,
         right: 14.w,
-        top: 2.h,
+        top: 4.h,
         bottom: 30.h,
       ),
       children: [
-        // لافتة المناسبات الخاصة (سورة الكهف / صيام النوافل) إن وجدت
-        HabitSpecialBanner(selectedDate: selectedDate),
-
         // قائمة كبسولات العبادات داخل هذه المحطة
         ...station.items.map((item) {
           final isDone = completedIds.contains(item.id);
