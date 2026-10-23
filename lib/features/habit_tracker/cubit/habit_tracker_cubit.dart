@@ -1,45 +1,49 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:adhan/adhan.dart';
 import 'package:tarteel/core/services/stats_service.dart';
 import '../models/daily_habits_record.dart';
-import '../models/habit_item.dart';
+import '../models/prayer_station_model.dart';
 import '../services/habit_calendar_helper.dart';
 import '../services/habit_storage_service.dart';
 import 'habit_tracker_state.dart';
 
 /// ==============================================================================
-/// كيونت إدارة سجل العبادات اليومي
+/// كيونت إدارة محطات العبادات والمسار الزمني الذكي
 /// ==============================================================================
 class HabitTrackerCubit extends Cubit<HabitTrackerState> {
   HabitTrackerCubit()
-      : super(
-          HabitTrackerState(
-            selectedDate: DateTime.now(),
-            activeHabits: const [],
-            completedIds: const {},
-            allHabits: HabitItem.getDefaultHabits(),
-            enabledHabitIds: const {},
-            streak: 0,
-            isLoading: true,
-          ),
-        );
+    : super(
+        HabitTrackerState(
+          selectedDate: DateTime.now(),
+          stations: PrayerStationModel.getDefaultStations(),
+          selectedStationId: 'dhuhr',
+          completedIds: const {},
+          streak: 0,
+          isLoading: true,
+        ),
+      );
 
-  /// تهيئة وتحميل بيانات اليوم
-  Future<void> init() async {
+  /// تهيئة المحطات بناءً على مواقيت الصلاة والوقت الحالي
+  Future<void> init({PrayerTimes? prayerTimes}) async {
     emit(state.copyWith(isLoading: true));
     try {
-      final enabledIds = await HabitStorageService.getEnabledHabitIds();
       final now = DateTime.now();
-      final activeList = _buildActiveHabitsForDate(now, enabledIds);
+      final stations = _buildStationsWithTimes(prayerTimes);
+      final activeStationId = _resolveActiveStationId(now, prayerTimes);
+
       final record = await HabitStorageService.getRecord(now);
-      final streak = await HabitStorageService.calculateCurrentStreak(activeList.length);
-      final summary = await HabitStorageService.getStatsSummary(activeList.length);
+      final totalCount = _calculateTotalItems(stations);
+      final streak = await HabitStorageService.calculateCurrentStreak(
+        totalCount,
+      );
+      final summary = await HabitStorageService.getStatsSummary(totalCount);
 
       emit(
         state.copyWith(
           selectedDate: now,
-          allHabits: HabitItem.getDefaultHabits(),
-          enabledHabitIds: enabledIds,
-          activeHabits: activeList,
+          stations: stations,
+          selectedStationId: activeStationId,
           completedIds: record.completedHabitIds,
           streak: streak,
           statsSummary: summary,
@@ -51,17 +55,43 @@ class HabitTrackerCubit extends Cubit<HabitTrackerState> {
     }
   }
 
+  /// التبديل بين محطات الصلاة (الفجر، الظهر، العصر...)
+  void selectStation(String stationId) {
+    if (state.selectedStationId != stationId) {
+      emit(state.copyWith(selectedStationId: stationId));
+    }
+  }
+
+  /// الانتقال للمحطة السابقة في المسار
+  void previousStation() {
+    final list = state.stations;
+    if (list.isEmpty) return;
+    final currentIndex = list.indexWhere(
+      (s) => s.id == state.selectedStationId,
+    );
+    final prevIndex = (currentIndex - 1 + list.length) % list.length;
+    emit(state.copyWith(selectedStationId: list[prevIndex].id));
+  }
+
+  /// الانتقال للمحطة التالية في المسار
+  void nextStation() {
+    final list = state.stations;
+    if (list.isEmpty) return;
+    final currentIndex = list.indexWhere(
+      (s) => s.id == state.selectedStationId,
+    );
+    final nextIndex = (currentIndex + 1) % list.length;
+    emit(state.copyWith(selectedStationId: list[nextIndex].id));
+  }
+
   /// التبديل بين الأيام السابقة أو التالية
   Future<void> changeDate(DateTime date) async {
     emit(state.copyWith(isLoading: true));
     try {
-      final activeList = _buildActiveHabitsForDate(date, state.enabledHabitIds);
       final record = await HabitStorageService.getRecord(date);
-
       emit(
         state.copyWith(
           selectedDate: date,
-          activeHabits: activeList,
           completedIds: record.completedHabitIds,
           isLoading: false,
         ),
@@ -71,20 +101,21 @@ class HabitTrackerCubit extends Cubit<HabitTrackerState> {
     }
   }
 
-  /// تبديل حالة عبادة (إكمال / إلغاء إكمال)
-  Future<void> toggleHabit(String habitId) async {
+  /// تبديل إنجاز عبادة محددة (سنة قبلية، فريضة، سنة بعدية، أذكار)
+  Future<void> toggleItem(String itemId) async {
     final currentSet = Set<String>.from(state.completedIds);
-    final wasCompleted = currentSet.contains(habitId);
+    final wasCompleted = currentSet.contains(itemId);
 
     if (wasCompleted) {
-      currentSet.remove(habitId);
+      currentSet.remove(itemId);
     } else {
-      currentSet.add(habitId);
-      // التكامل مع StatsService لتسجيل النشاط الإيماني
-      _recordStatsForHabit(habitId);
+      currentSet.add(itemId);
+      // إرسال نشاط للإحصائيات العامة
+      if (itemId.contains('azkar')) {
+        StatsService.recordAction('azkar', amount: 1);
+      }
     }
 
-    // حفظ السجل في التخزين المحلي
     final dateKey = HabitCalendarHelper.formatDateKey(state.selectedDate);
     final newRecord = DailyHabitsRecord(
       date: dateKey,
@@ -92,9 +123,9 @@ class HabitTrackerCubit extends Cubit<HabitTrackerState> {
     );
     await HabitStorageService.saveRecord(newRecord);
 
-    // تحديث السلسلة والإحصائيات
-    final streak = await HabitStorageService.calculateCurrentStreak(state.activeHabits.length);
-    final summary = await HabitStorageService.getStatsSummary(state.activeHabits.length);
+    final totalCount = _calculateTotalItems(state.stations);
+    final streak = await HabitStorageService.calculateCurrentStreak(totalCount);
+    final summary = await HabitStorageService.getStatsSummary(totalCount);
 
     emit(
       state.copyWith(
@@ -105,72 +136,85 @@ class HabitTrackerCubit extends Cubit<HabitTrackerState> {
     );
   }
 
-  /// حفظ تخصيص قائمة العبادات التي يريد المستخدم متابعتها
-  Future<void> updateCustomization(Set<String> newEnabledIds) async {
-    await HabitStorageService.saveEnabledHabitIds(newEnabledIds);
-    final activeList = _buildActiveHabitsForDate(state.selectedDate, newEnabledIds);
-    final streak = await HabitStorageService.calculateCurrentStreak(activeList.length);
-    final summary = await HabitStorageService.getStatsSummary(activeList.length);
+  /// حساب الوقت الفعلي لكل محطة بناءً على مواقيت الصلاة المحسوبة
+  List<PrayerStationModel> _buildStationsWithTimes(PrayerTimes? pt) {
+    final defaults = PrayerStationModel.getDefaultStations();
+    if (pt == null) return defaults;
 
-    emit(
-      state.copyWith(
-        enabledHabitIds: newEnabledIds,
-        activeHabits: activeList,
-        streak: streak,
-        statsSummary: summary,
-      ),
-    );
-  }
-
-  /// بناء قائمة العبادات المعروضة بناءً على التاريخ واختيارات المستخدم
-  List<HabitItem> _buildActiveHabitsForDate(DateTime date, Set<String> enabledIds) {
-    final all = HabitItem.getDefaultHabits();
-    final List<HabitItem> result = [];
-
-    for (final item in all) {
-      // 1. الصلوات المفروضة الخمس تُعرض دائماً
-      if (item.isMandatory) {
-        result.add(item);
-        continue;
-      }
-
-      // 2. إذا لم يكن مفعلاً من قبل المستخدم يتم تجاوزه
-      if (!enabledIds.contains(item.id)) {
-        continue;
-      }
-
-      // 3. سورة الكهف: تظهر فقط يوم الجمعة
-      if (item.id == 'surah_kahf') {
-        if (HabitCalendarHelper.isFriday(date)) {
-          result.add(item);
-        }
-        continue;
-      }
-
-      // 4. صيام التطوع: يظهر فقط إذا كان اليوم إثنين، خميس، أو من الأيام البيض
-      if (item.id == 'fasting_sunnah') {
-        final fastingReason = HabitCalendarHelper.getFastingReason(date);
-        if (fastingReason != null) {
-          result.add(item.copyWith(subtitle: fastingReason));
-        }
-        continue;
-      }
-
-      // 5. باقي السنن والأوراد العادية المفعّلة
-      result.add(item);
+    String formatTime(DateTime dt) {
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = dt.hour >= 12 ? 'م' : 'ص';
+      return HabitCalendarHelper.toArabicNumbers('$hour:$minute $period');
     }
 
-    return result;
+    return defaults.map((station) {
+      String resolvedTime = station.approximateTime;
+      switch (station.id) {
+        case 'fajr':
+          resolvedTime = formatTime(pt.fajr);
+          break;
+        case 'duha':
+          resolvedTime = formatTime(
+            pt.sunrise.add(const Duration(minutes: 20)),
+          );
+          break;
+        case 'dhuhr':
+          resolvedTime = formatTime(pt.dhuhr);
+          break;
+        case 'asr':
+          resolvedTime = formatTime(pt.asr);
+          break;
+        case 'maghrib':
+          resolvedTime = formatTime(pt.maghrib);
+          break;
+        case 'isha':
+          resolvedTime = formatTime(pt.isha);
+          break;
+        case 'qiyam':
+          resolvedTime = '١١:٠٠ م';
+          break;
+      }
+
+      return PrayerStationModel(
+        id: station.id,
+        title: station.title,
+        shortName: station.shortName,
+        icon: station.icon,
+        approximateTime: resolvedTime,
+        virtueHadith: station.virtueHadith,
+        items: station.items,
+      );
+    }).toList();
   }
 
-  /// إرسال النشاط لنظام إحصائيات التطبيق العام
-  void _recordStatsForHabit(String habitId) {
-    if (habitId.contains('azkar')) {
-      StatsService.recordAction('azkar', amount: 1);
-    } else if (habitId == 'daily_istighfar') {
-      StatsService.recordAction('tasbeeh', amount: 33);
-    } else if (habitId == 'quran_wird') {
-      StatsService.recordAction('quran', amount: 1);
+  /// تحديد المحطة النشطة بناءً على اللحظة الحالية في اليوم
+  String _resolveActiveStationId(DateTime now, PrayerTimes? pt) {
+    if (pt != null) {
+      if (now.isBefore(pt.sunrise)) return 'fajr';
+      if (now.isBefore(pt.dhuhr)) return 'duha';
+      if (now.isBefore(pt.asr)) return 'dhuhr';
+      if (now.isBefore(pt.maghrib)) return 'asr';
+      if (now.isBefore(pt.isha)) return 'maghrib';
+      if (now.hour < 22) return 'isha';
+      return 'qiyam';
     }
+
+    final hour = now.hour;
+    if (hour >= 4 && hour < 7) return 'fajr';
+    if (hour >= 7 && hour < 12) return 'duha';
+    if (hour >= 12 && hour < 15) return 'dhuhr';
+    if (hour >= 15 && hour < 18) return 'asr';
+    if (hour >= 18 && hour < 20) return 'maghrib';
+    if (hour >= 20 && hour < 23) return 'isha';
+    return 'qiyam';
+  }
+
+  int _calculateTotalItems(List<PrayerStationModel> list) {
+    int total = 0;
+    for (final s in list) {
+      total += s.items.length;
+    }
+    return total > 0 ? total : 1;
   }
 }

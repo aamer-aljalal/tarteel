@@ -7,19 +7,20 @@
     "isEnabled": true
   },
   {
-    "id": "azkar",
-    "title": "الأذكار",
-    "route": "/azkar-categories",
-    "icon": "azkar",
-    "isEnabled": true
-  },
-  {
     "id": "habit_tracker",
     "title": "يوميات المسلم",
     "route": "/habit-tracker",
     "icon": "habit_tracker",
     "isEnabled": true
   },
+  {
+    "id": "azkar",
+    "title": "الأذكار",
+    "route": "/azkar-categories",
+    "icon": "azkar",
+    "isEnabled": true
+  },
+
   {
     "id": "hisn",
     "title": "حصن المسلم",

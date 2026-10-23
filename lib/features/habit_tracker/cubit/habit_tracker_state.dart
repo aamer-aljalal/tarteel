@@ -1,26 +1,24 @@
 import '../models/habit_item.dart';
 import '../models/habit_stats_summary.dart';
+import '../models/prayer_station_model.dart';
 
 /// ==============================================================================
-/// حالات سجل العبادات اليومي
+/// حالات سجل العبادات ومحطات الصلوات اليومية
 /// ==============================================================================
 class HabitTrackerState {
   /// اليوم المعروض حالياً في الجدول
   final DateTime selectedDate;
 
-  /// قائمة العبادات النشطة والمعروضة في جدول هذا اليوم
-  final List<HabitItem> activeHabits;
+  /// قائمة محطات اليوم (الفجر، الضحى، الظهر، العصر، المغرب، العشاء، قيام الليل)
+  final List<PrayerStationModel> stations;
 
-  /// معرّفات العبادات المكتملة في هذا اليوم
+  /// معرّف المحطة المختارة حالياً للتركيز والعرض في البطاقة
+  final String selectedStationId;
+
+  /// معرّفات جميع العبادات المكتملة في هذا اليوم
   final Set<String> completedIds;
 
-  /// القائمة الكاملة الشاملة للعبادات (لأغراض شاشة التخصيص)
-  final List<HabitItem> allHabits;
-
-  /// معرّفات العبادات التي اختار المستخدم تفعيلها
-  final Set<String> enabledHabitIds;
-
-  /// عدد أيام الالتزام المتتالية
+  /// عدد أيام الالتزام المتتالية (Streak)
   final int streak;
 
   /// ملخص الإحصائيات الأسبوعية
@@ -31,14 +29,21 @@ class HabitTrackerState {
 
   const HabitTrackerState({
     required this.selectedDate,
-    required this.activeHabits,
+    required this.stations,
+    required this.selectedStationId,
     required this.completedIds,
-    required this.allHabits,
-    required this.enabledHabitIds,
     required this.streak,
     this.statsSummary,
     this.isLoading = false,
   });
+
+  /// المحطة المعروضة حالياً
+  PrayerStationModel get currentStation {
+    return stations.firstWhere(
+      (s) => s.id == selectedStationId,
+      orElse: () => stations.isNotEmpty ? stations.first : PrayerStationModel.getDefaultStations().first,
+    );
+  }
 
   /// هل التاريخ المختار يطابق اليوم الحالي؟
   bool get isToday {
@@ -48,37 +53,44 @@ class HabitTrackerState {
         selectedDate.day == now.day;
   }
 
-  /// نسبة إنجاز جدول اليوم
-  double get completionPercentage {
-    if (activeHabits.isEmpty) return 0.0;
-    final completedInActive = activeHabits.where((h) => completedIds.contains(h.id)).length;
-    return (completedInActive / activeHabits.length).clamp(0.0, 1.0);
+  /// إجمالي عدد المهام والعبادات في كل المحطات
+  int get totalItemsCount {
+    int count = 0;
+    for (final st in stations) {
+      count += st.items.length;
+    }
+    return count > 0 ? count : 1;
   }
 
-  /// عدد العبادات المكتملة لليوم
-  int get completedCount {
-    return activeHabits.where((h) => completedIds.contains(h.id)).length;
+  /// إجمالي العبادات المنجزة في اليوم
+  int get totalCompletedCount {
+    int count = 0;
+    for (final st in stations) {
+      count += st.getCompletedCount(completedIds);
+    }
+    return count;
   }
 
-  /// عدد العبادات الإجمالي المعروضة لليوم
-  int get totalCount => activeHabits.length;
+  /// نسبة إنجاز اليوم بالكامل
+  double get dailyCompletionPercentage {
+    if (totalItemsCount <= 0) return 0.0;
+    return (totalCompletedCount / totalItemsCount).clamp(0.0, 1.0);
+  }
 
   HabitTrackerState copyWith({
     DateTime? selectedDate,
-    List<HabitItem>? activeHabits,
+    List<PrayerStationModel>? stations,
+    String? selectedStationId,
     Set<String>? completedIds,
-    List<HabitItem>? allHabits,
-    Set<String>? enabledHabitIds,
     int? streak,
     HabitStatsSummary? statsSummary,
     bool? isLoading,
   }) {
     return HabitTrackerState(
       selectedDate: selectedDate ?? this.selectedDate,
-      activeHabits: activeHabits ?? this.activeHabits,
+      stations: stations ?? this.stations,
+      selectedStationId: selectedStationId ?? this.selectedStationId,
       completedIds: completedIds ?? this.completedIds,
-      allHabits: allHabits ?? this.allHabits,
-      enabledHabitIds: enabledHabitIds ?? this.enabledHabitIds,
       streak: streak ?? this.streak,
       statsSummary: statsSummary ?? this.statsSummary,
       isLoading: isLoading ?? this.isLoading,

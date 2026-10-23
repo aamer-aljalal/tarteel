@@ -95,6 +95,7 @@ flutter:
     - assets/json/Stories/Stories_Prophets.json
     - assets/animation/tasbih/
     - assets/img/
+    - assets/img/TopBar/
     - assets/img/icon/
     - assets/img/quran/
     - assets/audio/adhan/
@@ -140,7 +141,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-
   image_path: "assets/img/icon/tarteel.png"
   adaptive_icon_foreground: "assets/img/icon/tarteel.png"
   adaptive_icon_background: "#FFFFFF"
