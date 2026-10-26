@@ -61,7 +61,8 @@ class _MushafPageState extends State<MushafPage> {
         if (widget.surah.number == 1 && ayah.verse == 1) continue;
         spans.add(
           TextSpan(
-            text: '${ayah.text}\u00A0', // مسافة غير قابلة للكسر تمنع سقوط رقم الآية وحيداً
+            text:
+                '${ayah.text}\u00A0', // مسافة غير قابلة للكسر تمنع سقوط رقم الآية وحيداً
             style: TextStyle(
               fontSize: fs,
               height: lh,
@@ -96,8 +97,8 @@ class _MushafPageState extends State<MushafPage> {
     }
 
     // بحث ثنائي دقيق: لا يتجاوز الحدود الطبيعية لخط المصحف
-    double lowFs = baseFontSize * 0.75;
-    double highFs = baseFontSize * 1.15;
+    double lowFs = baseFontSize * .65;
+    double highFs = baseFontSize * 1.25;
     double bestFs = lowFs;
     double bestLh = 1.95;
 
@@ -257,7 +258,7 @@ class _MushafPageState extends State<MushafPage> {
             decoration: BoxDecoration(
               border: Border.all(color: innerBorderColor, width: 1.0),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+            // padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             child: Column(
               children: [
                 // محتوى الآيات محمي دائماً بواسطة FittedBox لمنع أي overflow نهائياً

@@ -15,8 +15,8 @@ class AyahNumber extends StatelessWidget {
     final badgeDimension = (28.0 * scale).w;
 
     return Container(
-      width: badgeDimension,
-      height: badgeDimension,
+      width: badgeDimension + 10,
+      height: badgeDimension + 10,
       alignment: Alignment.center,
       margin: EdgeInsets.symmetric(horizontal: 1.5.w),
       decoration: const BoxDecoration(
@@ -30,7 +30,7 @@ class AyahNumber extends StatelessWidget {
         textAlign: TextAlign.center,
         style: TextStyle(
           color: const Color.fromARGB(255, 254, 255, 255),
-          fontSize: (9.5 * scale).sp,
+          fontSize: (8 * scale).sp,
           fontWeight: FontWeight.w800,
           height: 1,
         ),
