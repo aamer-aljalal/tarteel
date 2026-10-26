@@ -218,13 +218,13 @@ class _MushafPageState extends State<MushafPage> {
           margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
           padding: const EdgeInsets.all(2.5),
           decoration: BoxDecoration(
-            border: Border.all(color: outerBorderColor, width: 2),
+            border: Border.all(color: outerBorderColor, width: 1.5),
           ),
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: innerBorderColor, width: 1.0),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 4.h),
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             child: Column(
               children: [
                 // محتوى الآيات داخل الإطار
@@ -242,7 +242,7 @@ class _MushafPageState extends State<MushafPage> {
                     '${widget.pageNumber}',
                     style: TextStyle(
                       color: pageNumberColor,
-                      fontSize: 14.sp,
+                      fontSize: 12.sp,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Amiri',
                     ),
