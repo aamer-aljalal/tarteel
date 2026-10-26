@@ -7,19 +7,20 @@
     "isEnabled": true
   },
   {
+    "id": "habit_tracker",
+    "title": "يوميات المسلم",
+    "route": "/habit-tracker",
+    "icon": "habit_tracker",
+    "isEnabled": false
+  },
+  {
     "id": "azkar",
     "title": "الأذكار",
     "route": "/azkar-categories",
     "icon": "azkar",
     "isEnabled": true
   },
-    {
-    "id": "habit_tracker",
-    "title": "يوميات المسلم",
-    "route": "/habit-tracker",
-    "icon": "habit_tracker",
-    "isEnabled": true
-  },
+
   {
     "id": "hisn",
     "title": "حصن المسلم",
@@ -36,14 +37,14 @@
   },
   {
     "id": "tasbeeh",
-    "title": "التسبيح",
+    "title": "المسبحة",
     "route": "/tasbeeh",
     "icon": "tasbeeh",
     "isEnabled": true
   },
   {
     "id": "names_of_allah",
-    "title": "الأسماء",
+    "title": "الأسماء الحسنى",
     "route": "/names-of-allah",
     "icon": "names_of_allah",
     "isEnabled": true
@@ -70,12 +71,20 @@
     "isEnabled": true
   },
   {
+    "id": "islamic_quiz",
+    "title": "المسابقات",
+    "route": "/islamic-quiz",
+    "icon": "quiz",
+    "isEnabled": false
+  },
+  {
     "id": "bookmarks",
     "title": "المفضلة",
     "route": "/bookmarks",
     "icon": "bookmarks",
     "isEnabled": true
   },
+
   {
     "id": "stats",
     "title": "الإحصائيات",
@@ -88,16 +97,6 @@
     "title": "الإعدادات",
     "route": "/settings",
     "icon": "settings",
-    "isEnabled": true
-  },
-     {
-    "id": "islamic_quiz",
-    "title": "المسابقات",
-    "route": "/dynamic-page",
-    "arguments": {
-      "url": "https://raw.githubusercontent.com/aamer-aljalal/tarteel-config/main/quiz_sample.json"
-    },
-    "icon": "quiz",
     "isEnabled": true
   }
 ]
