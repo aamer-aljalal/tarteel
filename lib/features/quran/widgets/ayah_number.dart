@@ -9,16 +9,17 @@ class AyahNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 20.0 is the new default base font size
+    // 20.0 is the base font size
     final scale = fontSize / 20.0;
+    // الحجم المتناسق مع ارتفاع السطر في المصاحف المطبوعة
+    final badgeDimension = (28.0 * scale).w;
 
     return Container(
-      width: (50 * scale).w,
-      height: (50 * scale).w,
+      width: badgeDimension,
+      height: badgeDimension,
       alignment: Alignment.center,
-      margin: EdgeInsets.symmetric(horizontal: 2.w),
-      // use provided image as background for the ayah number
-      decoration: BoxDecoration(
+      margin: EdgeInsets.symmetric(horizontal: 1.5.w),
+      decoration: const BoxDecoration(
         image: DecorationImage(
           image: AssetImage('assets/img/verseNumber.png'),
           fit: BoxFit.contain,
@@ -29,7 +30,7 @@ class AyahNumber extends StatelessWidget {
         textAlign: TextAlign.center,
         style: TextStyle(
           color: const Color.fromARGB(255, 254, 255, 255),
-          fontSize: (9 * scale).sp,
+          fontSize: (9.5 * scale).sp,
           fontWeight: FontWeight.w800,
           height: 1,
         ),

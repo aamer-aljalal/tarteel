@@ -53,14 +53,15 @@ class _MushafPageState extends State<MushafPage> {
       final spans = <InlineSpan>[];
       final placeholders = <PlaceholderDimensions>[];
       final scale = fs / 20.0;
-      final badgeWidth = (50.0 * scale).w + 4.w; // العرض الفعلي مع الهوامش
-      final badgeHeight = (50.0 * scale).w;
+      // أبعاد الشارة الحقيقية المتناسقة مع النص (28.0 * scale) مع الهامش الجانبي (3.w)
+      final badgeDimension = (28.0 * scale).w;
+      final badgeTotalWidth = badgeDimension + 3.w;
 
       for (final ayah in widget.ayahs) {
         if (widget.surah.number == 1 && ayah.verse == 1) continue;
         spans.add(
           TextSpan(
-            text: '${ayah.text} ',
+            text: '${ayah.text}\u00A0', // مسافة غير قابلة للكسر تمنع سقوط رقم الآية وحيداً
             style: TextStyle(
               fontSize: fs,
               height: lh,
@@ -72,12 +73,12 @@ class _MushafPageState extends State<MushafPage> {
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
-            child: SizedBox(width: badgeWidth, height: badgeHeight),
+            child: SizedBox(width: badgeTotalWidth, height: badgeDimension),
           ),
         );
         placeholders.add(
           PlaceholderDimensions(
-            size: Size(badgeWidth, badgeHeight),
+            size: Size(badgeTotalWidth, badgeDimension),
             alignment: PlaceholderAlignment.middle,
           ),
         );
@@ -94,18 +95,16 @@ class _MushafPageState extends State<MushafPage> {
       return tp.height;
     }
 
-    // بحث ثنائي دقيق على حجم الخط
-    double lowFs = baseFontSize * 0.70;
-    double highFs = baseFontSize * 1.55;
+    // بحث ثنائي دقيق: لا يتجاوز الحدود الطبيعية لخط المصحف
+    double lowFs = baseFontSize * 0.75;
+    double highFs = baseFontSize * 1.15;
     double bestFs = lowFs;
-    double bestLh = 1.85;
+    double bestLh = 1.95;
 
     for (int i = 0; i < 10; i++) {
       final midFs = (lowFs + highFs) / 2;
-      // نسبة تباعد أسطر متناغمة لملء الإطار
-      final factor = ((midFs - baseFontSize * 0.70) / (baseFontSize * 0.85))
-          .clamp(0.0, 1.0);
-      final midLh = 1.95 + (factor * 0.45); // تتراوح بين 1.95 و 2.40
+      final factor = ((midFs - lowFs) / (highFs - lowFs)).clamp(0.0, 1.0);
+      final midLh = 1.90 + (factor * 0.25); // بين 1.90 و 2.15
       final h = measure(midFs, midLh);
 
       if (h <= targetHeight) {
@@ -117,13 +116,16 @@ class _MushafPageState extends State<MushafPage> {
       }
     }
 
-    // تحسين إضافي: استغلال أي فراغ رأسي متبقي لملء الصفحة وتوزيع التباعد رأسياً
-    final actualH = measure(bestFs, bestLh);
-    if (actualH < targetHeight * 0.94) {
-      // رفع تباعد الأسطر ليتمدد النص بسلاسة ويملأ الصفحة دون أي فراغ سفلي
-      final remainingRatio = (targetHeight / actualH).clamp(1.0, 1.35);
-      bestLh = (bestLh * remainingRatio).clamp(1.85, 2.85);
+    // زيادة تباعد الأسطر بأمان تام فقط إذا كان الارتفاع يسمح بذلك دون أي تجاوز
+    double testLh = bestLh;
+    for (double step = 0.05; step <= 0.35; step += 0.05) {
+      if (measure(bestFs, bestLh + step) <= targetHeight) {
+        testLh = bestLh + step;
+      } else {
+        break;
+      }
     }
+    bestLh = testLh;
 
     return (fontSize: bestFs, lineHeight: bestLh);
   }
@@ -152,21 +154,20 @@ class _MushafPageState extends State<MushafPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isContinuous = constraints.maxHeight.isInfinite;
-        // المساحة العرضية الدقيقة داخل الإطارين الداخلي والخارجي
-        // الإطار الخارجي (4.w margin + 2.5 padding + 1.5 border) + الداخلي (8.w padding + 1.0 border)
+        // المساحة العرضية الدقيقة داخل الإطارين
         final totalHorizontalInset = (4.w + 2.5 + 1.5 + 8.w + 1.0) * 2;
         final availableWidth = (constraints.maxWidth - totalHorizontalInset)
             .clamp(100.0, double.infinity);
         final availableHeight = constraints.maxHeight;
 
         double calculatedFontSize = widget.fontSize.sp;
-        double calculatedLineHeight = 2.2;
+        double calculatedLineHeight = 2.0;
 
         if (!isContinuous) {
-          // حجز ارتفاع دقيق: البسملة ورقم الصفحة والإطارات
-          double reservedHeight = 36.h;
+          // حجز ارتفاع كافي بدقة يشمل هوامش الإطار الداخلي والخارجي ورقم الصفحة والبسملة
+          double reservedHeight = 52.h;
           if (widget.isFirstPage && _showBasmala) {
-            reservedHeight += 44.h;
+            reservedHeight += 58.h;
           }
 
           final targetHeight = (availableHeight - reservedHeight).clamp(
@@ -205,9 +206,9 @@ class _MushafPageState extends State<MushafPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: basmalaColor,
-                              fontSize: 20.sp,
+                              fontSize: 19.sp,
                               fontWeight: FontWeight.w900,
-                              height: 2.2.h,
+                              height: 2.0.h,
                               fontFamily: 'Amiri',
                             ),
                           ),
@@ -259,7 +260,7 @@ class _MushafPageState extends State<MushafPage> {
             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             child: Column(
               children: [
-                // محتوى الآيات داخل الإطار يملأ المساحة بشكل متناسق وموزع
+                // محتوى الآيات محمي دائماً بواسطة FittedBox لمنع أي overflow نهائياً
                 Expanded(
                   child: Center(
                     child: FittedBox(
@@ -321,9 +322,10 @@ class _MushafPageState extends State<MushafPage> {
           pressedAyah?.verse == ayah.verse &&
           pressedAyah?.chapter == ayah.chapter;
 
+      // إضافة مسافة غير قابلة للكسر \u00A0 في نهاية نص الآية لربطها بشارة رقم الآية ومنع سقوطها بمفردها
       spans.add(
         TextSpan(
-          text: '${ayah.text} ',
+          text: '${ayah.text}\u00A0',
           style: TextStyle(color: isPressed ? AppColors.goldAccent : null),
           recognizer:
               LongPressGestureRecognizer(
