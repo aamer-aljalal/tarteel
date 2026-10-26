@@ -48,50 +48,81 @@ class _MushafPageState extends State<MushafPage> {
       return (fontSize: baseFontSize, lineHeight: 2.0);
     }
 
-    final sampleAyahsText = widget.ayahs
-        .where((a) => !(widget.surah.number == 1 && a.verse == 1))
-        .map((a) => '${a.text}  ﴿${a.verse}﴾  ')
-        .join(' ');
-
+    // قياس الارتفاع بدقة متناهية مع احتساب الأبعاد الفعلية لـ WidgetSpan الخاص برقم الآية
     double measure(double fs, double lh) {
-      final tp = TextPainter(
-        text: TextSpan(
-          text: sampleAyahsText,
-          style: TextStyle(
-            fontSize: fs,
-            height: lh,
-            fontFamily: 'Amiri',
-            fontWeight: FontWeight.w500,
+      final spans = <InlineSpan>[];
+      final placeholders = <PlaceholderDimensions>[];
+      final scale = fs / 20.0;
+      final badgeWidth = (50.0 * scale).w + 4.w; // العرض الفعلي مع الهوامش
+      final badgeHeight = (50.0 * scale).w;
+
+      for (final ayah in widget.ayahs) {
+        if (widget.surah.number == 1 && ayah.verse == 1) continue;
+        spans.add(
+          TextSpan(
+            text: '${ayah.text} ',
+            style: TextStyle(
+              fontSize: fs,
+              height: lh,
+              fontFamily: 'Amiri',
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
+        );
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: SizedBox(width: badgeWidth, height: badgeHeight),
+          ),
+        );
+        placeholders.add(
+          PlaceholderDimensions(
+            size: Size(badgeWidth, badgeHeight),
+            alignment: PlaceholderAlignment.middle,
+          ),
+        );
+        spans.add(const TextSpan(text: ' '));
+      }
+
+      final tp = TextPainter(
+        text: TextSpan(children: spans),
         textDirection: TextDirection.rtl,
         textAlign: TextAlign.justify,
       );
+      tp.setPlaceholderDimensions(placeholders);
       tp.layout(maxWidth: availableWidth);
       return tp.height;
     }
 
-    // بحث ثنائي دقيق: من 0.65 إلى 1.45 من حجم الخط الأساسي
-    double lowFs = baseFontSize * 0.65;
-    double highFs = baseFontSize * 1.45;
+    // بحث ثنائي دقيق على حجم الخط
+    double lowFs = baseFontSize * 0.70;
+    double highFs = baseFontSize * 1.55;
     double bestFs = lowFs;
-    double bestLh = 1.8;
+    double bestLh = 1.85;
 
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 10; i++) {
       final midFs = (lowFs + highFs) / 2;
-      // تباعد مرن ومتناسق مع الخط
-      final factor = ((midFs - baseFontSize * 0.65) / (baseFontSize * 0.80))
+      // نسبة تباعد أسطر متناغمة لملء الإطار
+      final factor = ((midFs - baseFontSize * 0.70) / (baseFontSize * 0.85))
           .clamp(0.0, 1.0);
-      final midLh = 1.90 + (factor * 0.55); // تتراوح بين 1.75 و 2.30
+      final midLh = 1.95 + (factor * 0.45); // تتراوح بين 1.95 و 2.40
       final h = measure(midFs, midLh);
 
       if (h <= targetHeight) {
         bestFs = midFs;
         bestLh = midLh;
-        lowFs = midFs; // إمكانية التكبير أكثر لملء الصفحة
+        lowFs = midFs;
       } else {
-        highFs = midFs; // تخفيض الحجم حتى لا يحدث overflow
+        highFs = midFs;
       }
+    }
+
+    // تحسين إضافي: استغلال أي فراغ رأسي متبقي لملء الصفحة وتوزيع التباعد رأسياً
+    final actualH = measure(bestFs, bestLh);
+    if (actualH < targetHeight * 0.94) {
+      // رفع تباعد الأسطر ليتمدد النص بسلاسة ويملأ الصفحة دون أي فراغ سفلي
+      final remainingRatio = (targetHeight / actualH).clamp(1.0, 1.35);
+      bestLh = (bestLh * remainingRatio).clamp(1.85, 2.85);
     }
 
     return (fontSize: bestFs, lineHeight: bestLh);
@@ -121,18 +152,19 @@ class _MushafPageState extends State<MushafPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isContinuous = constraints.maxHeight.isInfinite;
-        // نترك هامش جانبي ثابت مع مساحة للخطوط الصفراء
-        const double sidePadding = -70.0;
-        final availableWidth = (constraints.maxWidth - (sidePadding * 0.40))
+        // المساحة العرضية الدقيقة داخل الإطارين الداخلي والخارجي
+        // الإطار الخارجي (4.w margin + 2.5 padding + 1.5 border) + الداخلي (8.w padding + 1.0 border)
+        final totalHorizontalInset = (4.w + 2.5 + 1.5 + 8.w + 1.0) * 2;
+        final availableWidth = (constraints.maxWidth - totalHorizontalInset)
             .clamp(100.0, double.infinity);
         final availableHeight = constraints.maxHeight;
 
         double calculatedFontSize = widget.fontSize.sp;
-        double calculatedLineHeight = 2.5;
+        double calculatedLineHeight = 2.2;
 
         if (!isContinuous) {
-          // حجز ارتفاع كافي لمنع أي تجاوز رأسي أو تداخل مع الشريط السفلي
-          double reservedHeight = 45.h;
+          // حجز ارتفاع دقيق: البسملة ورقم الصفحة والإطارات
+          double reservedHeight = 36.h;
           if (widget.isFirstPage && _showBasmala) {
             reservedHeight += 44.h;
           }
@@ -153,10 +185,10 @@ class _MushafPageState extends State<MushafPage> {
         final contentWidget = SizedBox(
           width: availableWidth,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Align(
-                alignment: Alignment.topCenter,
+                alignment: Alignment.center,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -175,13 +207,13 @@ class _MushafPageState extends State<MushafPage> {
                               color: basmalaColor,
                               fontSize: 20.sp,
                               fontWeight: FontWeight.w900,
-                              height: 2.5.h,
+                              height: 2.2.h,
                               fontFamily: 'Amiri',
                             ),
                           ),
                         ),
                       ],
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 8.h),
                     ],
                     ValueListenableBuilder<QuranAyah?>(
                       valueListenable: widget.pressedAyahNotifier,
@@ -227,12 +259,14 @@ class _MushafPageState extends State<MushafPage> {
             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             child: Column(
               children: [
-                // محتوى الآيات داخل الإطار
+                // محتوى الآيات داخل الإطار يملأ المساحة بشكل متناسق وموزع
                 Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.topCenter,
-                    child: contentWidget,
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: contentWidget,
+                    ),
                   ),
                 ),
                 // رقم الصفحة يظهر كنص أنيق في الأسفل فوق الخط السفلي مباشرة
