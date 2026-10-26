@@ -23,6 +23,61 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     return pageMap.values.toList();
   }
 
+  static QuranReaderState _createInitialState({
+    required QuranSurah initialSurah,
+    required List<QuranAyah> initialAyahs,
+    required int initialPage,
+    required int? initialAyah,
+    required bool isKhatmaSession,
+  }) {
+    final cachedPages = QuranService.getCachedAllPages();
+    final cachedSurahs = QuranService.getCachedSurahs() ?? [initialSurah];
+
+    if (cachedPages != null && cachedPages.isNotEmpty) {
+      int targetPage = 0;
+      if (initialAyah != null && initialAyahs.isNotEmpty) {
+        final match = initialAyahs.firstWhere(
+          (a) => a.verse == initialAyah,
+          orElse: () => initialAyahs.first,
+        );
+        targetPage = (match.page - 1).clamp(0, cachedPages.length - 1);
+      } else if (initialAyahs.isNotEmpty) {
+        targetPage = (initialAyahs.first.page - 1).clamp(0, cachedPages.length - 1);
+      } else {
+        final startP = QuranService.getSurahStartPage(initialSurah.number);
+        targetPage = (startP - 1).clamp(0, cachedPages.length - 1);
+      }
+
+      final pageAyahs = cachedPages[targetPage];
+      final surahNum =
+          pageAyahs.isNotEmpty ? pageAyahs.first.chapter : initialSurah.number;
+      final activeSurah = cachedSurahs.firstWhere(
+        (s) => s.number == surahNum,
+        orElse: () => initialSurah,
+      );
+
+      return QuranReaderState(
+        surah: activeSurah,
+        ayahs: pageAyahs,
+        paginatedPages: cachedPages,
+        continuousPages: [initialAyahs],
+        currentPage: targetPage,
+        allSurahs: cachedSurahs,
+        isLoading: false,
+      );
+    }
+
+    return QuranReaderState(
+      surah: initialSurah,
+      ayahs: initialAyahs,
+      paginatedPages: splitIntoPages(initialAyahs),
+      continuousPages: [initialAyahs],
+      currentPage: initialPage,
+      allSurahs: cachedSurahs,
+      isLoading: true,
+    );
+  }
+
   QuranReaderCubit({
     required QuranSurah initialSurah,
     required List<QuranAyah> initialAyahs,
@@ -30,39 +85,36 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     this.initialAyah,
     this.isKhatmaSession = false,
   }) : super(
-         QuranReaderState(
-           surah: initialSurah,
-           ayahs: initialAyahs,
-           paginatedPages: splitIntoPages(initialAyahs),
-           continuousPages: [initialAyahs],
-           currentPage: initialPage,
+         _createInitialState(
+           initialSurah: initialSurah,
+           initialAyahs: initialAyahs,
+           initialPage: initialPage,
+           initialAyah: initialAyah,
+           isKhatmaSession: isKhatmaSession,
          ),
        ) {
     _initialize(initialPage);
   }
 
   Future<void> _initialize(int initialPage) async {
-    // 1. تحميل قائمة كافة السور للتنقل السلس
-    List<QuranSurah> allSurahs = [];
-    try {
-      allSurahs = await QuranService.loadSurahs();
-    } catch (_) {}
+    final allSurahs = await QuranService.loadSurahs();
+    final allPages = await QuranService.loadAllPages();
 
-    // 2. تحديد الصفحة المبدئية عند فتح آية معينة
-    int startPage = initialPage;
-    final activePages = state.paginatedPages;
+    int startPage = state.currentPage;
 
-    if (initialAyah != null) {
-      for (int i = 0; i < activePages.length; i++) {
-        if (activePages[i].any((a) => a.verse == initialAyah)) {
-          startPage = i;
-          break;
-        }
+    if (state.isLoading || state.paginatedPages.length < 604) {
+      if (initialAyah != null && state.ayahs.isNotEmpty) {
+        final match = state.ayahs.firstWhere(
+          (a) => a.verse == initialAyah,
+          orElse: () => state.ayahs.first,
+        );
+        startPage = (match.page - 1).clamp(0, allPages.length - 1);
+      } else if (state.ayahs.isNotEmpty) {
+        startPage = (state.ayahs.first.page - 1).clamp(0, allPages.length - 1);
+      } else {
+        final startP = QuranService.getSurahStartPage(state.surah.number);
+        startPage = (startP - 1).clamp(0, allPages.length - 1);
       }
-    }
-
-    if (startPage >= activePages.length) {
-      startPage = 0;
     }
 
     int? savedBookmarkPage;
@@ -73,24 +125,38 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
           : prefs.getInt('quran_bookmark_page');
     } catch (_) {}
 
+    final activeAyahs = allPages.isNotEmpty && startPage < allPages.length
+        ? allPages[startPage]
+        : state.ayahs;
+    final activeSurahNum =
+        activeAyahs.isNotEmpty ? activeAyahs.first.chapter : state.surah.number;
+    final activeSurah = allSurahs.firstWhere(
+      (s) => s.number == activeSurahNum,
+      orElse: () => state.surah,
+    );
+
     emit(
       state.copyWith(
         isPageView: true,
         fontSize: 20.0,
+        surah: activeSurah,
+        ayahs: activeAyahs,
+        paginatedPages: allPages,
         currentPage: startPage,
         allSurahs: allSurahs,
         savedBookmarkPage: savedBookmarkPage,
+        isLoading: false,
       ),
     );
 
     // 3. إشعار سورة الكهف
-    if (state.surah.number == 18) {
+    if (activeSurah.number == 18) {
       InAppNotificationService.markCompleted('surah_kahf');
     }
 
     // 4. حفظ الإجراء الحديث (سجل التصفح الأخير)
     await _saveRecentAction(
-      surah: state.surah,
+      surah: activeSurah,
       currentPage: startPage,
       initialAyah: initialAyah,
       isKhatmaSession: isKhatmaSession,
@@ -144,45 +210,74 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     }
   }
 
-  /// الانتقال إلى صفحة أخرى
+  /// الانتقال إلى صفحة أخرى عبر تقليب الصفحات
   void changePage(int index) {
     if (index >= 0 && index < state.totalPages) {
-      emit(state.copyWith(currentPage: index, hasChangedPage: true));
+      final pageAyahs = state.pages[index];
+      final surahNumber = pageAyahs.isNotEmpty
+          ? pageAyahs.first.chapter
+          : state.surah.number;
+      final currentSurah = state.allSurahs.firstWhere(
+        (s) => s.number == surahNumber,
+        orElse: () => state.surah,
+      );
+
+      emit(
+        state.copyWith(
+          currentPage: index,
+          surah: currentSurah,
+          ayahs: pageAyahs,
+          hasChangedPage: true,
+        ),
+      );
+
+      _saveRecentAction(
+        surah: currentSurah,
+        currentPage: index,
+        initialAyah: pageAyahs.isNotEmpty ? pageAyahs.first.verse : null,
+        isKhatmaSession: isKhatmaSession,
+      );
+
+      if (currentSurah.number == 18) {
+        InAppNotificationService.markCompleted('surah_kahf');
+      }
     }
   }
 
-  /// الانتقال إلى سورة أخرى مباشرة
-  Future<void> navigateToSurah(int surahNumber) async {
+  /// الانتقال إلى سورة أخرى مباشرة (مع دعم الانتقال لآخر صفحة عند التقليب للخلف)
+  Future<void> navigateToSurah(int surahNumber, {bool toLastPage = false}) async {
     try {
-      emit(state.copyWith(isLoading: true));
       final surahs = state.allSurahs.isNotEmpty
           ? state.allSurahs
           : await QuranService.loadSurahs();
       final targetSurah = surahs.firstWhere((s) => s.number == surahNumber);
-      final ayahs = await QuranService.loadAyahs(surahNumber);
 
-      final paginated = splitIntoPages(ayahs);
+      final targetPageNumber = toLastPage
+          ? QuranService.getSurahEndPage(surahNumber)
+          : QuranService.getSurahStartPage(surahNumber);
+      final targetIndex = (targetPageNumber - 1).clamp(0, state.totalPages - 1);
+      final pageAyahs = state.pages.isNotEmpty && targetIndex < state.pages.length
+          ? state.pages[targetIndex]
+          : await QuranService.loadAyahs(surahNumber);
 
       emit(
         state.copyWith(
           surah: targetSurah,
-          ayahs: ayahs,
-          paginatedPages: paginated,
-          currentPage: 0,
-          isLoading: false,
-          hasChangedPage: false,
+          ayahs: pageAyahs,
+          currentPage: targetIndex,
+          hasChangedPage: true,
         ),
       );
 
       await _saveRecentAction(
         surah: targetSurah,
-        currentPage: 0,
-        initialAyah: null,
+        currentPage: targetIndex,
+        initialAyah: pageAyahs.isNotEmpty ? pageAyahs.first.verse : null,
         isKhatmaSession: isKhatmaSession,
       );
     } catch (e) {
       emit(
-        state.copyWith(isLoading: false, errorMessage: 'تعذر فتح السورة: $e'),
+        state.copyWith(errorMessage: 'تعذر فتح السورة: $e'),
       );
     }
   }

@@ -20,8 +20,8 @@ import 'package:tarteel/core/services/lazy_loader/lazy_data_loader.dart';
 class HomeActionsService
     implements LazyDataLoader<AccessListModel, AccessListModel> {
   /// الرابط السحابي المباشر لملف أزرار ترتيل على GitHub
-  static const String githubActionsUrl =
-      'https://github.com/aamer-aljalal/tarteel/blob/main/assets/json/home_actions.json';
+  // static const String githubActionsUrl ='https://raw.githubusercontent.com/aamer-aljalal/tarteel-config/main/actions.json';
+  static const String githubActionsUrl = '';
 
   const HomeActionsService();
 

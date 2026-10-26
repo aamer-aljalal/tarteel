@@ -61,8 +61,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
   late final PageController _pageController;
   final ValueNotifier<QuranAyah?> _pressedAyahNotifier = ValueNotifier(null);
 
-  late Map<int, GlobalKey> _ayahKeys;
-  late List<GlobalKey> _pageKeys;
   int? _initialPageNumber;
 
   @override
@@ -71,12 +69,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     final cubit = context.read<QuranReaderCubit>();
     _pageController = PageController(initialPage: cubit.state.currentPage);
     _initialPageNumber = cubit.state.currentPageNumber;
-    _initKeys(cubit.state);
-  }
-
-  void _initKeys(QuranReaderState state) {
-    _pageKeys = List.generate(state.pages.length, (_) => GlobalKey());
-    _ayahKeys = {for (var a in state.ayahs) a.verse: GlobalKey()};
   }
 
   @override
@@ -95,7 +87,8 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
 
     // فحص ما إذا تقدم القارئ في الصفحات
     final currentPage = state.currentPageNumber;
-    final hasActuallyMoved = state.hasChangedPage ||
+    final hasActuallyMoved =
+        state.hasChangedPage ||
         (_initialPageNumber != null && currentPage != _initialPageNumber) ||
         (state.savedBookmarkPage != null &&
             currentPage != state.savedBookmarkPage);
@@ -129,31 +122,40 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
     QuranReaderState state,
     int index,
   ) {
+    if (index >= state.pages.length) return const SizedBox.shrink();
     final pageAyahs = state.pages[index];
     final realMushafPage = pageAyahs.isNotEmpty
         ? pageAyahs.first.page
         : (index + 1);
 
-    if (index >= _pageKeys.length) {
-      _pageKeys = List.generate(state.pages.length, (_) => GlobalKey());
-    }
+    final surahNumber = pageAyahs.isNotEmpty ? pageAyahs.first.chapter : 1;
+    final pageSurah = state.allSurahs.firstWhere(
+      (s) => s.number == surahNumber,
+      orElse: () => state.surah,
+    );
+
+    final isFirstPageOfSurah =
+        pageAyahs.isNotEmpty && pageAyahs.any((a) => a.verse == 1);
 
     return MushafPage(
-      key: _pageKeys[index],
-      surah: state.surah,
+      key: ValueKey('page_$realMushafPage'),
+      surah: pageSurah,
       ayahs: pageAyahs,
-      isFirstPage: index == 0,
-      isLastPage: index == state.pages.length - 1,
+      isFirstPage: isFirstPageOfSurah,
+      isLastPage: false,
       pageNumber: realMushafPage,
-      onAyahLongPress: (ayah) => _showAyahActions(ayah, state.surah),
+      onAyahLongPress: (ayah) => _showAyahActions(ayah, pageSurah),
       pressedAyahNotifier: _pressedAyahNotifier,
       initialAyah: widget.initialAyah,
-      ayahKeys: _ayahKeys,
+      ayahKeys: const {},
       fontSize: state.fontSize,
     );
   }
 
-  Future<void> _showAyahActions(QuranAyah ayah, QuranSurah surah) async {
+  Future<void> _showAyahActions(
+    QuranAyah ayah,
+    QuranSurah fallbackSurah,
+  ) async {
     _pressedAyahNotifier.value = ayah;
     final interpretation = await QuranService.loadInterpretation(
       surahNumber: ayah.chapter,
@@ -164,6 +166,12 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
       _pressedAyahNotifier.value = null;
       return;
     }
+
+    final cubitState = context.read<QuranReaderCubit>().state;
+    final surah = cubitState.allSurahs.firstWhere(
+      (s) => s.number == ayah.chapter,
+      orElse: () => fallbackSurah,
+    );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -450,11 +458,14 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
   Widget build(BuildContext context) {
     return BlocConsumer<QuranReaderCubit, QuranReaderState>(
       listener: (context, state) {
-        _initKeys(state);
-
         if (state.isPageView && _pageController.hasClients) {
           if (_pageController.page?.round() != state.currentPage) {
-            _pageController.jumpToPage(state.currentPage);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_pageController.hasClients &&
+                  _pageController.page?.round() != state.currentPage) {
+                _pageController.jumpToPage(state.currentPage);
+              }
+            });
           }
         }
       },
@@ -482,14 +493,16 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                     currentJuz: state.currentJuz,
                     currentHizb: state.currentHizb,
                   ),
-                  // 2. محتوى صفحة المصحف (قراءة مريحة بنمط صفحات المصحف)
+                  // 2. محتوى صفحة المصحف (قراءة مريحة بنمط صفحات المصحف مع دعم التقليب اليدوي بين السور)
                   Expanded(
                     child: state.isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : PageView.builder(
                             controller: _pageController,
                             itemCount: state.pages.length,
-                            physics: const ClampingScrollPhysics(),
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
                             onPageChanged: (index) {
                               context.read<QuranReaderCubit>().changePage(
                                 index,
@@ -512,7 +525,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                     ),
                     child: SafeArea(
                       top: false,
-                      child: Container(
+                      child: SizedBox(
                         height: 50.h,
                         // padding: EdgeInsets.symmetric(horizontal: 16.w),
                         child: Stack(

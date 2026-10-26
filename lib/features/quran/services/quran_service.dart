@@ -131,6 +131,31 @@ class QuranService implements LazyDataLoader<AccessListModel, QuranSurah> {
     }
   }
 
+  static List<QuranSurah>? getCachedSurahs() => _surahs;
+
+  static List<List<QuranAyah>>? getCachedAllPages() {
+    if (_pageAyahsCache == null) return null;
+    return List.generate(604, (index) => _pageAyahsCache![index + 1] ?? []);
+  }
+
+  static Future<List<List<QuranAyah>>> loadAllPages() async {
+    await _ensureQuranLoaded();
+    if (_pageAyahsCache == null) return [];
+    return List.generate(604, (index) => _pageAyahsCache![index + 1] ?? []);
+  }
+
+  static int getSurahStartPage(int surahNumber) {
+    final ayahs = _surahAyahsCache?[surahNumber];
+    if (ayahs == null || ayahs.isEmpty) return 1;
+    return ayahs.first.page;
+  }
+
+  static int getSurahEndPage(int surahNumber) {
+    final ayahs = _surahAyahsCache?[surahNumber];
+    if (ayahs == null || ayahs.isEmpty) return 1;
+    return ayahs.last.page;
+  }
+
   static Future<List<QuranSurah>> loadSurahs() async {
     if (_surahs != null) return _surahs!;
 
