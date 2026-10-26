@@ -17,10 +17,11 @@ import 'package:tarteel/Model/AccessListModel.dart';
 import 'package:tarteel/core/services/github_sync_service.dart';
 import 'package:tarteel/core/services/lazy_loader/lazy_data_loader.dart';
 
-class HomeActionsService implements LazyDataLoader<AccessListModel, AccessListModel> {
+class HomeActionsService
+    implements LazyDataLoader<AccessListModel, AccessListModel> {
   /// الرابط السحابي المباشر لملف أزرار ترتيل على GitHub
   static const String githubActionsUrl =
-      'https://raw.githubusercontent.com/aamer-aljalal/tarteel-config/main/actions.json';
+      'https://github.com/aamer-aljalal/tarteel/blob/main/assets/json/home_actions.json';
 
   const HomeActionsService();
 
@@ -74,8 +75,9 @@ class HomeActionsService implements LazyDataLoader<AccessListModel, AccessListMo
           if (!remote.isEnabled) continue;
 
           // نبحث عن بيانات الزر المحلي إن وجدت لاستكمال أي نواقص
-          final localMatchIndex =
-              localActions.indexWhere((l) => l.id == remote.id);
+          final localMatchIndex = localActions.indexWhere(
+            (l) => l.id == remote.id,
+          );
 
           if (localMatchIndex != -1) {
             final local = localActions[localMatchIndex];
@@ -99,9 +101,8 @@ class HomeActionsService implements LazyDataLoader<AccessListModel, AccessListMo
         }
 
         // إضافة أي أزرار محلية متبقية لم يذكرها جيت هب في نهاية القائمة
-             for (final local in localActions) {
-          final isHandledByRemote =
-              remoteActions.any((r) => r.id == local.id);
+        for (final local in localActions) {
+          final isHandledByRemote = remoteActions.any((r) => r.id == local.id);
           if (!isHandledByRemote && local.isEnabled) {
             result.add(local);
           }

@@ -11,7 +11,7 @@
     "title": "يوميات المسلم",
     "route": "/habit-tracker",
     "icon": "habit_tracker",
-    "isEnabled": true
+    "isEnabled": false
   },
   {
     "id": "azkar",

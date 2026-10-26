@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/daily_habits_record.dart';
-import '../models/habit_item.dart';
 import '../models/habit_stats_summary.dart';
 import 'habit_calendar_helper.dart';
 
@@ -12,31 +11,7 @@ class HabitStorageService {
   HabitStorageService._();
 
   static const String _prefixRecord = 'habit_record_';
-  static const String _keyEnabledHabits = 'habit_enabled_ids_v1';
   static const String _keyLongestStreak = 'habit_longest_streak';
-  static const String _keyOnboardingCompleted = 'habit_onboarding_completed';
-
-  /// جلب قائمة معرّفات العبادات المفعّلة للمستخدم
-  static Future<Set<String>> getEnabledHabitIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_keyEnabledHabits);
-    if (list == null || list.isEmpty) {
-      // التهيئة الافتراضية الأولى
-      final defaults = HabitItem.getDefaultHabits()
-          .where((h) => h.isEnabled)
-          .map((h) => h.id)
-          .toSet();
-      await saveEnabledHabitIds(defaults);
-      return defaults;
-    }
-    return list.toSet();
-  }
-
-  /// حفظ قائمة معرّفات العبادات المفعّلة
-  static Future<void> saveEnabledHabitIds(Set<String> ids) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_keyEnabledHabits, ids.toList());
-  }
 
   /// جلب سجل يوم محدد
   static Future<DailyHabitsRecord> getRecord(DateTime date) async {
@@ -59,18 +34,6 @@ class HabitStorageService {
     final prefs = await SharedPreferences.getInstance();
     final raw = jsonEncode(record.toJson());
     await prefs.setString('$_prefixRecord${record.date}', raw);
-  }
-
-  /// هل أكمل المستخدم خطوة التخصيص والترحيب الأولى؟
-  static Future<bool> isOnboardingCompleted() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyOnboardingCompleted) ?? false;
-  }
-
-  /// تعيين اكتمال التخصيص الأولى
-  static Future<void> setOnboardingCompleted(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyOnboardingCompleted, value);
   }
 
   /// حساب سلسلة أيام الالتزام المتتالية (Streak)

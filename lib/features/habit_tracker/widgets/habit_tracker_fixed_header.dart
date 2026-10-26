@@ -3,10 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import 'habit_achievement_card.dart';
-import 'habit_highlights_swiper_card.dart';
 
 /// ==============================================================================
-/// رأس الصفحة الثابت ليوميات المسلم (بخلفية TopBar/2.jpg وبطاقة الأوراد المستقلة)
+/// رأس الصفحة الثابت ليوميات المسلم (ارتفاع مدروس لراحة اليد وسهولة الوصول بيد واحدة)
 /// ==============================================================================
 class HabitTrackerFixedHeader extends StatelessWidget {
   final DateTime selectedDate;
@@ -45,15 +44,15 @@ class HabitTrackerFixedHeader extends StatelessWidget {
           bottom: false,
           child: Padding(
             padding: EdgeInsets.only(
-              left: 12.w,
-              top: 4.h,
-              right: 12.w,
-              bottom: 10.h,
+              left: 14.w,
+              top: 8.h,
+              right: 14.w,
+              bottom: 18.h,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 1. شريط العنوان وأزرار التنقل
+                // 1. شريط العنوان وأزرار التنقل مع مساحة تنفس واسعة
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -74,7 +73,7 @@ class HabitTrackerFixedHeader extends StatelessWidget {
                     Text(
                       'يوميات المسلم',
                       style: TextStyle(
-                        fontSize: 18.sp,
+                        fontSize: 19.sp,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         letterSpacing: 0.3,
@@ -96,9 +95,9 @@ class HabitTrackerFixedHeader extends StatelessWidget {
                   ],
                 ),
 
-                SizedBox(height: 2.h),
+                SizedBox(height: 10.h),
 
-                // 2. بطاقة نسبة الإنجاز والتقويم الموحدة الشفافة (تقليب يدوي بالسحب)
+                // 2. بطاقة نسبة الإنجاز والتقويم الموحدة الشفافة الأعرض والأطول
                 HabitAchievementCard(
                   selectedDate: selectedDate,
                   percentage: percentage,
@@ -108,13 +107,6 @@ class HabitTrackerFixedHeader extends StatelessWidget {
                   onPreviousDay: onPreviousDay,
                   onNextDay: onNextDay,
                   onOpenStats: onOpenStats,
-                ),
-
-                SizedBox(height: 8.h),
-
-                // 3. بطاقة الأوراد والمناسبات والتنبيهات المستقلة الشفافة (بالتقليب الأوتوماتيكي واليدوي)
-                HabitHighlightsSwiperCard(
-                  selectedDate: selectedDate,
                 ),
               ],
             ),

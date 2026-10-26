@@ -13,6 +13,13 @@
     "icon": "azkar",
     "isEnabled": true
   },
+    {
+    "id": "habit_tracker",
+    "title": "يوميات المسلم",
+    "route": "/habit-tracker",
+    "icon": "habit_tracker",
+    "isEnabled": true
+  },
   {
     "id": "hisn",
     "title": "حصن المسلم",

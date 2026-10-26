@@ -5,7 +5,7 @@ import 'package:tarteel/core/theme/app_colors.dart';
 import '../services/habit_calendar_helper.dart';
 
 /// ==============================================================================
-/// بطاقة نسبة الإنجاز والتقويم الموحدة الطويلة والشفافة (تقليب يدوي بدون أزرار)
+/// بطاقة نسبة الإنجاز والتقويم الموحدة الطويلة والشفافة (One-Handed UX Friendly)
 /// ==============================================================================
 class HabitAchievementCard extends StatelessWidget {
   final DateTime selectedDate;
@@ -58,12 +58,12 @@ class HabitAchievementCard extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.16),
+            color: Colors.white.withValues(alpha: 0.18),
             width: 1.0,
           ),
         ),
@@ -80,7 +80,7 @@ class HabitAchievementCard extends StatelessWidget {
                     Text(
                       dayName,
                       style: TextStyle(
-                        fontSize: 15.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -88,7 +88,7 @@ class HabitAchievementCard extends StatelessWidget {
                     if (isToday) ...[
                       SizedBox(width: 8.w),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                         decoration: BoxDecoration(
                           color: AppColors.goldAccent.withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(6.r),
@@ -99,7 +99,7 @@ class HabitAchievementCard extends StatelessWidget {
                         child: Text(
                           'اليوم',
                           style: TextStyle(
-                            fontSize: 10.5.sp,
+                            fontSize: 11.sp,
                             fontWeight: FontWeight.bold,
                             color: AppColors.goldAccent,
                           ),
@@ -113,38 +113,38 @@ class HabitAchievementCard extends StatelessWidget {
                 Text(
                   '$hijriStr  •  $gregorianStr',
                   style: TextStyle(
-                    fontSize: 11.5.sp,
-                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 12.sp,
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
             ),
 
-            // فاصل خفيف
+            // فاصل خفيف وواسع
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 9.h),
+              padding: EdgeInsets.symmetric(vertical: 12.h),
               child: Divider(
                 height: 1,
-                color: Colors.white.withValues(alpha: 0.12),
+                color: Colors.white.withValues(alpha: 0.14),
               ),
             ),
 
             // 2. نسبة الإنجاز والخطوات وسلسلة الأيام
             Row(
               children: [
-                // مؤشر التقدم الدائري
+                // مؤشر التقدم الدائري الأكبر والأوضح
                 SizedBox(
-                  width: 44.w,
-                  height: 44.w,
+                  width: 52.w,
+                  height: 52.w,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       SizedBox(
-                        width: 44.w,
-                        height: 44.w,
+                        width: 52.w,
+                        height: 52.w,
                         child: CircularProgressIndicator(
                           value: percentage,
-                          strokeWidth: 4.5.w,
+                          strokeWidth: 5.w,
                           strokeCap: StrokeCap.round,
                           backgroundColor: Colors.white24,
                           valueColor: const AlwaysStoppedAnimation<Color>(
@@ -155,7 +155,7 @@ class HabitAchievementCard extends StatelessWidget {
                       Text(
                         '%$pctArabic',
                         style: TextStyle(
-                          fontSize: 12.sp,
+                          fontSize: 13.5.sp,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -174,19 +174,19 @@ class HabitAchievementCard extends StatelessWidget {
                       Text(
                         'أنجزت $completedArabic من $totalArabic خطوة اليوم',
                         style: TextStyle(
-                          fontSize: 13.5.sp,
+                          fontSize: 14.5.sp,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 2.h),
+                      SizedBox(height: 4.h),
                       Text(
                         percentage >= 1.0
                             ? 'ما شاء الله، أتممت جميع أوراد اليوم'
                             : 'اسحب أفقياً للانتقال بين الأيام',
                         style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white.withValues(alpha: 0.75),
+                          fontSize: 11.5.sp,
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -201,12 +201,12 @@ class HabitAchievementCard extends StatelessWidget {
                   },
                   borderRadius: BorderRadius.circular(10.r),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
                     decoration: BoxDecoration(
-                      color: AppColors.goldAccent.withValues(alpha: 0.22),
+                      color: AppColors.goldAccent.withValues(alpha: 0.24),
                       borderRadius: BorderRadius.circular(10.r),
                       border: Border.all(
-                        color: AppColors.goldAccent.withValues(alpha: 0.5),
+                        color: AppColors.goldAccent.withValues(alpha: 0.55),
                       ),
                     ),
                     child: Row(
@@ -214,14 +214,14 @@ class HabitAchievementCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.local_fire_department_rounded,
-                          size: 15.sp,
+                          size: 16.sp,
                           color: AppColors.goldAccent,
                         ),
                         SizedBox(width: 4.w),
                         Text(
                           '$streakArabic أيام',
                           style: TextStyle(
-                            fontSize: 11.sp,
+                            fontSize: 11.5.sp,
                             fontWeight: FontWeight.bold,
                             color: AppColors.goldAccent,
                           ),

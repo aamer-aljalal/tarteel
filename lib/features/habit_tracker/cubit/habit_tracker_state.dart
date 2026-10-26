@@ -1,19 +1,15 @@
-import '../models/habit_item.dart';
 import '../models/habit_stats_summary.dart';
-import '../models/prayer_station_model.dart';
+import '../models/unified_habit_item.dart';
 
 /// ==============================================================================
-/// حالات سجل العبادات ومحطات الصلوات اليومية
+/// حالات سجل العبادات اليومي الموحد (المتبقية والمنجزة)
 /// ==============================================================================
 class HabitTrackerState {
   /// اليوم المعروض حالياً في الجدول
   final DateTime selectedDate;
 
-  /// قائمة محطات اليوم (الفجر، الضحى، الظهر، العصر، المغرب، العشاء، قيام الليل)
-  final List<PrayerStationModel> stations;
-
-  /// معرّف المحطة المختارة حالياً للتركيز والعرض في البطاقة
-  final String selectedStationId;
+  /// القائمة الكاملة الموحدة لجميع عبادات اليوم (مرتبة تسلسلياً)
+  final List<UnifiedHabitItem> allItems;
 
   /// معرّفات جميع العبادات المكتملة في هذا اليوم
   final Set<String> completedIds;
@@ -29,20 +25,21 @@ class HabitTrackerState {
 
   const HabitTrackerState({
     required this.selectedDate,
-    required this.stations,
-    required this.selectedStationId,
-    required this.completedIds,
-    required this.streak,
+    this.allItems = const [],
+    this.completedIds = const {},
+    this.streak = 0,
     this.statsSummary,
     this.isLoading = false,
   });
 
-  /// المحطة المعروضة حالياً
-  PrayerStationModel get currentStation {
-    return stations.firstWhere(
-      (s) => s.id == selectedStationId,
-      orElse: () => stations.isNotEmpty ? stations.first : PrayerStationModel.getDefaultStations().first,
-    );
+  /// العبادات المتبقية (غير المنجزة)
+  List<UnifiedHabitItem> get remainingItems {
+    return allItems.where((item) => !completedIds.contains(item.id)).toList();
+  }
+
+  /// العبادات المنجزة
+  List<UnifiedHabitItem> get completedItems {
+    return allItems.where((item) => completedIds.contains(item.id)).toList();
   }
 
   /// هل التاريخ المختار يطابق اليوم الحالي؟
@@ -53,25 +50,13 @@ class HabitTrackerState {
         selectedDate.day == now.day;
   }
 
-  /// إجمالي عدد المهام والعبادات في كل المحطات
-  int get totalItemsCount {
-    int count = 0;
-    for (final st in stations) {
-      count += st.items.length;
-    }
-    return count > 0 ? count : 1;
-  }
+  /// إجمالي عدد المهام والعبادات في اليوم
+  int get totalItemsCount => allItems.isNotEmpty ? allItems.length : 1;
 
   /// إجمالي العبادات المنجزة في اليوم
-  int get totalCompletedCount {
-    int count = 0;
-    for (final st in stations) {
-      count += st.getCompletedCount(completedIds);
-    }
-    return count;
-  }
+  int get totalCompletedCount => completedItems.length;
 
-  /// نسبة إنجاز اليوم بالكامل
+  /// نسبة إنجاز اليوم بالكامل (0.0 إلى 1.0)
   double get dailyCompletionPercentage {
     if (totalItemsCount <= 0) return 0.0;
     return (totalCompletedCount / totalItemsCount).clamp(0.0, 1.0);
@@ -79,8 +64,7 @@ class HabitTrackerState {
 
   HabitTrackerState copyWith({
     DateTime? selectedDate,
-    List<PrayerStationModel>? stations,
-    String? selectedStationId,
+    List<UnifiedHabitItem>? allItems,
     Set<String>? completedIds,
     int? streak,
     HabitStatsSummary? statsSummary,
@@ -88,8 +72,7 @@ class HabitTrackerState {
   }) {
     return HabitTrackerState(
       selectedDate: selectedDate ?? this.selectedDate,
-      stations: stations ?? this.stations,
-      selectedStationId: selectedStationId ?? this.selectedStationId,
+      allItems: allItems ?? this.allItems,
       completedIds: completedIds ?? this.completedIds,
       streak: streak ?? this.streak,
       statsSummary: statsSummary ?? this.statsSummary,
