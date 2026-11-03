@@ -6,8 +6,7 @@ import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/appbars/tarteel_app_bar.dart';
 import 'package:tarteel/core/widgets/buttons/app_glass_button.dart';
 import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
-import 'package:tarteel/features/quran/services/quran_service.dart';
-import 'package:tarteel/features/quran/views/surah_detail_page.dart';
+import 'package:tarteel/main.dart';
 import '../models/khatma_plan_model.dart';
 import '../models/khatma_badge_model.dart';
 import '../models/khatma_history_model.dart';
@@ -16,6 +15,7 @@ import '../widgets/khatma_journey_card.dart';
 import '../widgets/khatma_plan_selector.dart';
 import '../widgets/khatma_share_card.dart';
 import '../widgets/khatma_history_sheet.dart';
+import 'khatma_reader_page.dart';
 
 class KhatmaScreen extends StatefulWidget {
   const KhatmaScreen({super.key});
@@ -24,7 +24,7 @@ class KhatmaScreen extends StatefulWidget {
   State<KhatmaScreen> createState() => _KhatmaScreenState();
 }
 
-class _KhatmaScreenState extends State<KhatmaScreen> {
+class _KhatmaScreenState extends State<KhatmaScreen> with RouteAware {
   bool _isLoading = true;
   bool _isCelebrating = false;
   KhatmaPlanModel? _activePlan;
@@ -41,6 +41,27 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
         _checkAndCelebratePendingBadges();
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      tarteel.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    tarteel.routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _loadData();
+    _checkAndCelebratePendingBadges();
   }
 
   /// فحص وعرض أي أوسمة جديدة تم تحقيقها أثناء القراءة لتهنئة المستخدم بها فور عودته
@@ -102,13 +123,19 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
     required int targetDays,
     required TimeOfDay reminderTime,
   }) async {
-    await KhatmaService.createPlan(
+    final created = await KhatmaService.createPlan(
       title: title,
       type: type,
       targetPagesPerDay: targetPagesPerDay,
       targetDays: targetDays,
       reminderTime: reminderTime,
     );
+    if (mounted) {
+      setState(() {
+        _activePlan = created;
+        _isLoading = false;
+      });
+    }
     await _loadData();
   }
 
@@ -231,56 +258,18 @@ class _KhatmaScreenState extends State<KhatmaScreen> {
 
     final targetPage = _activePlan!.currentPage.clamp(1, 604);
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => KhatmaReaderPage(
+          initialPage: targetPage,
+        ),
+      ),
     );
 
-    try {
-      final pageAyahs = await QuranService.loadPage(targetPage);
-      final surahs = await QuranService.loadSurahs();
-
-      int targetSurahNumber = 1;
-      int targetAyahNumber = 1;
-
-      if (pageAyahs.isNotEmpty) {
-        targetSurahNumber = pageAyahs.first.chapter;
-        targetAyahNumber = pageAyahs.first.verse;
-      }
-
-      final surah = surahs.firstWhere(
-        (s) => s.number == targetSurahNumber,
-        orElse: () => surahs.first,
-      );
-      final allAyahsInSurah = await QuranService.loadAyahs(targetSurahNumber);
-
-      if (mounted) {
-        Navigator.pop(context); // Close progress dialog
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SurahDetailPage(
-              surah: surah,
-              ayahs: allAyahsInSurah,
-              initialAyah: targetAyahNumber,
-              isKhatmaSession: true,
-            ),
-          ),
-        );
-
-        // Reload data after reading session and celebrate newly unlocked badge(s)
-        await _loadData();
-        await _checkAndCelebratePendingBadges();
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر الانتقال إلى صفحة المصحف')),
-        );
-      }
-    }
+    // Reload data after reading session and celebrate newly unlocked badge(s)
+    await _loadData();
+    await _checkAndCelebratePendingBadges();
   }
 
   void _showHistorySheet() {

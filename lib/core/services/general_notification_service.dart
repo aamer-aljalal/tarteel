@@ -91,29 +91,14 @@ class GeneralNotificationService {
           } else if (payload == 'khatma_planner') {
             try {
               final prefs = await SharedPreferences.getInstance();
-              final khatmaSurah = prefs.getInt('khatma_last_read_surah');
-              final khatmaAyah = prefs.getInt('khatma_last_read_ayah');
-              
-              if (khatmaSurah != null) {
-                final surahs = await QuranService.loadSurahs();
-                final surah = surahs.firstWhere((s) => s.number == khatmaSurah);
-                final ayahs = await QuranService.loadAyahs(khatmaSurah);
-
-                tarteel.navigatorKey.currentState?.push(
-                  MaterialPageRoute(
-                    builder: (context) => SurahDetailPage(
-                      surah: surah,
-                      ayahs: ayahs,
-                      initialAyah: khatmaAyah,
-                      isKhatmaSession: true,
-                    ),
-                  ),
-                );
+              final lastPage = prefs.getInt('khatma_last_read_page');
+              if (lastPage != null && lastPage > 0) {
+                tarteel.navigatorKey.currentState?.pushNamed('/khatma-planner');
               } else {
                 tarteel.navigatorKey.currentState?.pushNamed('/khatma-planner');
               }
             } catch (e) {
-              debugPrint('Error navigating to Quran from Khatma notification: $e');
+              debugPrint('Error navigating to Khatma notification: $e');
               tarteel.navigatorKey.currentState?.pushNamed('/khatma-planner');
             }
           }

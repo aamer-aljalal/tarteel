@@ -72,118 +72,7 @@ class _SurahListViewState extends State<_SurahListView>
     );
   }
 
-  Widget _buildKhatmaPromoCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    final emeraldDeep = isDark
-        ? const Color(0xFF0F3A2E)
-        : const Color(0xFF144D3E);
-    final emeraldLight = isDark
-        ? const Color(0xFF1D5A4A)
-        : const Color(0xFF227E67);
-    const accentGold = Color(0xFFE2B755);
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [emeraldDeep, emeraldLight],
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
-          ),
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(
-            color: accentGold.withValues(alpha: 0.35),
-            width: 1.2.w,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: emeraldDeep.withValues(alpha: 0.15),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8.r),
-          child: InkWell(
-            onTap: () {
-              Navigator.pushNamed(context, '/khatma-planner');
-            },
-            borderRadius: BorderRadius.circular(8.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42.w,
-                    height: 42.w,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.12),
-                      border: Border.all(
-                        color: accentGold.withValues(alpha: 0.4),
-                        width: 1.5.w,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome_outlined,
-                      color: accentGold,
-                      size: 20.sp,
-                    ),
-                  ),
-                  SizedBox(width: 14.w),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Text(
-                          'خطة اتمام المصحف ',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w800,
-                            fontFamily: 'Cairo',
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [accentGold, Color(0xFFC5953C)],
-                            ),
-                            borderRadius: BorderRadius.circular(6.r),
-                          ),
-                          child: Text(
-                            'جديد',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 8.sp,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Cairo',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  const Icon(Icons.chevron_left, color: Colors.white70),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Future<void> _openSavedBookmark(BuildContext context) async {
     showDialog(
@@ -196,6 +85,7 @@ class _SurahListViewState extends State<_SurahListView>
       final prefs = await SharedPreferences.getInstance();
       final surahNumber = prefs.getInt('quran_bookmark_surah');
       final ayahNumber = prefs.getInt('quran_bookmark_ayah');
+      final pageNumber = prefs.getInt('quran_bookmark_page');
 
       if (!context.mounted) return;
       Navigator.pop(context); // Close loading indicator
@@ -222,6 +112,7 @@ class _SurahListViewState extends State<_SurahListView>
           builder: (_) => SurahDetailPage(
             surah: surah,
             ayahs: ayahs,
+            initialPage: pageNumber != null ? (pageNumber - 1) : 0,
             initialAyah: ayahNumber,
           ),
         ),
@@ -341,9 +232,7 @@ class _SurahListViewState extends State<_SurahListView>
                   return AccessListGrid(
                     actions: state.filteredItems,
                     isRectangle: true,
-                    header: state.searchQuery.isEmpty
-                        ? _buildKhatmaPromoCard(context)
-                        : null,
+                    header: null,
                     padding: EdgeInsets.only(
                       left: 20.w,
                       right: 20.w,

@@ -107,6 +107,11 @@ class AccessListModel {
       case 'book':
         return Icons.menu_book_outlined;
 
+      // خطة إتمام المصحف (الختمة)
+      case 'khatma':
+      case 'khatma_planner':
+        return Icons.auto_awesome_rounded;
+
       // الأذكار
       case 'azkar':
       case 'bookmark':
@@ -193,6 +198,7 @@ class AccessListModel {
   // ============================================================================
   static String _guessIconName(IconData icon) {
     if (icon == Icons.menu_book_outlined) return 'quran';
+    if (icon == Icons.auto_awesome_rounded) return 'khatma';
     if (icon == Icons.bookmark_outline) return 'azkar';
     if (icon == Icons.auto_stories_outlined) return 'hisn';
     if (icon == Icons.format_quote_outlined) return 'hadith';

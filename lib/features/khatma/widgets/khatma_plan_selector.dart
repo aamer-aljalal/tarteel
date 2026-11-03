@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tarteel/core/theme/app_colors.dart';
 import '../models/khatma_plan_model.dart';
@@ -377,147 +378,162 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     );
   }
 
-  /// دالة عامة موحدة وقابلة لإعادة الاستخدام لبطاقة إعدادات المسار السفلية
-  Widget _buildConfigCard({
+  Widget _buildSliderCard({
     required bool isDark,
     required Color accentGold,
-    String? title,
-    String? valueText,
-    List<int>? options,
-    int? selectedOption,
-    String unit = '',
-    double chipFontSize = 9.0,
-    double chipSpacing = 6.0,
-    ValueChanged<int>? onOptionSelected,
-    String? infoText,
-    double? infoFontSize,
-    String? freeReadingText,
+    required String title,
+    required String valueText,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+    required String minLabel,
+    required String maxLabel,
+    required String infoText,
   }) {
     final cardBg = isDark ? const Color(0xFF16241E) : const Color(0xFFF7FAF8);
 
-    if (freeReadingText != null) {
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: accentGold.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.check_circle_outline_rounded,
-              color: accentGold,
-              size: 18.sp,
-            ),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: Text(
-                freeReadingText,
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: accentGold.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: accentGold.withValues(alpha: 0.35), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (title != null || valueText != null) ...[
-            Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.primary,
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: accentGold.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: accentGold.withValues(alpha: 0.5),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  valueText,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                    color: accentGold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: accentGold,
+              inactiveTrackColor: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.08),
+              thumbColor: accentGold,
+              overlayColor: accentGold.withValues(alpha: 0.2),
+              thumbShape: RoundSliderThumbShape(
+                enabledThumbRadius: 8.r,
+                elevation: 3,
+              ),
+              trackHeight: 4.h,
+            ),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: (val) {
+                HapticFeedback.selectionClick();
+                onChanged(val);
+              },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (title != null)
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  minLabel,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 10.sp,
+                    color: isDark ? Colors.white38 : Colors.black38,
                   ),
-                if (valueText != null)
-                  Text(
-                    valueText,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
-                      color: accentGold,
-                    ),
+                ),
+                Text(
+                  maxLabel,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 10.sp,
+                    color: isDark ? Colors.white38 : Colors.black38,
                   ),
+                ),
               ],
             ),
-            SizedBox(height: 8.h),
-          ],
-          if (options != null && options.isNotEmpty) ...[
-            Wrap(
-              spacing: chipSpacing.w,
-              children: options.map((val) {
-                final isCurrent = selectedOption == val;
-                return ChoiceChip(
-                  label: Text(
-                    '$val $unit',
+          ),
+          SizedBox(height: 10.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: accentGold,
+                  size: 15.sp,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    infoText,
                     style: TextStyle(
                       fontFamily: 'Cairo',
-                      fontSize: chipFontSize.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isCurrent ? Colors.white : null,
+                      fontSize: 10.5.sp,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                      height: 1.35,
                     ),
                   ),
-                  selected: isCurrent,
-                  selectedColor: AppColors.primary,
-                  onSelected: onOptionSelected != null
-                      ? (_) => onOptionSelected(val)
-                      : null,
-                );
-              }).toList(),
+                ),
+              ],
             ),
-            SizedBox(height: 10.h),
-          ],
-          if (infoText != null)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: accentGold,
-                    size: 16.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      infoText,
-                      style: TextStyle(
-                        fontSize: (infoFontSize ?? 10.sp),
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ),
         ],
       ),
     );
@@ -530,59 +546,88 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
       case KhatmaPlanType.prayers:
         final totalPerDay = _pagesPerPrayer * 5;
         final days = (604 / totalPerDay).ceil();
-        return _buildConfigCard(
+        return _buildSliderCard(
           isDark: isDark,
           accentGold: accentGold,
           title: 'عدد الصفحات بعد كل صلاة:',
-          valueText: '$_pagesPerPrayer صفحات',
-          options: const [2, 4, 6, 8],
-          selectedOption: _pagesPerPrayer,
-          unit: 'ص',
-          chipSpacing: 8,
-          onOptionSelected: (val) => setState(() => _pagesPerPrayer = val),
+          valueText: '$_pagesPerPrayer ${_pagesPerPrayer == 1 ? 'صفحة' : 'صفحات'}',
+          value: _pagesPerPrayer.toDouble(),
+          min: 1,
+          max: 10,
+          divisions: 9,
+          onChanged: (val) => setState(() => _pagesPerPrayer = val.round()),
+          minLabel: '1 ص',
+          maxLabel: '10 ص',
           infoText:
               'المعدل: $totalPerDay صفحة يومياً • إتمام المصحف خلال $days يوماً بإذن الله',
-          infoFontSize: 10.sp,
         );
 
       case KhatmaPlanType.dailyPages:
         final days = (604 / _dailyPages).ceil();
-        return _buildConfigCard(
+        return _buildSliderCard(
           isDark: isDark,
           accentGold: accentGold,
           title: 'عدد الصفحات اليومية:',
           valueText: '$_dailyPages صفحة / يوم',
-          options: const [5, 10, 20, 30, 40],
-          selectedOption: _dailyPages,
-          unit: 'ص',
-          onOptionSelected: (val) => setState(() => _dailyPages = val),
+          value: _dailyPages.toDouble(),
+          min: 2,
+          max: 60,
+          divisions: 58,
+          onChanged: (val) => setState(() => _dailyPages = val.round()),
+          minLabel: '2 ص',
+          maxLabel: '60 ص',
           infoText: 'ستتم الختمة المباركة بإذن الله خلال $days يوماً',
-          infoFontSize: 11.sp,
         );
 
       case KhatmaPlanType.durationDays:
         final pagesPerDay = (604 / _targetDays).ceil();
-        return _buildConfigCard(
+        return _buildSliderCard(
           isDark: isDark,
           accentGold: accentGold,
           title: 'المدة المستهدفة بالأيام:',
           valueText: '$_targetDays يوماً',
-          options: const [15, 30, 60, 90],
-          selectedOption: _targetDays,
-          unit: 'يوم',
-          chipFontSize: 10,
-          onOptionSelected: (val) => setState(() => _targetDays = val),
+          value: _targetDays.toDouble(),
+          min: 7,
+          max: 180,
+          divisions: 173,
+          onChanged: (val) => setState(() => _targetDays = val.round()),
+          minLabel: 'أسبوع (7 أيام)',
+          maxLabel: '6 أشهر (180 يوماً)',
           infoText:
               'المطلوب قراءة $pagesPerDay صفحة يومياً لإتمام الختمة في الموعد',
-          infoFontSize: 10.sp,
         );
 
       case KhatmaPlanType.freeReading:
-        return _buildConfigCard(
-          isDark: isDark,
-          accentGold: accentGold,
-          freeReadingText:
-              'مسار مفتوح بدون ضغوط، تقدم حسب استطاعتك وتتبع صفحاتك وأوسمتك وسلسلة التزامك.',
+        final cardBg = isDark ? const Color(0xFF16241E) : const Color(0xFFF7FAF8);
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(14.w),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: accentGold.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline_rounded,
+                color: accentGold,
+                size: 18.sp,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  'مسار مفتوح بدون ضغوط، تقدم حسب استطاعتك وتتبع صفحاتك وأوسمتك وسلسلة التزامك.',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 10.sp,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
     }
   }

@@ -139,20 +139,20 @@ class KhatmaBadgeModel {
 
   factory KhatmaBadgeModel.fromJson(Map<String, dynamic> json, [IconData? icon]) {
     final milestoneType = MilestoneType.values.firstWhere(
-      (m) => m.name == json['milestoneType'],
+      (m) => m.name == json['milestoneType']?.toString(),
       orElse: () => MilestoneType.quarter,
     );
     return KhatmaBadgeModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String,
-      description: json['description'] as String,
-      targetPage: json['targetPage'] as int,
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      subtitle: json['subtitle']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      targetPage: (json['targetPage'] as num?)?.toInt() ?? 1,
       milestoneType: milestoneType,
       icon: icon ?? iconForType(milestoneType),
       isUnlocked: json['isUnlocked'] as bool? ?? false,
       unlockedAt: json['unlockedAt'] != null
-          ? DateTime.parse(json['unlockedAt'] as String)
+          ? DateTime.tryParse(json['unlockedAt'].toString())
           : null,
     );
   }

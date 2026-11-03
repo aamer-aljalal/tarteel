@@ -5,10 +5,8 @@ import 'package:tarteel/core/theme/app_colors.dart';
 import 'package:tarteel/core/widgets/bottom_sheets/app_modal_bottom_sheet.dart';
 import 'package:tarteel/core/widgets/buttons/app_button.dart';
 import 'package:tarteel/core/widgets/buttons/app_glass_button.dart';
-import 'package:tarteel/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_cubit.dart';
 import 'package:tarteel/features/quran/cubit/quran_reader_state.dart';
-import 'package:tarteel/features/quran/khatma/models/khatma_badge_model.dart';
 import 'package:tarteel/features/quran/services/quran_service.dart';
 import 'package:tarteel/features/quran/widgets/ayah_top_bar.dart';
 import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
@@ -18,7 +16,6 @@ class SurahDetailPage extends StatelessWidget {
   final List<QuranAyah> ayahs;
   final int initialPage;
   final int? initialAyah;
-  final bool isKhatmaSession;
 
   const SurahDetailPage({
     super.key,
@@ -26,7 +23,6 @@ class SurahDetailPage extends StatelessWidget {
     required this.ayahs,
     this.initialPage = 0,
     this.initialAyah,
-    this.isKhatmaSession = false,
   });
 
   @override
@@ -37,10 +33,8 @@ class SurahDetailPage extends StatelessWidget {
         initialAyahs: ayahs,
         initialPage: initialPage,
         initialAyah: initialAyah,
-        isKhatmaSession: isKhatmaSession,
       ),
       child: _SurahDetailView(
-        isKhatmaSession: isKhatmaSession,
         initialAyah: initialAyah,
       ),
     );
@@ -48,10 +42,9 @@ class SurahDetailPage extends StatelessWidget {
 }
 
 class _SurahDetailView extends StatefulWidget {
-  final bool isKhatmaSession;
   final int? initialAyah;
 
-  const _SurahDetailView({required this.isKhatmaSession, this.initialAyah});
+  const _SurahDetailView({this.initialAyah});
 
   @override
   State<_SurahDetailView> createState() => _SurahDetailViewState();
@@ -61,14 +54,11 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
   late final PageController _pageController;
   final ValueNotifier<QuranAyah?> _pressedAyahNotifier = ValueNotifier(null);
 
-  int? _initialPageNumber;
-
   @override
   void initState() {
     super.initState();
     final cubit = context.read<QuranReaderCubit>();
     _pageController = PageController(initialPage: cubit.state.currentPage);
-    _initialPageNumber = cubit.state.currentPageNumber;
   }
 
   @override
@@ -79,41 +69,6 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
   }
 
   Future<bool> _onWillPop(QuranReaderState state) async {
-    // نافذة التأكيد تظهر فقط إذا كانت الجلسة جلسة خطة إتمام المصحف
-    if (!widget.isKhatmaSession) return true;
-
-    // إذا كان قد قام بحفظ موضع الصفحة في هذه الجلسة مسبقاً، يخرج مباشرة
-    if (state.hasBookmarkedInThisSession) return true;
-
-    // فحص ما إذا تقدم القارئ في الصفحات
-    final currentPage = state.currentPageNumber;
-    final hasActuallyMoved =
-        state.hasChangedPage ||
-        (_initialPageNumber != null && currentPage != _initialPageNumber) ||
-        (state.savedBookmarkPage != null &&
-            currentPage != state.savedBookmarkPage);
-
-    if (hasActuallyMoved) {
-      final shouldSaveCurrentPage = await AppConfirmDialog.show(
-        context,
-        title: 'موضع الختمة',
-        message:
-            'لقد تقدمت في القراءة إلى صفحة $currentPage. هل تود حفظ هذه الصفحة كموضع جديد لختمتك أم البقاء على الموضع السابق؟',
-        confirmText: 'حفظ الصفحة الحالية',
-        cancelText: 'البقاء على الموضع السابق',
-        confirmColor: AppColors.primary,
-        icon: Icons.bookmark_added_rounded,
-      );
-
-      if (shouldSaveCurrentPage) {
-        // قام باختيار حفظ الصفحة الحالية
-        if (mounted) {
-          await context.read<QuranReaderCubit>().updateKhatmaBookmark();
-        }
-      }
-      // في كلتا الحالتين (سواء حفظ أو بقي على السابق) يسمح له بالخروج
-      return true;
-    }
     return true;
   }
 
@@ -647,26 +602,11 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                       final pageNum =
                                           cubit.state.currentPageNumber;
 
-                                      bool success = false;
-                                      KhatmaBadgeModel? unlockedBadge;
-                                      if (widget.isKhatmaSession) {
-                                        // إذا كانت الجلسة جلسة ختمة يحفظ فقط موضع الختمة
-                                        unlockedBadge = await cubit
-                                            .updateKhatmaBookmark();
-                                        success = true;
-                                      } else {
-                                        // إذا كانت جلسة عادية يحفظ فقط العلامة المرجعية العادية
-                                        success = await cubit
-                                            .savePageBookmark();
-                                      }
+                                      bool success = await cubit.savePageBookmark();
 
                                       if (context.mounted) {
                                         final msg = success
-                                            ? (widget.isKhatmaSession
-                                                  ? (unlockedBadge != null
-                                                        ? 'تم حفظ موضع الختمة عند صفحة $pageNum • مبارك نيل ${unlockedBadge.title}'
-                                                        : 'تم حفظ موضع الختمة عند صفحة $pageNum')
-                                                  : 'تم حفظ العلامة المرجعية عند صفحة $pageNum')
+                                            ? 'تم حفظ العلامة المرجعية عند صفحة $pageNum'
                                             : 'تعذر حفظ العلامة المرجعية';
 
                                         ScaffoldMessenger.of(
@@ -683,9 +623,7 @@ class _SurahDetailViewState extends State<_SurahDetailView> {
                                         );
                                       }
                                     },
-                                    tooltip: widget.isKhatmaSession
-                                        ? 'حفظ موضع الختمة لهذه الصفحة'
-                                        : 'حفظ العلامة المرجعية لهذه الصفحة',
+                                    tooltip: 'حفظ العلامة المرجعية لهذه الصفحة',
                                     isCircle: true,
                                     width: 32.w,
                                     height: 32.h,

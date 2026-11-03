@@ -650,7 +650,9 @@ class KhatmaJourneyCard extends StatelessWidget {
                     child: Icon(
                       badge.icon,
                       size: 16.sp,
-                      color: isUnlocked ? badge.style.primaryColor : Colors.white38,
+                      color: isUnlocked
+                          ? badge.style.primaryColor
+                          : Colors.white38,
                     ),
                   ),
                   if (isUnlocked)

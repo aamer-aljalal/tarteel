@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tarteel/features/quran/khatma/services/khatma_service.dart';
+import 'package:tarteel/features/khatma/services/khatma_service.dart';
 
 class InAppNotification {
   final String id;

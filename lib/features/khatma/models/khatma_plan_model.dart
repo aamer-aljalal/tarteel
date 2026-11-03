@@ -83,35 +83,35 @@ class KhatmaPlanModel {
     final rawBadges = json['badges'] as List<dynamic>?;
     final badgesList = rawBadges != null
         ? rawBadges
-            .map((b) =>
-                KhatmaBadgeModel.fromJson(b as Map<String, dynamic>))
+            .whereType<Map<String, dynamic>>()
+            .map((b) => KhatmaBadgeModel.fromJson(b))
             .toList()
         : KhatmaBadgeModel.defaultBadges();
 
     return KhatmaPlanModel(
-      id: json['id'] as String? ?? 'khatma_1',
-      title: json['title'] as String? ?? 'ختمة القرآن الكريم',
+      id: json['id']?.toString() ?? 'khatma_1',
+      title: json['title']?.toString() ?? 'ختمة القرآن الكريم',
       type: KhatmaPlanType.values.firstWhere(
-        (t) => t.name == json['type'],
+        (t) => t.name == json['type']?.toString(),
         orElse: () => KhatmaPlanType.durationDays,
       ),
-      targetPagesPerDay: json['targetPagesPerDay'] as int? ?? 20,
-      targetDays: json['targetDays'] as int? ?? 30,
+      targetPagesPerDay: (json['targetPagesPerDay'] as num?)?.toInt() ?? 20,
+      targetDays: (json['targetDays'] as num?)?.toInt() ?? 30,
       startDate: json['startDate'] != null
-          ? DateTime.parse(json['startDate'] as String)
+          ? (DateTime.tryParse(json['startDate'].toString()) ?? DateTime.now())
           : DateTime.now(),
       completedDate: json['completedDate'] != null
-          ? DateTime.parse(json['completedDate'] as String)
+          ? DateTime.tryParse(json['completedDate'].toString())
           : null,
-      currentPage: json['currentPage'] as int? ?? 1,
-      pagesReadToday: json['pagesReadToday'] as int? ?? 0,
+      currentPage: (json['currentPage'] as num?)?.toInt() ?? 1,
+      pagesReadToday: (json['pagesReadToday'] as num?)?.toInt() ?? 0,
       lastReadDate: json['lastReadDate'] != null
-          ? DateTime.parse(json['lastReadDate'] as String)
+          ? DateTime.tryParse(json['lastReadDate'].toString())
           : null,
-      reminderHour: json['reminderHour'] as int? ?? 20,
-      reminderMinute: json['reminderMinute'] as int? ?? 0,
+      reminderHour: (json['reminderHour'] as num?)?.toInt() ?? 20,
+      reminderMinute: (json['reminderMinute'] as num?)?.toInt() ?? 0,
       isCompleted: json['isCompleted'] as bool? ?? false,
-      badges: badgesList,
+      badges: badgesList.isEmpty ? KhatmaBadgeModel.defaultBadges() : badgesList,
     );
   }
 

@@ -26,7 +26,8 @@ class KhatmaService {
     try {
       final map = jsonDecode(jsonStr) as Map<String, dynamic>;
       return KhatmaPlanModel.fromJson(map);
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('Error parsing KhatmaPlanModel: $e\n$stack');
       return null;
     }
   }
@@ -108,13 +109,17 @@ class KhatmaService {
     await saveActivePlan(newPlan);
 
     // جدولة التنبيه المناسب لمسار الختمة
-    if (type == KhatmaPlanType.prayers) {
-      await GeneralNotificationService.scheduleKhatmaPrayerReminders();
-    } else {
-      await GeneralNotificationService.scheduleKhatmaReminder(
-        reminderTime.hour,
-        reminderTime.minute,
-      );
+    try {
+      if (type == KhatmaPlanType.prayers) {
+        await GeneralNotificationService.scheduleKhatmaPrayerReminders();
+      } else {
+        await GeneralNotificationService.scheduleKhatmaReminder(
+          reminderTime.hour,
+          reminderTime.minute,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error scheduling Khatma notification: $e');
     }
 
     return newPlan;
@@ -130,7 +135,8 @@ class KhatmaService {
 
     final oldPage = plan.currentPage;
     final clampedPage = newPage.clamp(1, 604);
-    final pagesDelta = (clampedPage - oldPage).clamp(0, 604);
+    // احتساب الزيادة في الصفحات المقروءة اليوم
+    final pagesDelta = clampedPage > oldPage ? (clampedPage - oldPage) : 1;
 
     final now = DateTime.now();
     final todayStr = '${now.year}-${now.month}-${now.day}';
