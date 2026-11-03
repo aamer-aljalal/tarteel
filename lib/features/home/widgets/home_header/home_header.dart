@@ -83,14 +83,20 @@ class _HomeHeaderState extends State<HomeHeader> with RouteAware {
             await _handleNotificationClick(notification);
             await _loadNotifications();
           },
+          onNotificationDismissed: (notification) async {
+            await _loadNotifications();
+          },
         );
       },
-    );
+    ).then((_) {
+      _loadNotifications();
+    });
   }
 
   Future<void> _handleNotificationClick(InAppNotification notif) async {
     if (notif.type == 'surah_kahf') {
       try {
+        await InAppNotificationService.markCompleted('surah_kahf');
         final surahs = await QuranService.loadSurahs();
         final kahfSurah = surahs.firstWhere((s) => s.number == 18);
         final ayahs = await QuranService.loadAyahs(18);
@@ -108,6 +114,7 @@ class _HomeHeaderState extends State<HomeHeader> with RouteAware {
         notif.type == 'evening_azkar' ||
         notif.type == 'sleep_azkar') {
       try {
+        await InAppNotificationService.markCompleted(notif.type);
         final targetTitle = notif.type == 'morning_azkar'
             ? 'أذكار الصباح'
             : notif.type == 'evening_azkar'
@@ -124,6 +131,14 @@ class _HomeHeaderState extends State<HomeHeader> with RouteAware {
           ),
         ).then((_) => _loadNotifications());
       } catch (_) {}
+    } else if (notif.type == 'khatma') {
+      await InAppNotificationService.markCompleted('khatma');
+      if (mounted) {
+        Navigator.pushNamed(
+          context,
+          '/khatma-planner',
+        ).then((_) => _loadNotifications());
+      }
     } else {
       await InAppNotificationService.markCompleted(notif.type);
 
@@ -181,8 +196,6 @@ class _HomeHeaderState extends State<HomeHeader> with RouteAware {
   @override
   Widget build(BuildContext context) {
     final prayerProvider = Provider.of<PrayerProvider>(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     final currentPrayerTimes = {
       'الفجر': prayerProvider.getFormattedPrayerTime(Prayer.fajr),

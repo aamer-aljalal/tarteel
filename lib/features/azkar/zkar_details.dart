@@ -16,6 +16,7 @@ import 'package:tarteel/core/widgets/grids/access_list_grid.dart';
 import 'package:tarteel/core/widgets/progress/section_progress_bar.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_cubit.dart';
 import 'package:tarteel/core/services/lazy_loader/cubit/generic_reader_state.dart';
+import 'package:tarteel/core/services/in_app_notification_service.dart';
 import 'package:tarteel/core/widgets/states/app_status_view.dart';
 
 class AzkarDetailsScreen extends StatelessWidget {
@@ -98,6 +99,15 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
 
   void _showCompletionSheet(BuildContext context) {
     final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
+    final categoryTitle = cubit.state.title;
+    if (categoryTitle.contains('الصباح')) {
+      InAppNotificationService.markCompleted('morning_azkar');
+    } else if (categoryTitle.contains('المساء')) {
+      InAppNotificationService.markCompleted('evening_azkar');
+    } else if (categoryTitle.contains('النوم')) {
+      InAppNotificationService.markCompleted('sleep_azkar');
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -253,7 +263,8 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
           );
         }
 
-        final cubit = context.read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
+        final cubit = context
+            .read<GenericReaderCubit<ZekrCategory, ZekrModel>>();
 
         return ReaderScope(
           cubit: cubit,
@@ -282,7 +293,9 @@ class _AzkarDetailsViewState extends State<_AzkarDetailsView> {
                         itemCount: state.totalCount,
                         onPageChanged: (index) {
                           context
-                              .read<GenericReaderCubit<ZekrCategory, ZekrModel>>()
+                              .read<
+                                GenericReaderCubit<ZekrCategory, ZekrModel>
+                              >()
                               .changePage(index);
                         },
                         itemBuilder: (context, index) {

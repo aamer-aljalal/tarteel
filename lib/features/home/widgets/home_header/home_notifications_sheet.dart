@@ -12,23 +12,35 @@ class HomeNotificationsSheet extends StatefulWidget {
     super.key,
     required this.notifications,
     required this.onNotificationTap,
+    this.onNotificationDismissed,
   });
 
   final List<InAppNotification> notifications;
   final Future<void> Function(InAppNotification notification) onNotificationTap;
+  final void Function(InAppNotification notification)? onNotificationDismissed;
 
   @override
   State<HomeNotificationsSheet> createState() => _HomeNotificationsSheetState();
 }
 
 class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
+  late List<InAppNotification> _notifications;
   List<RecentAction> _recentActions = [];
   bool _isLoadingRecent = true;
 
   @override
   void initState() {
     super.initState();
+    _notifications = List.from(widget.notifications);
     _loadRecentActions();
+  }
+
+  Future<void> _dismissNotification(InAppNotification notif) async {
+    setState(() {
+      _notifications.removeWhere((n) => n.id == notif.id);
+    });
+    await InAppNotificationService.markCompleted(notif.type);
+    widget.onNotificationDismissed?.call(notif);
   }
 
   Future<void> _loadRecentActions() async {
@@ -54,9 +66,9 @@ class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
 
     return AppModalBottomSheet(
       title: 'التنبيهات والمحطات الأخيرة',
-      heightFraction: 0.52,
+      heightFraction: 0.75,
       contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
-      trailing: widget.notifications.isNotEmpty
+      trailing: _notifications.isNotEmpty
           ? Container(
               padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
               decoration: BoxDecoration(
@@ -64,7 +76,7 @@ class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Text(
-                '${widget.notifications.length} معلقة',
+                '${_notifications.length} معلقة',
                 style: TextStyle(
                   color: Colors.red.shade700,
                   fontSize: 8.5.sp,
@@ -335,7 +347,7 @@ class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
                 ),
               ],
             ),
-            if (widget.notifications.isNotEmpty)
+            if (_notifications.isNotEmpty)
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
                 decoration: BoxDecoration(
@@ -343,7 +355,7 @@ class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  '${widget.notifications.length} تنبيه',
+                  '${_notifications.length} تنبيه',
                   style: TextStyle(
                     color: Colors.red.shade700,
                     fontSize: 8.sp,
@@ -355,16 +367,16 @@ class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
           ],
         ),
         SizedBox(height: 6.h),
-        if (widget.notifications.isEmpty)
+        if (_notifications.isEmpty)
           _buildEmptyState(isDark)
         else
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: widget.notifications.length,
+            itemCount: _notifications.length,
             separatorBuilder: (context, index) => SizedBox(height: 6.h),
             itemBuilder: (context, index) {
-              final notif = widget.notifications[index];
+              final notif = _notifications[index];
               return InkWell(
                 onTap: () async {
                   Navigator.pop(context);
@@ -449,11 +461,23 @@ class _HomeNotificationsSheetState extends State<HomeNotificationsSheet> {
                           ],
                         ),
                       ),
-                      SizedBox(width: 4.w),
-                      Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 10.sp,
-                        color: Colors.grey.shade400,
+                      SizedBox(width: 6.w),
+                      Tooltip(
+                        message: 'تعليم كمكتمل',
+                        child: InkWell(
+                          onTap: () async {
+                            await _dismissNotification(notif);
+                          },
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Padding(
+                            padding: EdgeInsets.all(4.w),
+                            child: Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 16.sp,
+                              color: Colors.green.shade600,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),

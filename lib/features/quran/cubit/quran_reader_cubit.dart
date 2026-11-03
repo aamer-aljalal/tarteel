@@ -35,7 +35,9 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
 
     if (cachedPages != null && cachedPages.isNotEmpty) {
       int targetPage = 0;
-      if (initialAyah != null && initialAyahs.isNotEmpty) {
+      if (initialPage > 0 && initialPage < cachedPages.length) {
+        targetPage = initialPage;
+      } else if (initialAyah != null && initialAyahs.isNotEmpty) {
         final match = initialAyahs.firstWhere(
           (a) => a.verse == initialAyah,
           orElse: () => initialAyahs.first,
@@ -103,7 +105,9 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     int startPage = state.currentPage;
 
     if (state.isLoading || state.paginatedPages.length < 604) {
-      if (initialAyah != null && state.ayahs.isNotEmpty) {
+      if (initialPage > 0 && initialPage < allPages.length) {
+        startPage = initialPage;
+      } else if (initialAyah != null && state.ayahs.isNotEmpty) {
         final match = state.ayahs.firstWhere(
           (a) => a.verse == initialAyah,
           orElse: () => state.ayahs.first,
