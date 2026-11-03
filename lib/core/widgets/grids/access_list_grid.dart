@@ -88,7 +88,7 @@ class AccessListGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = MediaQuery.platformBrightnessOf(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // الهوامش الافتراضية: 20 من الجوانب و 20 من الأعلى والأسفل (أو ما يمرره المبرمج)
     final effectivePadding =
@@ -103,9 +103,7 @@ class AccessListGrid extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 40.h),
         child: Center(
           child: CircularProgressIndicator(
-            color: brightness == Theme.of(context).brightness
-                ? AppColors.goldAccent
-                : AppColors.primary,
+            color: isDark ? AppColors.goldAccent : AppColors.primary,
           ),
         ),
       );
@@ -140,7 +138,7 @@ class AccessListGrid extends StatelessWidget {
             child: _buildRectangleCard(
               context,
               item,
-              brightness,
+              isDark,
               isSelected: _checkIsSelected(item),
             ),
           );
@@ -199,7 +197,7 @@ class AccessListGrid extends StatelessWidget {
             child: _buildItemCard(
               context,
               item,
-              brightness,
+              isDark,
               isSelected: _checkIsSelected(item),
             ),
           );
@@ -259,11 +257,9 @@ class AccessListGrid extends StatelessWidget {
   Widget _buildItemCard(
     BuildContext context,
     AccessListModel item,
-    Brightness brightness, {
+    bool isDark, {
     bool isSelected = false,
   }) {
-    final isDark = brightness == Theme.of(context).brightness;
-
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
@@ -320,7 +316,9 @@ class AccessListGrid extends StatelessWidget {
                 : Icon(
                     item.icon,
                     size: 20.sp,
-                    color: isSelected ? AppColors.goldAccent : AppColors.greenBorder,
+                    color: isSelected
+                        ? AppColors.goldAccent
+                        : AppColors.greenBorder,
                   ),
           ),
           SizedBox(height: 10.h),
@@ -356,10 +354,9 @@ class AccessListGrid extends StatelessWidget {
   Widget _buildRectangleCard(
     BuildContext context,
     AccessListModel item,
-    Brightness brightness, {
+    bool isDark, {
     bool isSelected = false,
   }) {
-    final isDark = brightness == Theme.of(context).brightness;
     final bool hasDetails =
         item.details != null && item.details!.trim().isNotEmpty;
 
@@ -418,7 +415,9 @@ class AccessListGrid extends StatelessWidget {
                 : Icon(
                     item.icon,
                     size: 22.sp,
-                    color: isSelected ? AppColors.goldAccent : AppColors.greenBorder,
+                    color: isSelected
+                        ? AppColors.goldAccent
+                        : AppColors.greenBorder,
                   ),
           ),
           SizedBox(width: 14.w),

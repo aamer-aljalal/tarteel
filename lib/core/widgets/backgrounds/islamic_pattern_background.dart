@@ -607,19 +607,19 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment.topCenter,
-        colors: [
-          (isDark ? const Color(0xFFFDE494) : const Color(0xFFB4EAC9))
-              .withValues(alpha: 0.50 + breathe * 0.5),
-          Colors.transparent,
-        ],
-      ).createShader(
-        Rect.fromPoints(
-          Offset(center.dx, center.dy),
-          Offset(center.dx, center.dy - 65.h),
-        ),
-      );
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              (isDark ? const Color(0xFFFDE494) : const Color(0xFFB4EAC9))
+                  .withValues(alpha: 0.50 + breathe * 0.5),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromPoints(
+              Offset(center.dx, center.dy),
+              Offset(center.dx, center.dy - 65.h),
+            ),
+          );
 
     for (int i = -3; i <= 3; i++) {
       final double rayAngle = -math.pi / 2 + (i * 0.18);
@@ -781,21 +781,40 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
       ..style = PaintingStyle.fill
       ..color = const Color(0xFFD4AF37).withValues(alpha: 0.85);
 
-    canvas.drawCircle(Offset(center.dx - halfW * 0.93, bookTopY - 2.h), 2.2.r, goldCornerPaint);
-    canvas.drawCircle(Offset(center.dx + halfW * 0.93, bookTopY - 2.h), 2.2.r, goldCornerPaint);
-    canvas.drawCircle(Offset(center.dx - halfW * 0.93, bookTopY + 10.h), 2.2.r, goldCornerPaint);
-    canvas.drawCircle(Offset(center.dx + halfW * 0.93, bookTopY + 10.h), 2.2.r, goldCornerPaint);
+    canvas.drawCircle(
+      Offset(center.dx - halfW * 0.93, bookTopY - 2.h),
+      2.2.r,
+      goldCornerPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + halfW * 0.93, bookTopY - 2.h),
+      2.2.r,
+      goldCornerPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx - halfW * 0.93, bookTopY + 10.h),
+      2.2.r,
+      goldCornerPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + halfW * 0.93, bookTopY + 10.h),
+      2.2.r,
+      goldCornerPaint,
+    );
 
     // -------------------------------------------------------------
     // د. كُتلة الأوراق المذهبة ثلاثية الأبعاد (Page Block Depth)
     // -------------------------------------------------------------
     final Paint pageEdgePaint = Paint()
       ..style = PaintingStyle.fill
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFFFCE69B), Color(0xFFC7982B), Color(0xFF9E7318)],
-      ).createShader(Rect.fromLTWH(center.dx - halfW, bookTopY, quranWidth, 30.h));
+      ..shader =
+          const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFCE69B), Color(0xFFC7982B), Color(0xFF9E7318)],
+          ).createShader(
+            Rect.fromLTWH(center.dx - halfW, bookTopY, quranWidth, 30.h),
+          );
 
     // حواف الصفحات المذهبة الجانبية لليسار
     final Path leftEdgeBlock = Path();
@@ -877,8 +896,18 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
       stops: const [0.0, 0.25, 1.0],
     ).createShader(rightPage.getBounds());
 
-    canvas.drawPath(leftPage, Paint()..style = PaintingStyle.fill..shader = leftPageShader);
-    canvas.drawPath(rightPage, Paint()..style = PaintingStyle.fill..shader = rightPageShader);
+    canvas.drawPath(
+      leftPage,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..shader = leftPageShader,
+    );
+    canvas.drawPath(
+      rightPage,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..shader = rightPageShader,
+    );
 
     // إطار تذهيب أنيق حول الصفحتين
     final goldBorderPaint = Paint()
@@ -947,8 +976,16 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
     final cornerDotPaint = Paint()
       ..style = PaintingStyle.fill
       ..color = const Color(0xFFC59828).withValues(alpha: 0.85);
-    canvas.drawCircle(Offset(center.dx - halfW * 0.78, bookTopY - 2.h), 1.5.r, cornerDotPaint);
-    canvas.drawCircle(Offset(center.dx + halfW * 0.78, bookTopY - 2.h), 1.5.r, cornerDotPaint);
+    canvas.drawCircle(
+      Offset(center.dx - halfW * 0.78, bookTopY - 2.h),
+      1.5.r,
+      cornerDotPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + halfW * 0.78, bookTopY - 2.h),
+      1.5.r,
+      cornerDotPaint,
+    );
 
     // -------------------------------------------------------------
     // ز. شريط علامة المصحف الحريري المنسدل مع الشرابة (Bookmark Ribbon & Tassel)
@@ -975,21 +1012,36 @@ class _MihrabQuranSanctuaryPainter extends CustomPainter {
 
     // الشرابة الذهبية في نهاية شريط المصحف
     final Offset tasselTip = Offset(center.dx + 2.w, rahlY + 17.h);
-    canvas.drawCircle(tasselTip, 1.8.r, Paint()..style = PaintingStyle.fill..color = const Color(0xFFF9D874));
+    canvas.drawCircle(
+      tasselTip,
+      1.8.r,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFFF9D874),
+    );
     canvas.drawLine(
       tasselTip,
       Offset(tasselTip.dx - 2.w, tasselTip.dy + 6.h),
-      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFFC59828),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..color = const Color(0xFFC59828),
     );
     canvas.drawLine(
       tasselTip,
       Offset(tasselTip.dx, tasselTip.dy + 7.h),
-      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFFC59828),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..color = const Color(0xFFC59828),
     );
     canvas.drawLine(
       tasselTip,
       Offset(tasselTip.dx + 2.w, tasselTip.dy + 6.h),
-      Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFFC59828),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..color = const Color(0xFFC59828),
     );
   }
 
