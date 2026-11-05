@@ -8,7 +8,7 @@
   },
   {
     "id": "khatma",
-    "title": "إتمام المصحف",
+    "title": "خطة قراءة القرآن",
     "route": "/khatma-planner",
     "icon": "khatma",
     "isEnabled": true
@@ -104,6 +104,6 @@
     "title": "الإعدادات",
     "route": "/settings",
     "icon": "settings",
-    "isEnabled": true
+    "isEnabled": false
   }
 ]

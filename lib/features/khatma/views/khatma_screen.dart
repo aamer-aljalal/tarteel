@@ -331,67 +331,71 @@ class _KhatmaScreenState extends State<KhatmaScreen> with RouteAware {
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _loadData,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 14.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Case 1: Viewing an archived past Khatma
-                      if (_previewArchivedKhatma != null) ...[
-                        KhatmaJourneyCard(
-                          plan: _buildArchivedPreviewPlan(
-                            _previewArchivedKhatma!,
+            : GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => FocusScope.of(context).unfocus(),
+                child: RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 14.h,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Case 1: Viewing an archived past Khatma
+                        if (_previewArchivedKhatma != null) ...[
+                          KhatmaJourneyCard(
+                            plan: _buildArchivedPreviewPlan(
+                              _previewArchivedKhatma!,
+                            ),
+                            streakDays: _streakDays,
+                            isArchivedPreview: true,
+                            onContinueReading: () {},
+                            onChangeReminder: () {},
+                            onCancelPlan: () {},
                           ),
-                          streakDays: _streakDays,
-                          isArchivedPreview: true,
-                          onContinueReading: () {},
-                          onChangeReminder: () {},
-                          onCancelPlan: () {},
-                        ),
-                        SizedBox(height: 14.h),
-                        _buildReturnToActiveBar(),
-                        SizedBox(height: 14.h),
-                      ]
-                      // Case 2: Active in-progress Khatma
-                      else if (_activePlan != null &&
-                          !_activePlan!.isCompleted) ...[
-                        KhatmaJourneyCard(
-                          plan: _activePlan!,
-                          streakDays: _streakDays,
-                          onContinueReading: _navigateToKhatmaReading,
-                          onChangeReminder: _handleChangeReminder,
-                          onCancelPlan: _handleCancelPlan,
-                        ),
-                        SizedBox(height: 16.h),
-                      ]
-                      // Case 3: Current Khatma just completed
-                      else if (_activePlan != null &&
-                          _activePlan!.isCompleted) ...[
-                        _buildCompletionCelebrationCard(isDark),
-                        SizedBox(height: 16.h),
-                      ]
-                      // Case 4: No active Khatma, show setup planner
-                      else ...[
-                        KhatmaPlanSelector(onStartPlan: _handleStartPlan),
-                        SizedBox(height: 16.h),
-                      ],
+                          SizedBox(height: 14.h),
+                          _buildReturnToActiveBar(),
+                          SizedBox(height: 14.h),
+                        ]
+                        // Case 2: Active in-progress Khatma
+                        else if (_activePlan != null &&
+                            !_activePlan!.isCompleted) ...[
+                          KhatmaJourneyCard(
+                            plan: _activePlan!,
+                            streakDays: _streakDays,
+                            onContinueReading: _navigateToKhatmaReading,
+                            onChangeReminder: _handleChangeReminder,
+                            onCancelPlan: _handleCancelPlan,
+                          ),
+                          SizedBox(height: 16.h),
+                        ]
+                        // Case 3: Current Khatma just completed
+                        else if (_activePlan != null &&
+                            _activePlan!.isCompleted) ...[
+                          _buildCompletionCelebrationCard(isDark),
+                          SizedBox(height: 16.h),
+                        ]
+                        // Case 4: No active Khatma, show setup planner
+                        else ...[
+                          KhatmaPlanSelector(onStartPlan: _handleStartPlan),
+                          SizedBox(height: 16.h),
+                        ],
 
-                      // History Card Shortcut
-                      if (_history.isNotEmpty) ...[
-                        _buildHistoryShortcutCard(isDark, accentGold),
-                        SizedBox(height: 14.h),
-                      ],
+                        // History Card Shortcut
+                        if (_history.isNotEmpty) ...[
+                          _buildHistoryShortcutCard(isDark, accentGold),
+                          SizedBox(height: 14.h),
+                        ],
 
-                      // Islamic Motivational Quote Card
-                      _buildInspirationalCard(isDark, accentGold),
-                      SizedBox(height: 24.h),
-                    ],
+                        // Islamic Motivational Quote Card
+                        _buildInspirationalCard(isDark, accentGold),
+                        SizedBox(height: 24.h),
+                      ],
+                    ),
                   ),
                 ),
               ),

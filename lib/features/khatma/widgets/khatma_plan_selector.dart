@@ -441,7 +441,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                     style: TextStyle(
                       fontFamily: 'Cairo',
                       fontSize: 11.5.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.normal,
                       color: isDark ? Colors.white : AppColors.primary,
                     ),
                     decoration: InputDecoration(
@@ -585,8 +585,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
           onChanged: (val) => setState(() => _pagesPerPrayer = val.round()),
           minLabel: '1 ص',
           maxLabel: '10 ص',
-          infoText:
-              'المعدل: $totalPerDay صفحة يومياً • إتمام المصحف خلال $days يوماً بإذن الله',
+          topSummaryBadge: 'الختم خلال $days يوماً',
         );
 
       case KhatmaPlanType.dailyPages:
@@ -595,9 +594,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
           isDark: isDark,
           accentGold: accentGold,
           title: 'عدد الصفحات اليومية:',
-          valueText: _dailyPages == 1
-              ? '1 صفحة / يوم'
-              : '$_dailyPages صفحة / يوم',
+          valueText: _dailyPages == 1 ? '1 صفحة' : '$_dailyPages صفحة',
           value: _dailyPages.toDouble(),
           min: 1,
           max: 60,
@@ -605,9 +602,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
           onChanged: (val) => setState(() => _dailyPages = val.round()),
           minLabel: '1 ص',
           maxLabel: '60 ص',
-          infoText: _dailyPages == 1
-              ? 'ستتم الختمة المباركة بإذن الله خلال 604 يوماً'
-              : 'ستتم الختمة المباركة بإذن الله خلال $days يوماً',
+          topSummaryBadge: 'الختم خلال $days يوماً',
         );
 
       case KhatmaPlanType.durationDays:
@@ -628,10 +623,8 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
           divisions: 179,
           onChanged: (val) => setState(() => _targetDays = val.round()),
           minLabel: 'يوم واحد',
-          maxLabel: '6 أشهر (180 يوماً)',
-          infoText: _targetDays == 1
-              ? 'ختمة مكثفة في يوم واحد: قراءة المصحف كاملاً (604 صفحة)'
-              : 'المطلوب قراءة $pagesPerDay صفحة يومياً لإتمام الختمة في الموعد',
+          maxLabel: '180 يوم',
+          topSummaryBadge: '$pagesPerDay صفحة / يوم',
         );
 
       case KhatmaPlanType.freeReading:
@@ -686,7 +679,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
     required ValueChanged<double> onChanged,
     required String minLabel,
     required String maxLabel,
-    required String infoText,
+    required String topSummaryBadge,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -704,6 +697,7 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 color: isDark ? Colors.white : AppColors.primary,
               ),
             ),
+            // الحاوية العلوية المختصرة التي توضح ملخص النتيجة/الختم
             Container(
               padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
               decoration: BoxDecoration(
@@ -715,10 +709,10 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                 ),
               ),
               child: Text(
-                valueText,
+                topSummaryBadge,
                 style: TextStyle(
                   fontFamily: 'Cairo',
-                  fontSize: 10.5.sp,
+                  fontSize: 9.5.sp,
                   fontWeight: FontWeight.bold,
                   color: accentGold,
                 ),
@@ -740,12 +734,22 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
               elevation: 2,
             ),
             trackHeight: 3.h,
+            showValueIndicator: ShowValueIndicator.onDrag,
+            valueIndicatorColor: accentGold,
+            valueIndicatorTextStyle: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 10.sp,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.black : Colors.white,
+            ),
+            valueIndicatorShape: const PaddleSliderValueIndicatorShape(),
           ),
           child: Slider(
             value: value.clamp(min, max),
             min: min,
             max: max,
             divisions: divisions,
+            label: valueText,
             onChanged: (val) {
               HapticFeedback.selectionClick();
               onChanged(val);
@@ -771,43 +775,6 @@ class _KhatmaPlanSelectorState extends State<KhatmaPlanSelector> {
                   fontFamily: 'Cairo',
                   fontSize: 9.sp,
                   color: isDark ? Colors.white38 : Colors.black38,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 6.h),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.03)
-                : const Color(0xFFF7FAF7),
-            borderRadius: BorderRadius.circular(6.r),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.black.withValues(alpha: 0.04),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                color: accentGold,
-                size: 13.sp,
-              ),
-              SizedBox(width: 6.w),
-              Expanded(
-                child: Text(
-                  infoText,
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 9.5.sp,
-                    color: isDark ? Colors.white70 : Colors.black87,
-                    height: 1.3,
-                  ),
                 ),
               ),
             ],

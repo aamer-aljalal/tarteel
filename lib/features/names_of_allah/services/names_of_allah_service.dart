@@ -6,16 +6,9 @@ class NamesOfAllahService {
   /// Loads Allah's 99 Beautiful Names
   static Future<List<AllahName>> loadAllahNames() async {
     try {
-      String jsonString;
-      try {
-        jsonString = await rootBundle.loadString(
-          'assets/json/names/names_of_allah.json',
-        );
-      } catch (_) {
-        jsonString = await rootBundle.loadString(
-          'assets/json/names_of_allah.json',
-        );
-      }
+      final jsonString = await rootBundle.loadString(
+        'assets/json/names/names_of_allah.json',
+      );
 
       final List<dynamic> data = jsonDecode(jsonString);
       return data
