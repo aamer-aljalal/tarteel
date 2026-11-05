@@ -39,22 +39,23 @@ class KhatmaHistoryModel {
     final rawBadges = json['badges'] as List<dynamic>?;
     final badgesList = rawBadges != null
         ? rawBadges
+            .whereType<Map>()
             .map((b) =>
-                KhatmaBadgeModel.fromJson(b as Map<String, dynamic>))
+                KhatmaBadgeModel.fromJson(Map<String, dynamic>.from(b)))
             .toList()
         : KhatmaBadgeModel.defaultBadges();
 
     return KhatmaHistoryModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
       type: KhatmaPlanType.values.firstWhere(
         (t) => t.name == json['type'],
         orElse: () => KhatmaPlanType.durationDays,
       ),
-      startDate: DateTime.parse(json['startDate'] as String),
-      completedDate: DateTime.parse(json['completedDate'] as String),
-      daysTaken: json['daysTaken'] as int? ?? 30,
-      totalPages: json['totalPages'] as int? ?? 604,
+      startDate: DateTime.tryParse(json['startDate']?.toString() ?? '') ?? DateTime.now(),
+      completedDate: DateTime.tryParse(json['completedDate']?.toString() ?? '') ?? DateTime.now(),
+      daysTaken: (json['daysTaken'] as num?)?.toInt() ?? 30,
+      totalPages: (json['totalPages'] as num?)?.toInt() ?? 604,
       badges: badgesList,
     );
   }

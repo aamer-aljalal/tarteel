@@ -13,6 +13,7 @@ class KhatmaService {
   static const String _streakKey = 'khatma_reading_streak';
   static const String _streakLastDateKey = 'khatma_streak_last_date';
   static const String _pendingBadgesKey = 'khatma_pending_celebration_badge_ids';
+  static const String _migratedKey = 'khatma_legacy_migrated_v2';
 
   /// تحميل الخطة النشطة
   static Future<KhatmaPlanModel?> getActivePlan() async {
@@ -20,7 +21,9 @@ class KhatmaService {
     await prefs.reload();
     final jsonStr = prefs.getString(_activePlanKey);
     if (jsonStr == null) {
-      // التحقق من وجود خطة قديمة للترقية التلقائية
+      final alreadyMigrated = prefs.getBool(_migratedKey) ?? false;
+      if (alreadyMigrated) return null;
+      // التحقق من وجود خطة قديمة للترقية التلقائية (مرة واحدة فقط)
       return _migrateLegacyPlanIfNeeded(prefs);
     }
     try {
@@ -34,8 +37,13 @@ class KhatmaService {
 
   /// ترقية الخطة القديمة تلقائياً دون فقدان بيانات المستخدم
   static Future<KhatmaPlanModel?> _migrateLegacyPlanIfNeeded(SharedPreferences prefs) async {
+    await prefs.setBool(_migratedKey, true);
+
     final active = prefs.getBool('khatma_active') ?? false;
-    if (!active) return null;
+    if (!active) {
+      await _cleanLegacyKeys(prefs);
+      return null;
+    }
 
     final days = prefs.getInt('khatma_days') ?? 30;
     final startStr = prefs.getString('khatma_start_date');
@@ -46,13 +54,15 @@ class KhatmaService {
 
     final targetPages = (604 / days).ceil();
     final currentP = lastPage.clamp(1, 604);
+    final startDate = _parseDateSafe(startStr) ?? DateTime.now();
+
     final migrated = KhatmaPlanModel(
       id: 'khatma_${DateTime.now().millisecondsSinceEpoch}',
       title: 'ختمة المصحف الشريف',
       type: KhatmaPlanType.durationDays,
       targetPagesPerDay: targetPages,
       targetDays: days,
-      startDate: startStr != null ? DateTime.parse(startStr) : DateTime.now(),
+      startDate: startDate,
       currentPage: currentP,
       pagesReadToday: (readToday / 15).round().clamp(0, 604),
       reminderHour: rHour,
@@ -66,7 +76,18 @@ class KhatmaService {
     );
 
     await saveActivePlan(migrated);
+    await _cleanLegacyKeys(prefs);
     return migrated;
+  }
+
+  static Future<void> _cleanLegacyKeys(SharedPreferences prefs) async {
+    await prefs.remove('khatma_active');
+    await prefs.remove('khatma_days');
+    await prefs.remove('khatma_start_date');
+    await prefs.remove('khatma_last_read_page');
+    await prefs.remove('khatma_ayahs_read_today');
+    await prefs.remove('khatma_reminder_hour');
+    await prefs.remove('khatma_reminder_minute');
   }
 
   /// حفظ أو تحديث الخطة النشطة
@@ -74,13 +95,10 @@ class KhatmaService {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(plan.toJson());
     await prefs.setString(_activePlanKey, jsonStr);
+    await prefs.setBool(_migratedKey, true);
 
-    // الحفاظ على مفاتيح التوافق القديمة للشاشات والإشعارات
-    await prefs.setBool('khatma_active', !plan.isCompleted);
-    await prefs.setInt('khatma_days', plan.targetDays);
+    // الحفاظ على مفتاح آخر صفحة مقروءة للإشعارات
     await prefs.setInt('khatma_last_read_page', plan.currentPage);
-    await prefs.setInt('khatma_reminder_hour', plan.reminderHour);
-    await prefs.setInt('khatma_reminder_minute', plan.reminderMinute);
   }
 
   /// إنشاء خطة جديدة
@@ -125,6 +143,33 @@ class KhatmaService {
     return newPlan;
   }
 
+  /// تنسيق التاريخ بصيغة ISO القياسية المضمونة YYYY-MM-DD
+  static String _formatDateKey(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  /// تحليل التاريخ بأمان تام مع دعم التواريخ القديمة غير المسبوقة بأصفار مثل (2026-11-3)
+  static DateTime? _parseDateSafe(String? str) {
+    if (str == null || str.trim().isEmpty) return null;
+    final direct = DateTime.tryParse(str.trim());
+    if (direct != null) return direct;
+    try {
+      final parts = str.trim().split('-');
+      if (parts.length >= 3) {
+        final y = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        final d = int.tryParse(parts[2]);
+        if (y != null && m != null && d != null) {
+          return DateTime(y, m, d);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// تسجيل تقدم القراءة لصفحة محددة مع فحص الأوسمة والإتمام
   /// يعيد وسام المحطة الجديد إن تم تحقيقه في هذه اللحظة
   static Future<KhatmaBadgeModel?> updateReadingProgress({
@@ -135,16 +180,15 @@ class KhatmaService {
 
     final oldPage = plan.currentPage;
     final clampedPage = newPage.clamp(1, 604);
-    // احتساب الزيادة في الصفحات المقروءة اليوم
-    final pagesDelta = clampedPage > oldPage ? (clampedPage - oldPage) : 1;
+    // احتساب الزيادة في الصفحات المقروءة اليوم (فقط عند التقدم للأمام)
+    final pagesDelta = clampedPage > oldPage ? (clampedPage - oldPage) : 0;
 
     final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month}-${now.day}';
+    final todayStr = _formatDateKey(now);
 
     int newPagesToday = plan.pagesReadToday;
     if (plan.lastReadDate != null) {
-      final lastDate = plan.lastReadDate!;
-      final lastDayStr = '${lastDate.year}-${lastDate.month}-${lastDate.day}';
+      final lastDayStr = _formatDateKey(plan.lastReadDate!);
       if (todayStr != lastDayStr) {
         newPagesToday = 0;
       }
@@ -190,7 +234,7 @@ class KhatmaService {
       currentPage: clampedPage,
       pagesReadToday: newPagesToday,
       lastReadDate: now,
-      isCompleted: isJustCompleted,
+      isCompleted: isJustCompleted || plan.isCompleted,
       completedDate: isJustCompleted ? now : plan.completedDate,
       badges: updatedBadges,
     );
@@ -224,12 +268,15 @@ class KhatmaService {
     await prefs.remove(_pendingBadgesKey);
 
     final allBadges = await getAllBadges();
+    final defaultBadges = KhatmaBadgeModel.defaultBadges();
     final result = <KhatmaBadgeModel>[];
     for (final id in list) {
       final found = allBadges.firstWhere(
         (b) => b.id == id,
-        orElse: () =>
-            KhatmaBadgeModel.defaultBadges().firstWhere((b) => b.id == id),
+        orElse: () => defaultBadges.firstWhere(
+          (b) => b.id == id,
+          orElse: () => defaultBadges.first,
+        ),
       );
       result.add(found);
     }
@@ -240,7 +287,8 @@ class KhatmaService {
   static Future<int> _updateStreakOnReading() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month}-${now.day}';
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final todayStr = _formatDateKey(todayDate);
 
     final lastDateStr = prefs.getString(_streakLastDateKey);
     var streak = prefs.getInt(_streakKey) ?? 0;
@@ -249,40 +297,59 @@ class KhatmaService {
       streak = 1;
       await prefs.setInt(_streakKey, streak);
       await prefs.setString(_streakLastDateKey, todayStr);
-    } else if (lastDateStr != todayStr) {
-      final lastDate = DateTime.parse(lastDateStr);
-      final differenceInDays = DateTime(now.year, now.month, now.day)
-          .difference(DateTime(lastDate.year, lastDate.month, lastDate.day))
-          .inDays;
+    } else {
+      final lastDate = _parseDateSafe(lastDateStr);
+      if (lastDate != null) {
+        final cleanLastDate =
+            DateTime(lastDate.year, lastDate.month, lastDate.day);
+        final differenceInDays = todayDate.difference(cleanLastDate).inDays;
 
-      if (differenceInDays == 1) {
-        streak += 1;
-      } else if (differenceInDays > 1) {
-        streak = 1; // انقطعت السلسلة وبدأت من جديد
+        if (differenceInDays == 1) {
+          streak += 1;
+          await prefs.setInt(_streakKey, streak);
+          await prefs.setString(_streakLastDateKey, todayStr);
+        } else if (differenceInDays > 1) {
+          streak = 1; // انقطعت السلسلة وبدأت من جديد
+          await prefs.setInt(_streakKey, streak);
+          await prefs.setString(_streakLastDateKey, todayStr);
+        } else if (differenceInDays == 0) {
+          // قرأ في نفس اليوم - نضمن تحديث المفتاح لصيغة ISO القياسية
+          if (lastDateStr != todayStr) {
+            await prefs.setString(_streakLastDateKey, todayStr);
+          }
+        }
+      } else {
+        streak = 1;
+        await prefs.setInt(_streakKey, streak);
+        await prefs.setString(_streakLastDateKey, todayStr);
       }
-      await prefs.setInt(_streakKey, streak);
-      await prefs.setString(_streakLastDateKey, todayStr);
     }
     return streak;
   }
 
   /// استرجاع عدد أيام سلسلة الالتزام الحالية
   static Future<int> getStreakDays() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now();
-    final lastDateStr = prefs.getString(_streakLastDateKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final lastDateStr = prefs.getString(_streakLastDateKey);
 
-    if (lastDateStr == null) return 0;
+      if (lastDateStr == null) return 0;
 
-    final lastDate = DateTime.parse(lastDateStr);
-    final diff = DateTime(now.year, now.month, now.day)
-        .difference(DateTime(lastDate.year, lastDate.month, lastDate.day))
-        .inDays;
+      final lastDate = _parseDateSafe(lastDateStr);
+      if (lastDate == null) return 0;
 
-    if (diff > 1) {
-      return 0; // انقطعت السلسلة
+      final diff = DateTime(now.year, now.month, now.day)
+          .difference(DateTime(lastDate.year, lastDate.month, lastDate.day))
+          .inDays;
+
+      if (diff > 1) {
+        return 0; // انقطعت السلسلة
+      }
+      return prefs.getInt(_streakKey) ?? 0;
+    } catch (_) {
+      return 0;
     }
-    return prefs.getInt(_streakKey) ?? 0;
   }
 
   /// استرجاع أوسمة الخطة النشطة الحالية
@@ -339,7 +406,14 @@ class KhatmaService {
   static Future<void> cancelCurrentPlan() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_activePlanKey);
-    await prefs.setBool('khatma_active', false);
-    await GeneralNotificationService.cancelKhatmaReminder();
+    await prefs.setBool(_migratedKey, true);
+    await prefs.remove(_pendingBadgesKey);
+    await _cleanLegacyKeys(prefs);
+
+    try {
+      await GeneralNotificationService.cancelKhatmaReminder();
+    } catch (e) {
+      debugPrint('Error cancelling Khatma reminders: $e');
+    }
   }
 }

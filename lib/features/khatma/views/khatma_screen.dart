@@ -248,8 +248,24 @@ class _KhatmaScreenState extends State<KhatmaScreen> with RouteAware {
     );
 
     if (confirm) {
+      if (mounted) {
+        setState(() {
+          _activePlan = null;
+        });
+      }
       await KhatmaService.cancelCurrentPlan();
       await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'تم إنهاء الخطة الحالية بنجاح',
+              style: TextStyle(fontFamily: 'Cairo'),
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -661,6 +677,9 @@ class _KhatmaScreenState extends State<KhatmaScreen> with RouteAware {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () async {
+                    if (mounted) {
+                      setState(() => _activePlan = null);
+                    }
                     await KhatmaService.cancelCurrentPlan();
                     await _loadData();
                   },

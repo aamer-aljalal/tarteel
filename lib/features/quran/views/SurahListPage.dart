@@ -64,10 +64,19 @@ class _SurahListViewState extends State<_SurahListView>
     final ayahs = await QuranService.loadAyahs(surah.number);
     if (!context.mounted) return;
 
+    final startPage = ayahs.isNotEmpty
+        ? ayahs.first.page
+        : QuranService.getSurahStartPage(surah.number);
+    final targetPage = (startPage - 1).clamp(0, 603);
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SurahDetailPage(surah: surah, ayahs: ayahs),
+        builder: (_) => SurahDetailPage(
+          surah: surah,
+          ayahs: ayahs,
+          initialPage: targetPage,
+        ),
       ),
     );
   }
@@ -112,7 +121,7 @@ class _SurahListViewState extends State<_SurahListView>
           builder: (_) => SurahDetailPage(
             surah: surah,
             ayahs: ayahs,
-            initialPage: pageNumber != null ? (pageNumber - 1) : 0,
+            initialPage: pageNumber != null ? (pageNumber - 1) : null,
             initialAyah: ayahNumber,
           ),
         ),
@@ -240,9 +249,19 @@ class _SurahListViewState extends State<_SurahListView>
                       bottom: 50.h,
                     ),
                     controller: _animationController,
-                    onItemTap: (item) {
+                    onItemTap: (item) async {
                       if (item.arguments is QuranSurah) {
                         _openSurah(context, item.arguments as QuranSurah);
+                      } else {
+                        final surahs = await QuranService.loadSurahs();
+                        final surahNumber = int.tryParse(item.id ?? '') ?? 1;
+                        final surah = surahs.firstWhere(
+                          (s) => s.number == surahNumber,
+                          orElse: () => surahs.first,
+                        );
+                        if (context.mounted) {
+                          _openSurah(context, surah);
+                        }
                       }
                     },
                   );

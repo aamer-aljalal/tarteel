@@ -22,36 +22,52 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
   static QuranReaderState _createInitialState({
     required QuranSurah initialSurah,
     required List<QuranAyah> initialAyahs,
-    required int initialPage,
+    required int? initialPage,
     required int? initialAyah,
   }) {
     final cachedPages = QuranService.getCachedAllPages();
     final cachedSurahs = QuranService.getCachedSurahs() ?? [initialSurah];
 
-    if (cachedPages != null && cachedPages.isNotEmpty) {
-      int targetPage = 0;
-      if (initialPage >= 0 && initialPage < cachedPages.length) {
-        targetPage = initialPage;
-      } else if (initialAyah != null && initialAyahs.isNotEmpty) {
-        final match = initialAyahs.firstWhere(
-          (a) => a.verse == initialAyah,
-          orElse: () => initialAyahs.first,
-        );
-        targetPage = (match.page - 1).clamp(0, cachedPages.length - 1);
-      } else if (initialAyahs.isNotEmpty) {
-        targetPage = (initialAyahs.first.page - 1).clamp(0, cachedPages.length - 1);
-      } else {
-        final startP = QuranService.getSurahStartPage(initialSurah.number);
-        targetPage = (startP - 1).clamp(0, cachedPages.length - 1);
-      }
-
-      final pageAyahs = cachedPages[targetPage];
-      final surahNum =
-          pageAyahs.isNotEmpty ? pageAyahs.first.chapter : initialSurah.number;
-      final activeSurah = cachedSurahs.firstWhere(
-        (s) => s.number == surahNum,
-        orElse: () => initialSurah,
+    int targetPage = 0;
+    if (initialPage != null && initialPage >= 0) {
+      final maxLen = (cachedPages != null && cachedPages.isNotEmpty)
+          ? cachedPages.length
+          : 604;
+      targetPage = initialPage.clamp(0, maxLen - 1);
+    } else if (initialAyah != null && initialAyahs.isNotEmpty) {
+      final match = initialAyahs.firstWhere(
+        (a) => a.verse == initialAyah,
+        orElse: () => initialAyahs.first,
       );
+      final maxLen = (cachedPages != null && cachedPages.isNotEmpty)
+          ? cachedPages.length
+          : 604;
+      targetPage = (match.page - 1).clamp(0, maxLen - 1);
+    } else if (initialAyahs.isNotEmpty) {
+      final maxLen = (cachedPages != null && cachedPages.isNotEmpty)
+          ? cachedPages.length
+          : 604;
+      targetPage = (initialAyahs.first.page - 1).clamp(0, maxLen - 1);
+    } else {
+      final startP = QuranService.getSurahStartPage(initialSurah.number);
+      final maxLen = (cachedPages != null && cachedPages.isNotEmpty)
+          ? cachedPages.length
+          : 604;
+      targetPage = (startP - 1).clamp(0, maxLen - 1);
+    }
+
+    if (cachedPages != null && cachedPages.isNotEmpty) {
+      final pageAyahs = cachedPages[targetPage];
+      QuranSurah activeSurah = initialSurah;
+      final hasSurahOnPage =
+          pageAyahs.any((a) => a.chapter == initialSurah.number);
+      if (!hasSurahOnPage && pageAyahs.isNotEmpty) {
+        final surahNum = pageAyahs.first.chapter;
+        activeSurah = cachedSurahs.firstWhere(
+          (s) => s.number == surahNum,
+          orElse: () => initialSurah,
+        );
+      }
 
       return QuranReaderState(
         surah: activeSurah,
@@ -69,7 +85,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
       ayahs: initialAyahs,
       paginatedPages: splitIntoPages(initialAyahs),
       continuousPages: [initialAyahs],
-      currentPage: initialPage,
+      currentPage: targetPage,
       allSurahs: cachedSurahs,
       isLoading: true,
     );
@@ -78,7 +94,7 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
   QuranReaderCubit({
     required QuranSurah initialSurah,
     required List<QuranAyah> initialAyahs,
-    int initialPage = 0,
+    int? initialPage,
     this.initialAyah,
   }) : super(
          _createInitialState(
@@ -91,14 +107,16 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     _initialize(initialPage);
   }
 
-  Future<void> _initialize(int initialPage) async {
+  Future<void> _initialize(int? initialPage) async {
     final allSurahs = await QuranService.loadSurahs();
     final allPages = await QuranService.loadAllPages();
 
     int startPage = state.currentPage;
 
     if (state.isLoading || state.paginatedPages.length < 604) {
-      if (initialPage >= 0 && initialPage < allPages.length) {
+      if (initialPage != null &&
+          initialPage >= 0 &&
+          initialPage < allPages.length) {
         startPage = initialPage;
       } else if (initialAyah != null && state.ayahs.isNotEmpty) {
         final match = state.ayahs.firstWhere(
@@ -123,12 +141,16 @@ class QuranReaderCubit extends Cubit<QuranReaderState> {
     final activeAyahs = allPages.isNotEmpty && startPage < allPages.length
         ? allPages[startPage]
         : state.ayahs;
-    final activeSurahNum =
-        activeAyahs.isNotEmpty ? activeAyahs.first.chapter : state.surah.number;
-    final activeSurah = allSurahs.firstWhere(
-      (s) => s.number == activeSurahNum,
-      orElse: () => state.surah,
-    );
+    QuranSurah activeSurah = state.surah;
+    final hasSurahOnPage =
+        activeAyahs.any((a) => a.chapter == state.surah.number);
+    if (!hasSurahOnPage && activeAyahs.isNotEmpty) {
+      final activeSurahNum = activeAyahs.first.chapter;
+      activeSurah = allSurahs.firstWhere(
+        (s) => s.number == activeSurahNum,
+        orElse: () => state.surah,
+      );
+    }
 
     emit(
       state.copyWith(

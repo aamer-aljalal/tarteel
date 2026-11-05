@@ -9,6 +9,8 @@ import 'package:tarteel/features/Hadith/HadithScreen.dart';
 import 'package:tarteel/features/Qibla/QiblaScreen.dart';
 import 'package:tarteel/features/Settings/Settings.dart';
 import 'package:tarteel/features/adhan/views/adhan_muezzin_screen.dart';
+import 'package:tarteel/features/quran/services/quran_service.dart';
+import 'package:tarteel/features/quran/views/surah_detail_page.dart';
 import 'package:tarteel/features/quran/views/SurahListPage.dart';
 import 'package:tarteel/features/Tasbeeh/TasbeehScreen.dart';
 import 'package:tarteel/features/Dashbord/Stats.dart';
@@ -40,6 +42,29 @@ class RouteGenerator {
 
       case AppRoutes.quran:
         return MaterialPageRoute(builder: (_) => const SurahListPage());
+
+      case AppRoutes.surahDetails:
+        int surahNumber = 1;
+        int? initialAyah;
+        int? initialPage;
+        if (settings.arguments is QuranSurah) {
+          final surah = settings.arguments as QuranSurah;
+          surahNumber = surah.number;
+        } else if (settings.arguments is int) {
+          surahNumber = settings.arguments as int;
+        } else if (settings.arguments is Map) {
+          final map = settings.arguments as Map;
+          surahNumber = map['surah'] as int? ?? 1;
+          initialAyah = map['ayah'] as int?;
+          initialPage = map['page'] as int?;
+        }
+        return MaterialPageRoute(
+          builder: (_) => _SurahDetailRouteWrapper(
+            surahNumber: surahNumber,
+            initialAyah: initialAyah,
+            initialPage: initialPage,
+          ),
+        );
 
       // ========================= قصص الأنبياء =========================
 
@@ -196,5 +221,46 @@ class RouteGenerator {
           ),
         );
     }
+  }
+}
+
+class _SurahDetailRouteWrapper extends StatelessWidget {
+  final int surahNumber;
+  final int? initialAyah;
+  final int? initialPage;
+
+  const _SurahDetailRouteWrapper({
+    required this.surahNumber,
+    this.initialAyah,
+    this.initialPage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: Future.wait([
+        QuranService.loadSurahs(),
+        QuranService.loadAyahs(surahNumber),
+      ]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final surahs = snapshot.data![0] as List<QuranSurah>;
+        final ayahs = snapshot.data![1] as List<QuranAyah>;
+        final surah = surahs.firstWhere(
+          (s) => s.number == surahNumber,
+          orElse: () => surahs.first,
+        );
+        return SurahDetailPage(
+          surah: surah,
+          ayahs: ayahs,
+          initialPage: initialPage,
+          initialAyah: initialAyah,
+        );
+      },
+    );
   }
 }

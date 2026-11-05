@@ -83,8 +83,8 @@ class KhatmaPlanModel {
     final rawBadges = json['badges'] as List<dynamic>?;
     final badgesList = rawBadges != null
         ? rawBadges
-            .whereType<Map<String, dynamic>>()
-            .map((b) => KhatmaBadgeModel.fromJson(b))
+            .whereType<Map>()
+            .map((b) => KhatmaBadgeModel.fromJson(Map<String, dynamic>.from(b)))
             .toList()
         : KhatmaBadgeModel.defaultBadges();
 

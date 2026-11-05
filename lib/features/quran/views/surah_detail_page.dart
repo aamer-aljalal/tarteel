@@ -14,14 +14,14 @@ import 'package:tarteel/features/quran/widgets/mushaf_page.dart';
 class SurahDetailPage extends StatelessWidget {
   final QuranSurah surah;
   final List<QuranAyah> ayahs;
-  final int initialPage;
+  final int? initialPage;
   final int? initialAyah;
 
   const SurahDetailPage({
     super.key,
     required this.surah,
     required this.ayahs,
-    this.initialPage = 0,
+    this.initialPage,
     this.initialAyah,
   });
 
