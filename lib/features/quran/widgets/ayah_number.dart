@@ -21,7 +21,7 @@ class AyahNumber extends StatelessWidget {
       margin: EdgeInsets.symmetric(horizontal: 1.5.w),
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/img/verseNumber.png'),
+          image: AssetImage('assets/img/quran/verseNumber.png'),
           fit: BoxFit.contain,
         ),
       ),
